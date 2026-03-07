@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,6 +42,7 @@ export function Navbar() {
           >
             Support
           </Link>
+          <ThemeToggle />
           <a
             href="#download"
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
@@ -49,26 +51,29 @@ export function Navbar() {
           </a>
         </div>
 
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-lg md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
+        <div className="flex items-center gap-3 md:hidden">
+          <ThemeToggle />
+          <button
+            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
           >
-            {mobileOpen ? (
-              <path d="M4 4l12 12M16 4L4 16" />
-            ) : (
-              <path d="M3 5h14M3 10h14M3 15h14" />
-            )}
-          </svg>
-        </button>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              {mobileOpen ? (
+                <path d="M4 4l12 12M16 4L4 16" />
+              ) : (
+                <path d="M3 5h14M3 10h14M3 15h14" />
+              )}
+            </svg>
+          </button>
+        </div>
       </div>
 
       {mobileOpen && (
