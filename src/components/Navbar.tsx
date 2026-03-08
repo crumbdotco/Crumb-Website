@@ -1,51 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+    <nav
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-5xl transition-all duration-500 rounded-2xl ${
+        scrolled
+          ? "bg-background/70 backdrop-blur-2xl shadow-lg shadow-primary/5 border border-border/60"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="flex h-14 items-center justify-between px-5">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary shadow-md shadow-primary/20 transition-transform group-hover:scale-110">
             <span className="text-sm font-bold text-white">C</span>
           </div>
-          <span className="text-lg font-bold">Crumb</span>
+          <span className="text-lg font-bold tracking-tight">Crumb</span>
         </Link>
 
-        <div className="hidden items-center gap-8 md:flex">
-          <Link
-            href="#features"
-            className="text-sm text-muted transition-colors hover:text-foreground"
-          >
-            Features
-          </Link>
-          <Link
-            href="#how-it-works"
-            className="text-sm text-muted transition-colors hover:text-foreground"
-          >
-            How It Works
-          </Link>
-          <Link
-            href="#premium"
-            className="text-sm text-muted transition-colors hover:text-foreground"
-          >
-            Premium
-          </Link>
-          <Link
-            href="/support"
-            className="text-sm text-muted transition-colors hover:text-foreground"
-          >
-            Support
-          </Link>
+        <div className="hidden items-center gap-1 md:flex">
+          {[
+            { href: "#features", label: "Features" },
+            { href: "#how-it-works", label: "How It Works" },
+            { href: "#premium", label: "Premium" },
+            { href: "/support", label: "Support" },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="relative px-4 py-2 text-sm text-muted transition-colors hover:text-foreground rounded-lg hover:bg-surface/80"
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          <div className="mx-2 h-5 w-px bg-border" />
           <ThemeToggle />
           <a
             href="#download"
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-primary-dark"
+            className="ml-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:scale-105 active:scale-95"
           >
             Download
           </a>
@@ -54,17 +59,18 @@ export function Navbar() {
         <div className="flex items-center gap-3 md:hidden">
           <ThemeToggle />
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
             <svg
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 20 20"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
+              className="transition-transform"
             >
               {mobileOpen ? (
                 <path d="M4 4l12 12M16 4L4 16" />
@@ -77,39 +83,26 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden">
-          <div className="flex flex-col gap-1 px-6 py-4">
-            <Link
-              href="#features"
-              className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-light hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              Features
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-light hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              How It Works
-            </Link>
-            <Link
-              href="#premium"
-              className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-light hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              Premium
-            </Link>
-            <Link
-              href="/support"
-              className="rounded-lg px-3 py-2 text-sm text-muted hover:bg-surface-light hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              Support
-            </Link>
+        <div className="border-t border-border/30 px-5 py-4 md:hidden">
+          <div className="flex flex-col gap-1">
+            {[
+              { href: "#features", label: "Features" },
+              { href: "#how-it-works", label: "How It Works" },
+              { href: "#premium", label: "Premium" },
+              { href: "/support", label: "Support" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-xl px-4 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
             <a
               href="#download"
-              className="mt-2 rounded-full bg-primary px-5 py-2 text-center text-sm font-semibold text-white"
+              className="mt-2 rounded-xl bg-primary px-5 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-primary/20"
               onClick={() => setMobileOpen(false)}
             >
               Download
