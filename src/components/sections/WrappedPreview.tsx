@@ -1,31 +1,32 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Utensils, Trophy, Fingerprint, Share2 } from "lucide-react";
 
 const wrappedCards = [
   {
-    emoji: "🍽️",
+    icon: Utensils,
     headline: "You ordered",
     value: "147",
     sub: "times this year",
     gradient: "from-[#8B7355] to-[#6B5335]",
   },
   {
-    emoji: "🏆",
+    icon: Trophy,
     headline: "Your go-to was",
     value: "Nando's",
     sub: "21 orders and counting",
     gradient: "from-[#A0785A] to-[#7A5838]",
   },
   {
-    emoji: "🧬",
+    icon: Fingerprint,
     headline: "Your food personality",
     value: "Creature of Habit",
     sub: "You know what you like",
     gradient: "from-[#6B5335] to-[#3D2B1F]",
   },
   {
-    emoji: "📤",
+    icon: Share2,
     headline: "",
     value: "Share your story",
     sub: "Let your friends see your Wrapped",
@@ -71,7 +72,7 @@ export function WrappedPreview() {
             href="#download"
             className="text-crumb-cream underline underline-offset-4 hover:text-white transition-colors font-medium"
           >
-            Get your Wrapped →
+            Get your Wrapped
           </a>
         </div>
 
@@ -94,7 +95,9 @@ export function WrappedPreview() {
                       transition={{ duration: 0.4 }}
                       className={`absolute inset-0 bg-gradient-to-b ${card.gradient} rounded-3xl flex flex-col items-center justify-center p-8 text-center shadow-2xl`}
                     >
-                      <span className="text-5xl mb-4">{card.emoji}</span>
+                      <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-4">
+                        <card.icon size={28} className="text-white" />
+                      </div>
                       {card.headline && (
                         <p className="text-sm text-crumb-cream/70 mb-2">
                           {card.headline}
@@ -116,9 +119,7 @@ export function WrappedPreview() {
                   key={i}
                   onClick={() => setActiveCard(i)}
                   className={`w-2 h-2 rounded-full transition-all ${
-                    i === activeCard
-                      ? "bg-white w-6"
-                      : "bg-white/30"
+                    i === activeCard ? "bg-white w-6" : "bg-white/30"
                   }`}
                 />
               ))}
