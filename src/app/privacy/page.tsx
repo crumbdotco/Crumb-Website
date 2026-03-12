@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Crumb",
+  title: "Privacy Policy - Crumb",
   description: "How Crumb handles your data. GDPR compliant.",
 };
 
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
             </h2>
             <p>
               Spending data is never shared with third parties. Your full order
-              history never leaves your device — only anonymised taste profiles
+              history never leaves your device. Only anonymised taste profiles
               are synced to the cloud for social features.
             </p>
           </section>

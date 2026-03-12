@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Crumb",
+  title: "Terms of Service - Crumb",
   description: "Terms and conditions for using the Crumb app.",
 };
 

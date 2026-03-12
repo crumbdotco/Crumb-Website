@@ -20,7 +20,7 @@ export default function SupportPage() {
             {[
               {
                 q: "How does Crumb access my order history?",
-                a: "Crumb connects to your delivery accounts (Uber Eats, Just Eat) through their official APIs using OAuth 2.0. This means you log in directly with the platform — we never see your password.",
+                a: "Crumb connects to your delivery accounts (Uber Eats, Just Eat) through their official APIs using OAuth 2.0. This means you log in directly with the platform. We never see your password.",
               },
               {
                 q: "Is my data safe?",

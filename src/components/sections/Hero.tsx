@@ -78,8 +78,8 @@ function CTAButtons() {
           See how it works ↓
         </a>
       </div>
-      <p className="text-xs text-crumb-muted flex items-center gap-2">
-        <span>📱</span> Available on iOS and Android
+      <p className="text-xs text-crumb-muted">
+        Available on iOS and Android
       </p>
     </motion.div>
   );
@@ -98,7 +98,7 @@ export function Hero() {
           </div>
         }
       >
-        <PhoneMockup label="Home Tab" />
+        <PhoneMockup />
       </ContainerScroll>
     </section>
   );
