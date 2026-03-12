@@ -1,68 +1,42 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { ThemeProvider } from "@/components/ThemeProvider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
-  title: "Crumb - Your Food Delivery Stats",
+  title: "Crumb — Your Food Delivery Stats & Wrapped",
   description:
-    "Get personalised insights into your food delivery habits. Track orders, discover your taste profile, and compare with friends.",
+    "Connect Uber Eats and Just Eat. See your stats, get your Wrapped, find your food soulmate. Free for iOS and Android.",
+  keywords: [
+    "food delivery stats",
+    "uber eats wrapped",
+    "just eat stats",
+    "food delivery analytics",
+    "crumb app",
+  ],
   openGraph: {
-    title: "Crumb - Your Food Delivery Stats",
-    description:
-      "Get personalised insights into your food delivery habits. Track orders, discover your taste profile, and compare with friends.",
+    title: "Crumb — Your Food Delivery Stats & Wrapped",
+    description: "Your food. Your stats. Your story.",
+    url: "https://getcrumb.co",
+    siteName: "Crumb",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
+    locale: "en_GB",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Crumb — Your Food Delivery Stats & Wrapped",
+    description: "Your food. Your stats. Your story.",
+    images: ["/images/og-image.png"],
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('crumb-theme');
-                  if (theme === 'light') {
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.classList.add('light');
-                  } else if (!theme && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.classList.add('light');
-                  }
-                } catch(e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
-      >
-        <ThemeProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </ThemeProvider>
-      </body>
+    <html lang="en">
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

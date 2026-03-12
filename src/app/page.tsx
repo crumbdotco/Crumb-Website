@@ -1,19 +1,25 @@
-import { Hero } from "@/components/Hero";
-import { Features } from "@/components/Features";
-import { HowItWorks } from "@/components/HowItWorks";
-import { Platforms } from "@/components/Platforms";
-import { Premium } from "@/components/Premium";
-import { CTA } from "@/components/CTA";
+import { Navbar } from "@/components/sections/Navbar";
+import { Hero } from "@/components/sections/Hero";
+import { FeatureScroll } from "@/components/sections/FeatureScroll";
+import { StatsShowcase } from "@/components/sections/StatsShowcase";
+import { WrappedPreview } from "@/components/sections/WrappedPreview";
+import { SoulmateSection } from "@/components/sections/SoulmateSection";
+import { PricingSection } from "@/components/sections/PricingSection";
+import { DownloadCTA } from "@/components/sections/DownloadCTA";
+import { Footer } from "@/components/sections/Footer";
 
 export default function Home() {
   return (
     <main>
+      <Navbar />
       <Hero />
-      <Features />
-      <HowItWorks />
-      <Platforms />
-      <Premium />
-      <CTA />
+      <FeatureScroll />
+      <StatsShowcase />
+      <WrappedPreview />
+      <SoulmateSection />
+      <PricingSection />
+      <DownloadCTA />
+      <Footer />
     </main>
   );
 }
