@@ -7,7 +7,7 @@ import { AnimatedCounter } from "../shared/AnimatedCounter";
 const statCards = [
   { type: "counter" as const, value: 147, label: "orders tracked" },
   { type: "counter" as const, value: 15, label: "restaurants explored" },
-  { type: "text" as const, text: "Chicken Burger", label: "your signature order" },
+  { type: "text" as const, text: "Sushi", label: "your signature order" },
   { type: "donut" as const, label: "cuisine breakdown" },
   { type: "text" as const, text: "Saturday 7pm", label: "your prime ordering time" },
   { type: "counter" as const, value: 92, suffix: "%", label: "taste match with your best friend" },
@@ -15,11 +15,11 @@ const statCards = [
 
 function DonutChart() {
   const segments = [
-    { pct: 35, color: "#8B7355", label: "British" },
-    { pct: 25, color: "#E6C39B", label: "Italian" },
-    { pct: 20, color: "#3D2B1F", label: "Indian" },
-    { pct: 12, color: "#A09080", label: "Chinese" },
-    { pct: 8, color: "#D4C9BC", label: "Other" },
+    { pct: 35, color: "#5B3A1E", label: "British" },
+    { pct: 25, color: "#2E7D32", label: "Italian" },
+    { pct: 20, color: "#1A1208", label: "Indian" },
+    { pct: 12, color: "#C62828", label: "Chinese" },
+    { pct: 8, color: "#4A148C", label: "Other" },
   ];
 
   const radius = 40;
