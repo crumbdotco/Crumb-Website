@@ -15,7 +15,7 @@ const features = [
     num: "02",
     icon: BarChart3,
     title: "See Your Stats",
-    desc: "Total orders, top restaurants, favourite items, cuisine breakdown — all visualised beautifully.",
+    desc: "Total orders, top restaurants, favourite items, cuisine breakdown, all visualised beautifully.",
   },
   {
     num: "03",
@@ -40,7 +40,8 @@ const features = [
 export function FeatureScroll() {
   const targetRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: targetRef });
-  const x = useTransform(scrollYProgress, [0, 1], ["0%", "-75%"]);
+  // Scroll further so card 05 ends at the right edge, not centered
+  const x = useTransform(scrollYProgress, [0, 1], ["0%", "-60%"]);
 
   return (
     <section
