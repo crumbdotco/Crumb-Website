@@ -61,7 +61,7 @@ export default function SupportPage() {
           </p>
           <div className="mt-6 space-y-4">
             <a
-              href="mailto:support@crumb.co"
+              href="mailto:contact@crumbify.co.uk"
               className="flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-surface-light"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">

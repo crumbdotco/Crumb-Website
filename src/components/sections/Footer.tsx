@@ -29,7 +29,7 @@ export function Footer() {
             Terms of Service
           </a>
           <a
-            href="mailto:hello@getcrumb.co"
+            href="mailto:contact@crumbify.co.uk"
             className="text-sm text-crumb-muted hover:text-crumb-cream transition-colors"
           >
             Contact

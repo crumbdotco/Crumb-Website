@@ -140,10 +140,10 @@ export default function TermsPage() {
             <p>
               For questions about these Terms, contact us at{" "}
               <a
-                href="mailto:legal@getcrumb.co"
+                href="mailto:contact@crumbify.co.uk"
                 className="text-crumb-dark font-medium underline underline-offset-2 hover:text-crumb-darkest"
               >
-                legal@getcrumb.co
+                contact@crumbify.co.uk
               </a>
               .
             </p>

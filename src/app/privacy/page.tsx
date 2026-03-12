@@ -151,10 +151,10 @@ export default function PrivacyPage() {
               If you have questions about this Privacy Policy, please contact us
               at{" "}
               <a
-                href="mailto:privacy@getcrumb.co"
+                href="mailto:contact@crumbify.co.uk"
                 className="text-crumb-dark font-medium underline underline-offset-2 hover:text-crumb-darkest"
               >
-                privacy@getcrumb.co
+                contact@crumbify.co.uk
               </a>
               .
             </p>
