@@ -47,7 +47,7 @@ export function FeatureScroll() {
     <section
       id="features"
       ref={targetRef}
-      className="relative h-[400vh] bg-crumb-darkest"
+      className="relative h-[200vh] bg-crumb-darkest"
     >
       <FlowingBackground dark />
       <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
