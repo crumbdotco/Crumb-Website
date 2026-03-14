@@ -120,7 +120,7 @@ export function WaitlistSection() {
           </ul>
 
           <a
-            href="YOUR_STRIPE_PAYMENT_LINK_URL"
+            href="https://buy.stripe.com/3cI8wJ6zPaaG5XE7M33ks00"
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center bg-crumb-brown hover:bg-crumb-dark text-white font-bold py-4 px-8 rounded-xl transition-all hover:scale-[1.02] hover:shadow-xl text-lg"
