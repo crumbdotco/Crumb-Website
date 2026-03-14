@@ -19,9 +19,9 @@ const freePlan = {
 
 const premiumPlan = {
   name: "Premium",
-  price: "£2.99",
+  price: "£1.99",
   period: "/month",
-  sub: "or £19.99/year",
+  sub: "or £14.99/year",
   features: [
     "Everything in Free, plus:",
     "Ad-free experience",
