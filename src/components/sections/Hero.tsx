@@ -66,10 +66,10 @@ function CTAButtons() {
     >
       <div className="flex flex-col sm:flex-row gap-3">
         <a
-          href="#download"
+          href="#waitlist"
           className="inline-flex items-center justify-center px-8 h-14 bg-crumb-dark text-white text-base font-semibold rounded-full hover:scale-[1.02] hover:shadow-xl transition-all"
         >
-          Download for Free
+          Join the Waitlist
         </a>
         <a
           href="#features"

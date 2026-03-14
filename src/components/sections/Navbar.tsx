@@ -7,6 +7,7 @@ const navLinks = [
   { label: "Features", href: "#features" },
   { label: "Wrapped", href: "#wrapped" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Waitlist", href: "#waitlist" },
 ];
 
 export function Navbar() {
@@ -59,13 +60,13 @@ export function Navbar() {
           {/* CTA button */}
           <div className="hidden md:block">
             <motion.a
-              href="#download"
+              href="#waitlist"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: "spring", delay: 0.4 }}
               className="inline-flex items-center px-6 py-2.5 bg-crumb-dark text-white text-sm font-semibold rounded-full hover:scale-[1.02] hover:shadow-lg transition-all"
             >
-              Download
+              Join Waitlist
             </motion.a>
           </div>
 
@@ -104,7 +105,7 @@ export function Navbar() {
               </motion.a>
             ))}
             <motion.a
-              href="#download"
+              href="#waitlist"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
@@ -112,7 +113,7 @@ export function Navbar() {
               onClick={() => setMobileOpen(false)}
               className="mt-4 px-8 py-3 bg-crumb-dark text-white text-lg font-semibold rounded-full"
             >
-              Download
+              Join Waitlist
             </motion.a>
           </motion.div>
         )}

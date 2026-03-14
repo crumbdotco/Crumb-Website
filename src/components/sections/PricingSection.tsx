@@ -25,7 +25,6 @@ const premiumPlan = {
   features: [
     "Everything in Free, plus:",
     "Ad-free experience",
-    "Spending breakdowns",
     "Drink statistics",
     "Lifetime history",
     "Percentile rankings",
@@ -71,7 +70,7 @@ export function PricingSection() {
               ))}
             </ul>
             <a
-              href="#download"
+              href="#waitlist"
               className="mt-8 inline-flex items-center justify-center h-12 border-2 border-crumb-dark text-crumb-dark text-sm font-semibold rounded-full hover:bg-crumb-dark/5 transition-all"
             >
               {freePlan.cta}
@@ -107,11 +106,18 @@ export function PricingSection() {
               ))}
             </ul>
             <a
-              href="#download"
+              href="#waitlist"
               className="mt-8 inline-flex items-center justify-center h-12 bg-crumb-dark text-white text-sm font-semibold rounded-full hover:scale-[1.02] hover:shadow-lg transition-all"
             >
               {premiumPlan.cta}
             </a>
+            <p className="text-xs text-crumb-muted text-center mt-4">
+              Or{" "}
+              <a href="#waitlist" className="underline hover:text-crumb-dark transition-colors">
+                become a Founding Member
+              </a>{" "}
+              and get premium for life — £4.99
+            </p>
           </motion.div>
         </div>
       </div>

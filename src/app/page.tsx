@@ -5,7 +5,7 @@ import { StatsShowcase } from "@/components/sections/StatsShowcase";
 import { WrappedPreview } from "@/components/sections/WrappedPreview";
 import { SoulmateSection } from "@/components/sections/SoulmateSection";
 import { PricingSection } from "@/components/sections/PricingSection";
-import { DownloadCTA } from "@/components/sections/DownloadCTA";
+import { WaitlistSection } from "@/components/sections/WaitlistSection";
 import { Footer } from "@/components/sections/Footer";
 
 export default function Home() {
@@ -18,7 +18,7 @@ export default function Home() {
       <WrappedPreview />
       <SoulmateSection />
       <PricingSection />
-      <DownloadCTA />
+      <WaitlistSection />
       <Footer />
     </main>
   );
