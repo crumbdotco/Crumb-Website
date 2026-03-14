@@ -1,5 +1,3 @@
-"use client";
-
 export function PhoneMockup() {
   return (
     <div className="relative w-full h-full flex items-center justify-center">

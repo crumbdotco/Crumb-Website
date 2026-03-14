@@ -1,5 +1,3 @@
-"use client";
-
 export function Footer() {
   return (
     <footer className="bg-crumb-darkest border-t border-white/[0.06] py-12">
