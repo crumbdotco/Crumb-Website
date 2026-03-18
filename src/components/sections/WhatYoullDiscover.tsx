@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 
 const discoveries = [
   {
-    emoji: "\uD83C\uDF55",
-    stat: "\u00A3487",
-    label: "spent on delivery this year",
-    sub: "More than your phone contract",
+    emoji: "📦",
+    stat: "147",
+    label: "total orders this year",
+    sub: "That's one every 2.5 days",
   },
   {
     emoji: "\uD83C\uDFC6",
@@ -21,10 +21,10 @@ const discoveries = [
     sub: "Every. Single. Week.",
   },
   {
-    emoji: "\uD83C\uDF36\uFE0F",
-    stat: "Creature of Habit",
+    emoji: "✨",
+    stat: "Main Character",
     label: "your food personality",
-    sub: "You know what you like",
+    sub: "You order like the protagonist",
   },
   {
     emoji: "\uD83D\uDC9B",
