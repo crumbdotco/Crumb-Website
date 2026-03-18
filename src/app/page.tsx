@@ -1,10 +1,10 @@
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
-import { FeatureScroll } from "@/components/sections/FeatureScroll";
-import { StatsShowcase } from "@/components/sections/StatsShowcase";
+import { WhatYoullDiscover } from "@/components/sections/WhatYoullDiscover";
+import { HowItWorks } from "@/components/sections/HowItWorks";
 import { WrappedPreview } from "@/components/sections/WrappedPreview";
-import { SoulmateSection } from "@/components/sections/SoulmateSection";
-import { PricingSection } from "@/components/sections/PricingSection";
+import { FeaturesGrid } from "@/components/sections/FeaturesGrid";
+import { SocialProof } from "@/components/sections/SocialProof";
 import { WaitlistSection } from "@/components/sections/WaitlistSection";
 import { Footer } from "@/components/sections/Footer";
 
@@ -13,11 +13,11 @@ export default function Home() {
     <main>
       <Navbar />
       <Hero />
-      <FeatureScroll />
-      <StatsShowcase />
+      <WhatYoullDiscover />
+      <HowItWorks />
       <WrappedPreview />
-      <SoulmateSection />
-      <PricingSection />
+      <FeaturesGrid />
+      <SocialProof />
       <WaitlistSection />
       <Footer />
     </main>
