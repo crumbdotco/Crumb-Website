@@ -69,7 +69,7 @@ export function WrappedPreview() {
             friends.
           </p>
           <a
-            href="#download"
+            href="#waitlist"
             className="text-crumb-cream underline underline-offset-4 hover:text-white transition-colors font-medium"
           >
             Get your Wrapped
