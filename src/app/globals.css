@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-crumb-cream: #E8DDD3;
+  --color-crumb-cream: #E0D5C9;
   --color-crumb-card: #E6C39B;
   --color-crumb-brown: #8B7355;
   --color-crumb-dark: #3D2B1F;
@@ -19,7 +19,7 @@ html {
 }
 
 body {
-  background: #E8DDD3;
+  background: #E0D5C9;
   color: #3D2B1F;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
