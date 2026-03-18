@@ -23,7 +23,7 @@ export function SocialProof() {
             href="#waitlist"
             className="inline-flex items-center justify-center px-8 h-14 bg-crumb-dark text-white text-base font-semibold rounded-full hover:scale-[1.02] hover:shadow-xl transition-all"
           >
-            Join the waitlist — it&apos;s free
+            Join the waitlist - it&apos;s free
           </a>
           <p className="text-xs text-crumb-muted/70">
             No spam. We&apos;ll email you on launch day and nothing else.

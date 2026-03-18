@@ -125,7 +125,7 @@ export function WaitlistSection() {
             rel="noopener noreferrer"
             className="block w-full text-center bg-crumb-brown hover:bg-crumb-dark text-white font-bold py-4 px-8 rounded-xl transition-all hover:scale-[1.02] hover:shadow-xl text-lg"
           >
-            Become a Founding Member &mdash; &pound;4.99
+            Become a Founding Member - &pound;4.99
           </a>
         </motion.div>
 

@@ -8,7 +8,7 @@ export default function FoundingMemberSuccess() {
         </h1>
         <p className="text-crumb-muted text-lg mb-8">
           You&apos;re locked in. When Crumb launches, you&apos;ll get first-day access
-          and lifetime premium &mdash; no subscription needed, ever.
+          and lifetime premium - no subscription needed, ever.
         </p>
         <p className="text-crumb-muted text-sm mb-8">
           We&apos;ll email you the moment it&apos;s ready.

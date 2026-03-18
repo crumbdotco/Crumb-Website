@@ -22,7 +22,7 @@ export function Hero() {
               className="inline-flex items-center gap-2 px-4 py-1.5 bg-crumb-card rounded-full text-xs font-semibold text-crumb-dark mb-6"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-crumb-brown" />
-              Spotify Wrapped — but for food delivery
+              Spotify Wrapped - but for food delivery
             </motion.div>
 
             {/* Main headline */}
@@ -59,7 +59,7 @@ export function Hero() {
                 href="#waitlist"
                 className="inline-flex items-center justify-center px-8 h-14 bg-crumb-dark text-white text-base font-semibold rounded-full hover:scale-[1.02] hover:shadow-xl transition-all"
               >
-                Join the waitlist — it&apos;s free
+                Join the waitlist - it&apos;s free
               </a>
               <p className="text-sm text-crumb-muted">
                 Available on iOS &amp; Android

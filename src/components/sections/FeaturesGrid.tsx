@@ -179,7 +179,7 @@ export function FeaturesGrid() {
               <a href="#waitlist" className="underline hover:text-crumb-cream/60 transition-colors">
                 become a Founding Member
               </a>{" "}
-              — lifetime premium for &pound;4.99
+              - lifetime premium for &pound;4.99
             </p>
           </motion.div>
         </div>
