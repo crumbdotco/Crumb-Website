@@ -37,7 +37,7 @@ export function Footer() {
         {/* Right: socials */}
         <div className="flex items-center gap-4">
           <a
-            href="https://instagram.com/getcrumb"
+            href="https://www.instagram.com/crumbify.co.uk/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram"
@@ -59,7 +59,7 @@ export function Footer() {
             </svg>
           </a>
           <a
-            href="https://twitter.com/getcrumb"
+            href="https://x.com/crumbifyco"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="X / Twitter"
@@ -75,7 +75,7 @@ export function Footer() {
             </svg>
           </a>
           <a
-            href="https://tiktok.com/@getcrumb"
+            href="https://www.tiktok.com/@crumbifyco"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="TikTok"
