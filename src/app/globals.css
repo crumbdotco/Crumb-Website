@@ -22,3 +22,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Animated gradient border for wrapped cards */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-gradient {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+.animated-border-gradient {
+  background: conic-gradient(from var(--angle), transparent 40%, rgba(139,115,85,0.5) 50%, transparent 60%);
+  animation: rotate-gradient 4s linear infinite;
+}
+
