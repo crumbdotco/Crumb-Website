@@ -26,7 +26,7 @@ function generateLines(width: number, height: number, count: number): string[] {
 
 const lines = generateLines(1920, 1080, 15);
 
-export function FlowingBackground({ dark = false }: { dark?: boolean }) {
+export function FlowingBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <motion.svg
@@ -40,9 +40,7 @@ export function FlowingBackground({ dark = false }: { dark?: boolean }) {
           <path
             key={i}
             d={d}
-            stroke={
-              dark ? "rgba(255,255,255,0.06)" : "rgba(180,160,140,0.15)"
-            }
+            stroke="rgba(180,160,140,0.15)"
             strokeWidth={1.5}
             fill="none"
           />
