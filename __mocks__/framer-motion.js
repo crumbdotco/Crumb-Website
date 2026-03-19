@@ -97,6 +97,10 @@ function useMotionValue(initial) {
   return { get: () => initial, set: jest.fn() };
 }
 
+function useSpring(value) {
+  return value;
+}
+
 function useTransform(value, fn) {
   return value;
 }
@@ -107,5 +111,6 @@ module.exports = {
   useAnimation,
   useInView,
   useMotionValue,
+  useSpring,
   useTransform,
 };

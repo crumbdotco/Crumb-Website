@@ -64,7 +64,7 @@ describe("WrappedPreview", () => {
     const dots = screen.getAllByRole("button");
     fireEvent.click(dots[1]);
     expect(screen.getByText("Your go-to was")).toBeInTheDocument();
-    expect(screen.getByText("Nando's")).toBeInTheDocument();
+    expect(screen.getByText("Nando\u2019s")).toBeInTheDocument();
   });
 
   it("clicking the third dot shows the personality card", () => {
@@ -72,7 +72,7 @@ describe("WrappedPreview", () => {
     const dots = screen.getAllByRole("button");
     fireEvent.click(dots[2]);
     expect(screen.getByText("Your food personality")).toBeInTheDocument();
-    expect(screen.getByText("Creature of Habit")).toBeInTheDocument();
+    expect(screen.getByText("Main Character")).toBeInTheDocument();
   });
 
   it("clicking the fourth dot shows the share card", () => {

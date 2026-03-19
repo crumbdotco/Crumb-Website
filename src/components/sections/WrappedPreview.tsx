@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Utensils, Trophy, Fingerprint, Share2 } from "lucide-react";
 import { EtherealShadow } from "../ui/ethereal-shadow";
