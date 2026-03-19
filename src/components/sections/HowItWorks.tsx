@@ -103,8 +103,8 @@ export function HowItWorks() {
         </motion.p>
       </div>
 
-      {/* Bottom gradient — smooth transition to next section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-crumb-cream z-10" />
+      {/* Bottom gradient — blend into WrappedPreview's brown */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 z-10" style={{ background: "linear-gradient(to bottom, transparent, #8B7355)" }} />
     </section>
   );
 }

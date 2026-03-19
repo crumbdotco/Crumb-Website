@@ -54,8 +54,8 @@ export function WrappedPreview() {
         background: "linear-gradient(135deg, #8B7355, #3D2B1F)",
       }}
     >
-      {/* Top gradient — smooth transition from cream section above */}
-      <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-crumb-cream to-transparent z-10" />
+      {/* Top gradient — blend from HowItWorks dark */}
+      <div className="absolute top-0 left-0 right-0 h-24 z-10" style={{ background: "linear-gradient(to bottom, #1A1208, transparent)" }} />
       <div className="max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
         {/* Left text */}
         <div className="lg:w-[40%] text-center lg:text-left">
@@ -129,6 +129,8 @@ export function WrappedPreview() {
           </div>
         </div>
       </div>
+      {/* Bottom gradient — blend into cream FeaturesGrid */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-crumb-cream z-10" />
     </section>
   );
 }
