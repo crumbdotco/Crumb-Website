@@ -15,7 +15,7 @@ export function WaitlistSection() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, website: (document.getElementById("crumb-hp") as HTMLInputElement)?.value ?? "" }),
       });
       if (res.ok) {
         setStatus("success");
@@ -54,6 +54,16 @@ export function WaitlistSection() {
           </motion.div>
         ) : (
           <form onSubmit={handleJoinFree} className="flex flex-col sm:flex-row gap-3 mb-12">
+            {/* Honeypot — hidden from humans, bots auto-fill it */}
+            <input
+              id="crumb-hp"
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
+            />
             <input
               type="email"
               value={email}

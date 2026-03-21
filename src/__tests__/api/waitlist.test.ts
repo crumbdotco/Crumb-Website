@@ -1,6 +1,7 @@
 /**
  * Waitlist API route tests
- * Tests validation, Supabase upsert, success/error responses, and edge cases.
+ * Tests validation, Supabase upsert, honeypot, disposable email blocking,
+ * origin checking, audit logging, and success/error responses.
  *
  * The mocks must be declared INSIDE jest.mock factory functions (not as
  * outer const references) to avoid the "Cannot access before initialization"
@@ -9,10 +10,15 @@
 
 // --- Supabase mock ---
 const mockUpsert = jest.fn();
-const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+const mockInsert = jest.fn();
+const mockRpc = jest.fn();
+const mockFrom = jest.fn((table: string) => {
+  if (table === "waitlist_audit_log") return { insert: mockInsert };
+  return { upsert: mockUpsert };
+});
 
 jest.mock("@supabase/supabase-js", () => ({
-  createClient: jest.fn(() => ({ from: mockFrom })),
+  createClient: jest.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 // Pull a reference to the mocked createClient AFTER jest.mock has run
@@ -40,10 +46,17 @@ const mockJson = NextResponse.json as jest.Mock;
 // --- Route under test ---
 import { POST } from "../../app/api/waitlist/route";
 
-function buildRequest(body: unknown): Request {
+function buildRequest(body: unknown, overrides?: { origin?: string; honeypot?: boolean }): Request {
+  const headers = new Headers({
+    "x-forwarded-for": "127.0.0.1",
+    "x-real-ip": "127.0.0.1",
+    "user-agent": "Mozilla/5.0 TestAgent",
+    origin: overrides?.origin ?? "https://crumbify.co.uk",
+  });
+
   return {
     json: jest.fn().mockResolvedValue(body),
-    headers: new Headers({ 'x-forwarded-for': '127.0.0.1' }),
+    headers,
   } as unknown as Request;
 }
 
@@ -51,9 +64,14 @@ describe("POST /api/waitlist", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Re-wire after clearAllMocks
-    mockFrom.mockReturnValue({ upsert: mockUpsert });
-    mockCreateClient.mockReturnValue({ from: mockFrom });
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "waitlist_audit_log") return { insert: mockInsert };
+      return { upsert: mockUpsert };
+    });
+    mockCreateClient.mockReturnValue({ from: mockFrom, rpc: mockRpc });
     mockUpsert.mockResolvedValue({ error: null });
+    mockInsert.mockResolvedValue({ error: null });
+    mockRpc.mockResolvedValue({ data: false });
     // Ensure env vars are set so getSupabase() does not throw
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
@@ -62,6 +80,70 @@ describe("POST /api/waitlist", () => {
   afterEach(() => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+  });
+
+  describe("Origin checking", () => {
+    it("returns 403 when origin is missing", async () => {
+      const req = buildRequest({ email: "user@example.com" }, { origin: "" });
+      // Override to remove origin header
+      (req.headers as Headers).delete("origin");
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    });
+
+    it("returns 403 when origin is a foreign domain", async () => {
+      const req = buildRequest({ email: "user@example.com" }, { origin: "https://evil.com" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    });
+
+    it("allows requests from crumbify.co.uk", async () => {
+      const req = buildRequest({ email: "user@example.com" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith({ success: true });
+    });
+
+    it("allows requests from www.crumbify.co.uk", async () => {
+      const req = buildRequest({ email: "user@example.com" }, { origin: "https://www.crumbify.co.uk" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith({ success: true });
+    });
+  });
+
+  describe("Honeypot", () => {
+    it("returns fake success when honeypot field is filled (bot)", async () => {
+      const req = buildRequest({ email: "bot@spam.com", website: "http://spam.com" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith({ success: true });
+      // Should NOT insert into database
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Disposable email blocking", () => {
+    it("returns 400 for guerrillamail.com", async () => {
+      const req = buildRequest({ email: "x@guerrillamail.com" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith(
+        { error: "Please use a real email address" },
+        { status: 400 }
+      );
+    });
+
+    it("returns 400 for mailinator.com", async () => {
+      const req = buildRequest({ email: "x@mailinator.com" });
+      await POST(req);
+      expect(mockJson).toHaveBeenCalledWith(
+        { error: "Please use a real email address" },
+        { status: 400 }
+      );
+    });
   });
 
   describe("Input validation", () => {
@@ -104,7 +186,6 @@ describe("POST /api/waitlist", () => {
     it("returns 400 when email is a bare @ with no domain", async () => {
       const req = buildRequest({ email: "@" });
       await POST(req);
-      // Improved validation now correctly rejects "@" as invalid
       expect(mockJson).toHaveBeenCalledWith(
         { error: "Valid email required" },
         { status: 400 }
@@ -162,20 +243,42 @@ describe("POST /api/waitlist", () => {
       expect(mockFrom).toHaveBeenCalledWith("waitlist");
     });
 
-    it("upserts email lowercased and trimmed with tier free", async () => {
+    it("upserts with ignoreDuplicates to protect existing rows", async () => {
       const req = buildRequest({ email: "  User@Example.COM  " });
       await POST(req);
       expect(mockUpsert).toHaveBeenCalledWith(
-        { email: "user@example.com", tier: "free" },
-        { onConflict: "email" }
+        expect.objectContaining({
+          email: "user@example.com",
+          tier: "free",
+        }),
+        { onConflict: "email", ignoreDuplicates: true }
       );
     });
 
-    it("upserts with onConflict set to email", async () => {
-      const req = buildRequest({ email: "test@domain.org" });
+    it("stores IP and user agent with signup", async () => {
+      const req = buildRequest({ email: "user@example.com" });
       await POST(req);
-      const [, options] = mockUpsert.mock.calls[0];
-      expect(options).toEqual({ onConflict: "email" });
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          signup_ip: "127.0.0.1",
+          signup_user_agent: "Mozilla/5.0 TestAgent",
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it("logs to audit table on successful signup", async () => {
+      const req = buildRequest({ email: "user@example.com" });
+      await POST(req);
+      expect(mockFrom).toHaveBeenCalledWith("waitlist_audit_log");
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "user@example.com",
+          ip: "127.0.0.1",
+          action: "signup_attempt",
+          blocked_reason: null,
+        })
+      );
     });
 
     it("handles email with subdomain correctly", async () => {
@@ -203,6 +306,11 @@ describe("POST /api/waitlist", () => {
     it("returns 500 when request.json() throws", async () => {
       const req = {
         json: jest.fn().mockRejectedValue(new Error("Malformed JSON")),
+        headers: new Headers({
+          origin: "https://crumbify.co.uk",
+          "x-real-ip": "127.0.0.1",
+          "user-agent": "test",
+        }),
       } as unknown as Request;
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith(
