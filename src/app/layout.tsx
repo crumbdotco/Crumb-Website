@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://crumbify.co.uk"),
   title: "Crumb - Your Food Delivery Stats & Wrapped",
   description:
     "Connect Uber Eats and Just Eat. See your stats, get your Wrapped, find your food soulmate. Free for iOS and Android.",

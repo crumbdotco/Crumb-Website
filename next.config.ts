@@ -37,10 +37,12 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       // Next.js RSC and client navigation need self + data: for images
       "img-src 'self' data: https:",
-      // Scripts: self + Next.js inline hydration
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      // API calls only to same origin
-      "connect-src 'self'",
+      // Scripts: self + Next.js inline hydration + Cloudflare Turnstile
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+      // API calls to same origin + Cloudflare Turnstile verification
+      "connect-src 'self' https://challenges.cloudflare.com",
+      // Cloudflare Turnstile renders in an iframe
+      "frame-src https://challenges.cloudflare.com",
       // No plugins
       "object-src 'none'",
       // No base-uri override
