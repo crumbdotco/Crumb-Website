@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://crumbify.co.uk"),
-  title: "Crumb - Your Food Delivery Stats & Wrapped",
+  title: "Crumb - Your Food Delivery Stats in One Place",
   description:
     "Connect Uber Eats and Just Eat. See your stats, get your Wrapped, find your food soulmate. Free for iOS and Android.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "crumb app",
   ],
   openGraph: {
-    title: "Crumb - Your Food Delivery Stats & Wrapped",
+    title: "Crumb - Your Food Delivery Stats in One Place",
     description: "Your food. Your stats. Your story.",
     url: "https://crumbify.co.uk",
     siteName: "Crumb",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crumb - Your Food Delivery Stats & Wrapped",
+    title: "Crumb - Your Food Delivery Stats in One Place",
     description: "Your food. Your stats. Your story.",
     images: ["/images/og-image.png"],
   },
