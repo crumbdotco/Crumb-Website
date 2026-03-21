@@ -19,6 +19,11 @@ jest.mock("@supabase/supabase-js", () => ({
 import { createClient } from "@supabase/supabase-js";
 const mockCreateClient = createClient as jest.Mock;
 
+// --- Rate limit mock ---
+jest.mock("@/lib/rate-limit", () => ({
+  isRateLimited: jest.fn(() => false),
+}));
+
 // --- Next.js mock ---
 jest.mock("next/server", () => ({
   NextResponse: {
@@ -38,6 +43,7 @@ import { POST } from "../../app/api/waitlist/route";
 function buildRequest(body: unknown): Request {
   return {
     json: jest.fn().mockResolvedValue(body),
+    headers: new Headers({ 'x-forwarded-for': '127.0.0.1' }),
   } as unknown as Request;
 }
 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { isRateLimited } from '@/lib/rate-limit';
 
 // RFC 5322-compliant email regex (practical subset)
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -24,6 +25,13 @@ function isValidEmail(value: unknown): value is string {
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 requests per IP per minute
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded?.split(',')[0]?.trim() ?? 'unknown';
+    if (isRateLimited(ip, 5, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const body = await request.json();
     const { email } = body;
 

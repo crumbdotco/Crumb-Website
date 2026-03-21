@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Crumb - Your Food Delivery Stats & Wrapped",
     description: "Your food. Your stats. Your story.",
-    url: "https://getcrumb.co",
+    url: "https://crumbify.co.uk",
     siteName: "Crumb",
     images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
     locale: "en_GB",
