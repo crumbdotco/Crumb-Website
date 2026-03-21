@@ -50,8 +50,10 @@ function buildRequest(body: unknown, overrides?: { origin?: string; honeypot?: b
   const headers = new Headers({
     "x-forwarded-for": "127.0.0.1",
     "x-real-ip": "127.0.0.1",
-    "user-agent": "Mozilla/5.0 TestAgent",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     origin: overrides?.origin ?? "https://crumbify.co.uk",
+    accept: "application/json, text/plain, */*",
+    "accept-language": "en-GB,en;q=0.9",
   });
 
   return {
@@ -261,7 +263,7 @@ describe("POST /api/waitlist", () => {
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           signup_ip: "127.0.0.1",
-          signup_user_agent: "Mozilla/5.0 TestAgent",
+          signup_user_agent: expect.stringContaining("Mozilla/5.0"),
         }),
         expect.any(Object)
       );
@@ -309,7 +311,9 @@ describe("POST /api/waitlist", () => {
         headers: new Headers({
           origin: "https://crumbify.co.uk",
           "x-real-ip": "127.0.0.1",
-          "user-agent": "test",
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+          accept: "application/json",
+          "accept-language": "en-GB",
         }),
       } as unknown as Request;
       await POST(req);

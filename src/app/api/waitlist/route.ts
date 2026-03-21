@@ -97,10 +97,37 @@ async function isDbRateLimited(
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const userAgent = request.headers.get('user-agent');
+  const userAgent = request.headers.get('user-agent') ?? '';
   const country = getCountry(request);
 
   try {
+    // ---------------------------------------------------------------
+    // Layer 0: Bot user-agent detection — block before any processing
+    // Blocks headless browsers, curl, python scripts, etc.
+    // Returns fake success so bots think it worked and don't adapt.
+    // ---------------------------------------------------------------
+    const ua = userAgent.toLowerCase();
+    if (
+      ua.includes('headlesschrome') ||
+      ua.includes('phantomjs') ||
+      ua.includes('puppeteer') ||
+      ua.includes('selenium') ||
+      ua.includes('playwright') ||
+      ua.includes('python-requests') ||
+      ua.includes('python-urllib') ||
+      ua.includes('node-fetch') ||
+      ua.includes('go-http-client') ||
+      ua.includes('scrapy') ||
+      ua.includes('curl/') ||
+      ua.includes('wget/') ||
+      ua.includes('httpie') ||
+      ua.includes('postman') ||
+      ua === '' ||
+      !ua
+    ) {
+      return NextResponse.json({ success: true });
+    }
+
     // ---------------------------------------------------------------
     // Layer 1: Origin check — only accept requests from our domain
     // ---------------------------------------------------------------
@@ -114,6 +141,15 @@ export async function POST(request: Request) {
     }
     if (!allowedOrigins.includes(origin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // ---------------------------------------------------------------
+    // Layer 1.5: Require browser-like headers — real browsers always send these
+    // ---------------------------------------------------------------
+    const accept = request.headers.get('accept') ?? '';
+    const acceptLang = request.headers.get('accept-language') ?? '';
+    if (!accept || !acceptLang) {
+      return NextResponse.json({ success: true });
     }
 
     // ---------------------------------------------------------------
