@@ -150,7 +150,7 @@ export function WaitlistSection() {
                 disabled={buttonDisabled}
                 className="px-8 py-4 rounded-xl bg-crumb-card text-crumb-dark font-bold hover:bg-crumb-cream transition-colors whitespace-nowrap disabled:opacity-50"
               >
-                {status === "loading" ? "Joining..." : "Join Free \u2192"}
+                {status === "loading" ? "Joining..." : hasTurnstile && turnstileToken ? "Sign Up \u2192" : "Join Free \u2192"}
               </button>
             </div>
             {/* Cloudflare Turnstile widget */}
