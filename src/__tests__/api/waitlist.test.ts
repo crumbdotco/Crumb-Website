@@ -86,7 +86,7 @@ describe("POST /api/waitlist", () => {
 
   describe("Origin checking", () => {
     it("returns 403 when origin is missing", async () => {
-      const req = buildRequest({ email: "user@example.com" }, { origin: "" });
+      const req = buildRequest({ email: "user@gmail.com" }, { origin: "" });
       // Override to remove origin header
       (req.headers as Headers).delete("origin");
       await POST(req);
@@ -97,7 +97,7 @@ describe("POST /api/waitlist", () => {
     });
 
     it("returns 403 when origin is a foreign domain", async () => {
-      const req = buildRequest({ email: "user@example.com" }, { origin: "https://evil.com" });
+      const req = buildRequest({ email: "user@gmail.com" }, { origin: "https://evil.com" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith(
         { error: "Forbidden" },
@@ -106,13 +106,13 @@ describe("POST /api/waitlist", () => {
     });
 
     it("allows requests from crumbify.co.uk", async () => {
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith({ success: true });
     });
 
     it("allows requests from www.crumbify.co.uk", async () => {
-      const req = buildRequest({ email: "user@example.com" }, { origin: "https://www.crumbify.co.uk" });
+      const req = buildRequest({ email: "user@gmail.com" }, { origin: "https://www.crumbify.co.uk" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith({ success: true });
     });
@@ -128,23 +128,30 @@ describe("POST /api/waitlist", () => {
     });
   });
 
-  describe("Disposable email blocking", () => {
-    it("returns 400 for guerrillamail.com", async () => {
-      const req = buildRequest({ email: "x@guerrillamail.com" });
+  describe("Email domain whitelist", () => {
+    it("returns fake success for unknown domain (silent block)", async () => {
+      const req = buildRequest({ email: "x@randomdomain.xyz" });
       await POST(req);
-      expect(mockJson).toHaveBeenCalledWith(
-        { error: "Please use a real email address" },
-        { status: 400 }
-      );
+      expect(mockJson).toHaveBeenCalledWith({ success: true });
+      expect(mockUpsert).not.toHaveBeenCalled();
     });
 
-    it("returns 400 for mailinator.com", async () => {
-      const req = buildRequest({ email: "x@mailinator.com" });
+    it("allows gmail.com", async () => {
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
-      expect(mockJson).toHaveBeenCalledWith(
-        { error: "Please use a real email address" },
-        { status: 400 }
-      );
+      expect(mockUpsert).toHaveBeenCalled();
+    });
+
+    it("allows outlook.com", async () => {
+      const req = buildRequest({ email: "user@outlook.com" });
+      await POST(req);
+      expect(mockUpsert).toHaveBeenCalled();
+    });
+
+    it("allows .ac.uk university emails", async () => {
+      const req = buildRequest({ email: "student@city.ac.uk" });
+      await POST(req);
+      expect(mockUpsert).toHaveBeenCalled();
     });
   });
 
@@ -234,23 +241,23 @@ describe("POST /api/waitlist", () => {
 
   describe("Successful submissions", () => {
     it("returns 200 with success: true for valid email", async () => {
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith({ success: true });
     });
 
     it("calls Supabase from('waitlist')", async () => {
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockFrom).toHaveBeenCalledWith("waitlist");
     });
 
     it("upserts with ignoreDuplicates to protect existing rows", async () => {
-      const req = buildRequest({ email: "  User@Example.COM  " });
+      const req = buildRequest({ email: "  User@Gmail.COM  " });
       await POST(req);
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: "user@example.com",
+          email: "user@gmail.com",
           tier: "free",
         }),
         { onConflict: "email", ignoreDuplicates: true }
@@ -258,7 +265,7 @@ describe("POST /api/waitlist", () => {
     });
 
     it("stores IP and user agent with signup", async () => {
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -270,12 +277,12 @@ describe("POST /api/waitlist", () => {
     });
 
     it("logs to audit table on successful signup", async () => {
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockFrom).toHaveBeenCalledWith("waitlist_audit_log");
       expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: "user@example.com",
+          email: "user@gmail.com",
           ip: "127.0.0.1",
           action: "signup_attempt",
           blocked_reason: null,
@@ -284,7 +291,7 @@ describe("POST /api/waitlist", () => {
     });
 
     it("handles email with subdomain correctly", async () => {
-      const req = buildRequest({ email: "user@mail.example.co.uk" });
+      const req = buildRequest({ email: "user@hotmail.co.uk" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith({ success: true });
     });
@@ -295,7 +302,7 @@ describe("POST /api/waitlist", () => {
       mockUpsert.mockResolvedValueOnce({
         error: { message: "DB constraint violation" },
       });
-      const req = buildRequest({ email: "user@example.com" });
+      const req = buildRequest({ email: "user@gmail.com" });
       await POST(req);
       expect(mockJson).toHaveBeenCalledWith(
         { error: "Failed to join waitlist" },
@@ -326,7 +333,7 @@ describe("POST /api/waitlist", () => {
 
   describe("Environment variables", () => {
     it("creates Supabase client and succeeds when env vars are set", async () => {
-      const req = buildRequest({ email: "env@test.com" });
+      const req = buildRequest({ email: "env@gmail.com" });
       await POST(req);
 
       expect(mockFrom).toHaveBeenCalledWith("waitlist");
@@ -336,7 +343,7 @@ describe("POST /api/waitlist", () => {
     it("returns 500 when SUPABASE_URL is missing", async () => {
       delete process.env.SUPABASE_URL;
 
-      const req = buildRequest({ email: "env@test.com" });
+      const req = buildRequest({ email: "env@gmail.com" });
       await POST(req);
 
       expect(mockUpsert).not.toHaveBeenCalled();
@@ -349,7 +356,7 @@ describe("POST /api/waitlist", () => {
     it("returns 500 when SUPABASE_SERVICE_ROLE_KEY is missing", async () => {
       delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-      const req = buildRequest({ email: "env@test.com" });
+      const req = buildRequest({ email: "env@gmail.com" });
       await POST(req);
 
       expect(mockUpsert).not.toHaveBeenCalled();

@@ -38,9 +38,34 @@ function isValidEmail(value: unknown): value is string {
   return EMAIL_REGEX.test(trimmed);
 }
 
-function isDisposableEmail(email: string): boolean {
-  const domain = email.split('@')[1]?.toLowerCase();
-  return domain ? DISPOSABLE_DOMAINS.has(domain) : true;
+// Major email providers — only these domains are allowed to sign up
+const ALLOWED_EMAIL_DOMAINS = new Set([
+  // Google
+  'gmail.com', 'googlemail.com',
+  // Microsoft
+  'outlook.com', 'hotmail.com', 'hotmail.co.uk', 'live.com', 'live.co.uk', 'msn.com',
+  // Apple
+  'icloud.com', 'me.com', 'mac.com',
+  // Yahoo
+  'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in',
+  // ProtonMail
+  'protonmail.com', 'proton.me', 'pm.me',
+  // AOL
+  'aol.com',
+  // Zoho
+  'zoho.com',
+  // UK ISPs
+  'btinternet.com', 'sky.com', 'virginmedia.com', 'talktalk.net',
+  // Other common
+  'mail.com', 'fastmail.com', 'tutanota.com', 'hey.com',
+]);
+
+function isAllowedEmailDomain(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase() ?? '';
+  if (ALLOWED_EMAIL_DOMAINS.has(domain)) return true;
+  // Allow .ac.uk and .edu subdomains (e.g. student@city.ac.uk)
+  if (domain.endsWith('.ac.uk') || domain.endsWith('.edu')) return true;
+  return false;
 }
 
 /** Extract client IP from request headers */
@@ -183,22 +208,11 @@ export async function POST(request: Request) {
     const normalised = email.trim().toLowerCase();
 
     // ---------------------------------------------------------------
-    // Layer 4: Disposable email block
+    // Layer 4: Email domain whitelist — only major providers allowed
     // ---------------------------------------------------------------
-    if (isDisposableEmail(normalised)) {
-      const supabase = getSupabase();
-      await logAuditEntry(supabase, {
-        email: normalised,
-        ip,
-        user_agent: userAgent,
-        country,
-        action: 'signup_blocked',
-        blocked_reason: 'disposable_email',
-      });
-      return NextResponse.json(
-        { error: 'Please use a real email address' },
-        { status: 400 },
-      );
+    if (!isAllowedEmailDomain(normalised)) {
+      // Return fake success — don't write to audit log, don't give the bot any signal
+      return NextResponse.json({ success: true });
     }
 
     const supabase = getSupabase();
