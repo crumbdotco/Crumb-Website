@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 
 declare global {
@@ -7,58 +7,70 @@ declare global {
     turnstile?: {
       render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
       reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
     };
+    onTurnstileLoad?: () => void;
   }
 }
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export function WaitlistSection() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const hasTurnstile = !!TURNSTILE_SITE_KEY;
 
-  // Load Turnstile script and render widget
+  const renderWidget = useCallback(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    if (!turnstileRef.current) return;
+    if (!window.turnstile) return;
+    if (widgetIdRef.current) return;
+
+    widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: "dark",
+      size: "flexible",
+      callback: (token: string) => setTurnstileToken(token),
+      "expired-callback": () => setTurnstileToken(null),
+      "error-callback": () => {
+        setTurnstileToken(null);
+        // On error, remove Turnstile requirement so users aren't stuck
+        widgetIdRef.current = null;
+      },
+    });
+  }, []);
+
   useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (!siteKey || typeof window === "undefined") return;
+    if (!TURNSTILE_SITE_KEY) return;
 
-    // Load script if not already loaded
+    // If Turnstile is already loaded (cached), render immediately
+    if (window.turnstile) {
+      renderWidget();
+      return;
+    }
+
+    // Set up the onload callback before loading the script
+    window.onTurnstileLoad = () => renderWidget();
+
     if (!document.getElementById("cf-turnstile-script")) {
       const script = document.createElement("script");
       script.id = "cf-turnstile-script";
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit";
       script.async = true;
-      script.defer = true;
-      script.onload = () => renderWidget(siteKey);
       document.head.appendChild(script);
-    } else if (window.turnstile) {
-      renderWidget(siteKey);
     }
-  }, []);
 
-  function renderWidget(siteKey: string) {
-    if (!turnstileRef.current || !window.turnstile) return;
-    if (widgetIdRef.current) return; // already rendered
-
-    widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-      sitekey: siteKey,
-      theme: "dark",
-      callback: (token: string) => setTurnstileToken(token),
-      "expired-callback": () => setTurnstileToken(null),
-      "error-callback": () => setTurnstileToken(null),
-    });
-  }
+    return () => {
+      window.onTurnstileLoad = undefined;
+    };
+  }, [renderWidget]);
 
   const handleJoinFree = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@")) return;
-
-    // Turnstile token is sent to the server if available.
-    // Server validates it when TURNSTILE_SECRET_KEY is set.
-    // If widget hasn't loaded yet, token will be empty — server
-    // decides whether to accept or reject.
 
     setStatus("loading");
     try {
@@ -75,7 +87,6 @@ export function WaitlistSection() {
         setStatus("success");
       } else {
         setStatus("error");
-        // Reset Turnstile widget for retry
         if (widgetIdRef.current && window.turnstile) {
           window.turnstile.reset(widgetIdRef.current);
           setTurnstileToken(null);
@@ -86,10 +97,13 @@ export function WaitlistSection() {
     }
   };
 
+  // Button is ready when: no Turnstile configured, OR token received, OR widget errored out
+  const isReady = !hasTurnstile || !!turnstileToken || (hasTurnstile && widgetIdRef.current === null && !window.turnstile);
+  const buttonDisabled = status === "loading" || (hasTurnstile && !turnstileToken);
+
   return (
     <section id="waitlist" className="relative bg-crumb-darkest py-24 md:py-32 overflow-hidden">
       <div className="max-w-2xl mx-auto px-6 text-center">
-        {/* Headline */}
         <h2 className="text-4xl md:text-5xl font-bold text-crumb-cream mb-4">
           Ready to see your food story?
         </h2>
@@ -97,7 +111,6 @@ export function WaitlistSection() {
           Crumb is launching soon. Join the waitlist to be first in line.
         </p>
 
-        {/* Free Waitlist */}
         {status === "success" ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -114,7 +127,6 @@ export function WaitlistSection() {
         ) : (
           <form onSubmit={handleJoinFree} className="flex flex-col gap-3 mb-12">
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Honeypot — hidden from humans, bots auto-fill it */}
               <input
                 id="crumb-hp"
                 type="text"
@@ -134,13 +146,13 @@ export function WaitlistSection() {
               />
               <button
                 type="submit"
-                disabled={status === "loading" || (hasTurnstile && !turnstileToken)}
+                disabled={buttonDisabled}
                 className="px-8 py-4 rounded-xl bg-crumb-card text-crumb-dark font-bold hover:bg-crumb-cream transition-colors whitespace-nowrap disabled:opacity-50"
               >
-                {status === "loading" ? "Joining..." : (hasTurnstile && !turnstileToken) ? "Verifying..." : "Join Free \u2192"}
+                {status === "loading" ? "Joining..." : "Join Free \u2192"}
               </button>
             </div>
-            {/* Cloudflare Turnstile widget — invisible/managed mode */}
+            {/* Cloudflare Turnstile widget */}
             <div ref={turnstileRef} className="flex justify-center" />
           </form>
         )}
@@ -149,14 +161,12 @@ export function WaitlistSection() {
           <p className="text-red-400 text-sm mb-4">Something went wrong. Please try again.</p>
         )}
 
-        {/* Divider */}
         <div className="flex items-center gap-4 mb-12">
           <div className="flex-1 h-px bg-white/10" />
           <span className="text-crumb-muted/50 text-sm uppercase tracking-wider">or</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Founding Member Card */}
         <motion.div
           whileHover={{ scale: 1.01 }}
           className="bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 rounded-2xl p-8 text-left"
