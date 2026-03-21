@@ -97,8 +97,6 @@ export function WaitlistSection() {
     }
   };
 
-  // Button is ready when: no Turnstile configured, OR token received, OR widget errored out
-  const isReady = !hasTurnstile || !!turnstileToken || (hasTurnstile && widgetIdRef.current === null && !window.turnstile);
   const buttonDisabled = status === "loading" || (hasTurnstile && !turnstileToken);
 
   return (
