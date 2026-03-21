@@ -15,6 +15,7 @@ export function WaitlistSection() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const hasTurnstile = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
@@ -133,10 +134,10 @@ export function WaitlistSection() {
               />
               <button
                 type="submit"
-                disabled={status === "loading"}
+                disabled={status === "loading" || (hasTurnstile && !turnstileToken)}
                 className="px-8 py-4 rounded-xl bg-crumb-card text-crumb-dark font-bold hover:bg-crumb-cream transition-colors whitespace-nowrap disabled:opacity-50"
               >
-                {status === "loading" ? "Joining..." : "Join Free \u2192"}
+                {status === "loading" ? "Joining..." : (hasTurnstile && !turnstileToken) ? "Verifying..." : "Join Free \u2192"}
               </button>
             </div>
             {/* Cloudflare Turnstile widget — invisible/managed mode */}

@@ -222,10 +222,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
       }
     } else if (turnstileSecret && !turnstileToken) {
-      // No token provided but Turnstile is configured.
-      // This means either the widget hasn't loaded yet or it's a bot.
-      // Reject silently — real users will have the widget loaded.
-      return NextResponse.json({ success: true });
+      // No token — bot or widget hasn't loaded. Reject.
+      return NextResponse.json(
+        { error: 'Verification required' },
+        { status: 400 },
+      );
     }
 
     if (!isValidEmail(email)) {
