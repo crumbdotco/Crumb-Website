@@ -201,14 +201,8 @@ export async function POST(request: Request) {
     // Layer 3.5: Cloudflare Turnstile verification
     // ---------------------------------------------------------------
     const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret) {
-      if (!turnstileToken) {
-        return NextResponse.json(
-          { error: 'Verification required' },
-          { status: 400 },
-        );
-      }
-
+    if (turnstileSecret && turnstileToken) {
+      // Verify the token if provided
       const verifyRes = await fetch(
         'https://challenges.cloudflare.com/turnstile/v0/siteverify',
         {
@@ -224,8 +218,14 @@ export async function POST(request: Request) {
 
       const verification = await verifyRes.json() as { success: boolean };
       if (!verification.success) {
-        return NextResponse.json({ success: true }); // fake success for bots
+        // Failed verification — bot with fake token. Silent reject.
+        return NextResponse.json({ success: true });
       }
+    } else if (turnstileSecret && !turnstileToken) {
+      // No token provided but Turnstile is configured.
+      // This means either the widget hasn't loaded yet or it's a bot.
+      // Reject silently — real users will have the widget loaded.
+      return NextResponse.json({ success: true });
     }
 
     if (!isValidEmail(email)) {

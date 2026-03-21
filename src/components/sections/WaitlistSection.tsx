@@ -54,12 +54,10 @@ export function WaitlistSection() {
     e.preventDefault();
     if (!email.includes("@")) return;
 
-    // Require Turnstile token if site key is configured
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (siteKey && !turnstileToken) {
-      setStatus("error");
-      return;
-    }
+    // Turnstile token is sent to the server if available.
+    // Server validates it when TURNSTILE_SECRET_KEY is set.
+    // If widget hasn't loaded yet, token will be empty — server
+    // decides whether to accept or reject.
 
     setStatus("loading");
     try {
