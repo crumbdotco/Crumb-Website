@@ -188,14 +188,44 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { email, website } = body;
+    const { email, website, turnstileToken } = body;
 
     // ---------------------------------------------------------------
     // Layer 3: Honeypot — hidden field that bots fill in, humans don't
     // ---------------------------------------------------------------
     if (website) {
-      // Bot detected — return fake success so it doesn't retry
       return NextResponse.json({ success: true });
+    }
+
+    // ---------------------------------------------------------------
+    // Layer 3.5: Cloudflare Turnstile verification
+    // ---------------------------------------------------------------
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (turnstileSecret) {
+      if (!turnstileToken) {
+        return NextResponse.json(
+          { error: 'Verification required' },
+          { status: 400 },
+        );
+      }
+
+      const verifyRes = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken as string,
+            remoteip: ip,
+          }),
+        },
+      );
+
+      const verification = await verifyRes.json() as { success: boolean };
+      if (!verification.success) {
+        return NextResponse.json({ success: true }); // fake success for bots
+      }
     }
 
     if (!isValidEmail(email)) {

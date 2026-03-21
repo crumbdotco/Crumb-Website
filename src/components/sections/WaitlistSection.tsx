@@ -1,26 +1,86 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: string | HTMLElement, options: Record<string, unknown>) => string;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
 
 export function WaitlistSection() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  // Load Turnstile script and render widget
+  useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (!siteKey || typeof window === "undefined") return;
+
+    // Load script if not already loaded
+    if (!document.getElementById("cf-turnstile-script")) {
+      const script = document.createElement("script");
+      script.id = "cf-turnstile-script";
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => renderWidget(siteKey);
+      document.head.appendChild(script);
+    } else if (window.turnstile) {
+      renderWidget(siteKey);
+    }
+  }, []);
+
+  function renderWidget(siteKey: string) {
+    if (!turnstileRef.current || !window.turnstile) return;
+    if (widgetIdRef.current) return; // already rendered
+
+    widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+      sitekey: siteKey,
+      theme: "dark",
+      callback: (token: string) => setTurnstileToken(token),
+      "expired-callback": () => setTurnstileToken(null),
+      "error-callback": () => setTurnstileToken(null),
+    });
+  }
 
   const handleJoinFree = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@")) return;
+
+    // Require Turnstile token if site key is configured
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !turnstileToken) {
+      setStatus("error");
+      return;
+    }
 
     setStatus("loading");
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, website: (document.getElementById("crumb-hp") as HTMLInputElement)?.value ?? "" }),
+        body: JSON.stringify({
+          email,
+          website: (document.getElementById("crumb-hp") as HTMLInputElement)?.value ?? "",
+          turnstileToken: turnstileToken ?? "",
+        }),
       });
       if (res.ok) {
         setStatus("success");
       } else {
         setStatus("error");
+        // Reset Turnstile widget for retry
+        if (widgetIdRef.current && window.turnstile) {
+          window.turnstile.reset(widgetIdRef.current);
+          setTurnstileToken(null);
+        }
       }
     } catch {
       setStatus("error");
@@ -53,32 +113,36 @@ export function WaitlistSection() {
             </p>
           </motion.div>
         ) : (
-          <form onSubmit={handleJoinFree} className="flex flex-col sm:flex-row gap-3 mb-12">
-            {/* Honeypot — hidden from humans, bots auto-fill it */}
-            <input
-              id="crumb-hp"
-              type="text"
-              name="website"
-              tabIndex={-1}
-              autoComplete="off"
-              aria-hidden="true"
-              className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="flex-1 px-5 py-4 rounded-xl bg-white/5 border border-white/15 text-crumb-cream placeholder:text-crumb-muted/50 focus:outline-none focus:border-crumb-card transition-colors"
-              required
-            />
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="px-8 py-4 rounded-xl bg-crumb-card text-crumb-dark font-bold hover:bg-crumb-cream transition-colors whitespace-nowrap disabled:opacity-50"
-            >
-              {status === "loading" ? "Joining..." : "Join Free \u2192"}
-            </button>
+          <form onSubmit={handleJoinFree} className="flex flex-col gap-3 mb-12">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Honeypot — hidden from humans, bots auto-fill it */}
+              <input
+                id="crumb-hp"
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                className="absolute opacity-0 pointer-events-none h-0 w-0 overflow-hidden"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="flex-1 px-5 py-4 rounded-xl bg-white/5 border border-white/15 text-crumb-cream placeholder:text-crumb-muted/50 focus:outline-none focus:border-crumb-card transition-colors"
+                required
+              />
+              <button
+                type="submit"
+                disabled={status === "loading"}
+                className="px-8 py-4 rounded-xl bg-crumb-card text-crumb-dark font-bold hover:bg-crumb-cream transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                {status === "loading" ? "Joining..." : "Join Free \u2192"}
+              </button>
+            </div>
+            {/* Cloudflare Turnstile widget — invisible/managed mode */}
+            <div ref={turnstileRef} className="flex justify-center" />
           </form>
         )}
 

@@ -169,7 +169,7 @@ describe("WaitlistSection", () => {
       expect(global.fetch).toHaveBeenCalledWith("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "valid@test.co.uk", website: "" }),
+        body: JSON.stringify({ email: "valid@test.co.uk", website: "", turnstileToken: "" }),
       });
     });
   });
