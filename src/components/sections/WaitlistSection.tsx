@@ -14,6 +14,7 @@ declare global {
 }
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const isBrowser = typeof window !== "undefined";
 
 export function WaitlistSection() {
   const [email, setEmail] = useState("");
@@ -24,6 +25,7 @@ export function WaitlistSection() {
   const hasTurnstile = !!TURNSTILE_SITE_KEY;
 
   const renderWidget = useCallback(() => {
+    if (!isBrowser) return;
     if (!TURNSTILE_SITE_KEY) return;
     if (!turnstileRef.current) return;
     if (!window.turnstile) return;
@@ -44,6 +46,7 @@ export function WaitlistSection() {
   }, []);
 
   useEffect(() => {
+    if (!isBrowser) return;
     if (!TURNSTILE_SITE_KEY) return;
 
     // If Turnstile is already loaded (cached), render immediately
@@ -79,7 +82,7 @@ export function WaitlistSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          website: (document.getElementById("crumb-hp") as HTMLInputElement)?.value ?? "",
+          website: isBrowser ? (document.getElementById("crumb-hp") as HTMLInputElement)?.value ?? "" : "",
           turnstileToken: turnstileToken ?? "",
         }),
       });
@@ -87,7 +90,7 @@ export function WaitlistSection() {
         setStatus("success");
       } else {
         setStatus("error");
-        if (widgetIdRef.current && window.turnstile) {
+        if (isBrowser && widgetIdRef.current && window.turnstile) {
           window.turnstile.reset(widgetIdRef.current);
           setTurnstileToken(null);
         }
