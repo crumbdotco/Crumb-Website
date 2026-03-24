@@ -14,6 +14,7 @@ declare global {
 }
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+const STRIPE_FOUNDING_MEMBER_LINK = process.env.NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK ?? "";
 const isBrowser = typeof window !== "undefined";
 
 export function WaitlistSection() {
@@ -203,14 +204,25 @@ export function WaitlistSection() {
             ))}
           </ul>
 
-          <a
-            href="https://buy.stripe.com/3cI8wJ6zPaaG5XE7M33ks00"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-center bg-crumb-brown hover:bg-crumb-dark text-white font-bold py-4 px-8 rounded-xl transition-all hover:scale-[1.02] hover:shadow-xl text-lg"
-          >
-            Become a Founding Member - &pound;4.99
-          </a>
+          {STRIPE_FOUNDING_MEMBER_LINK ? (
+            <a
+              href={STRIPE_FOUNDING_MEMBER_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open Stripe payment page to become a founding member for £4.99"
+              className="block w-full text-center bg-crumb-brown hover:bg-crumb-dark text-white font-bold py-4 px-8 rounded-xl transition-all hover:scale-[1.02] hover:shadow-xl text-lg"
+            >
+              Become a Founding Member - &pound;4.99
+            </a>
+          ) : (
+            <button
+              disabled
+              aria-label="Founding member signup is currently unavailable"
+              className="block w-full text-center bg-crumb-brown/50 text-white/50 font-bold py-4 px-8 rounded-xl text-lg cursor-not-allowed"
+            >
+              Become a Founding Member - &pound;4.99
+            </button>
+          )}
         </motion.div>
 
         <p className="text-crumb-muted/50 text-sm mt-8">

@@ -79,8 +79,25 @@ function TiltCard({
     rotateY.set(0);
   }, [rotateX, rotateY]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
+  const ariaLabel = card.headline
+    ? `${card.headline} ${card.value} — ${card.sub}`
+    : `${card.value} — ${card.sub}`;
+
   return (
     <motion.div
+      role="button"
+      tabIndex={isFront ? 0 : -1}
+      aria-label={ariaLabel}
       className="absolute inset-0"
       animate={{
         scale: pos.scale,
@@ -97,6 +114,7 @@ function TiltCard({
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onKeyDown={handleKeyDown}
       onClick={onClick}
     >
       {/* Animated gradient border */}

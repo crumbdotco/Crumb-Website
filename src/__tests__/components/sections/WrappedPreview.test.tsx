@@ -53,15 +53,20 @@ describe("WrappedPreview", () => {
     expect(screen.getByText("times this year")).toBeInTheDocument();
   });
 
+  /** Helper: get only the navigation dot buttons (native <button> elements, not TiltCard divs with role="button") */
+  function getNavDots() {
+    return screen.getAllByRole("button").filter((el) => el.tagName === "BUTTON");
+  }
+
   it("renders 4 navigation dots", () => {
     render(<WrappedPreview />);
-    const dots = screen.getAllByRole("button");
+    const dots = getNavDots();
     expect(dots).toHaveLength(4);
   });
 
   it("clicking the second dot navigates to card 1", () => {
     render(<WrappedPreview />);
-    const dots = screen.getAllByRole("button");
+    const dots = getNavDots();
     fireEvent.click(dots[1]);
     expect(screen.getByText("Your go-to was")).toBeInTheDocument();
     expect(screen.getByText("Nando\u2019s")).toBeInTheDocument();
@@ -69,7 +74,7 @@ describe("WrappedPreview", () => {
 
   it("clicking the third dot shows the personality card", () => {
     render(<WrappedPreview />);
-    const dots = screen.getAllByRole("button");
+    const dots = getNavDots();
     fireEvent.click(dots[2]);
     expect(screen.getByText("Your food personality")).toBeInTheDocument();
     expect(screen.getByText("Main Character")).toBeInTheDocument();
@@ -77,7 +82,7 @@ describe("WrappedPreview", () => {
 
   it("clicking the fourth dot shows the share card", () => {
     render(<WrappedPreview />);
-    const dots = screen.getAllByRole("button");
+    const dots = getNavDots();
     fireEvent.click(dots[3]);
     expect(screen.getByText("Share your story")).toBeInTheDocument();
     expect(screen.getByText("Let your friends see your Wrapped")).toBeInTheDocument();

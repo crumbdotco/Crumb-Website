@@ -63,12 +63,11 @@ describe("WaitlistSection", () => {
     expect(screen.getByText(/All future premium features included forever/i)).toBeInTheDocument();
   });
 
-  it("renders the founding member Stripe link with correct href", () => {
+  it("renders the founding member CTA as disabled button when env var is missing", () => {
     render(<WaitlistSection />);
-    const stripeLink = screen.getByRole("link", { name: /Become a Founding Member - £4.99/i });
-    expect(stripeLink).toHaveAttribute("href", "https://buy.stripe.com/3cI8wJ6zPaaG5XE7M33ks00");
-    expect(stripeLink).toHaveAttribute("target", "_blank");
-    expect(stripeLink).toHaveAttribute("rel", "noopener noreferrer");
+    const disabledBtn = screen.getByRole("button", { name: /Founding member signup is currently unavailable/i });
+    expect(disabledBtn).toBeDisabled();
+    expect(disabledBtn).toHaveTextContent(/Become a Founding Member/i);
   });
 
   it("renders the UK availability note", () => {
