@@ -187,7 +187,7 @@ export function WaitlistSection() {
           <div className="flex items-baseline gap-3 mb-6">
             <span className="text-4xl font-bold text-crumb-cream">&pound;4.99</span>
             <span className="text-crumb-muted">one-time</span>
-            <span className="text-crumb-muted/50 line-through text-sm">&pound;1.99/month</span>
+            <span className="text-crumb-muted/50 line-through text-sm">&pound;4.99/month</span>
           </div>
 
           <ul className="space-y-3 mb-8">

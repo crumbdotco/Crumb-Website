@@ -67,7 +67,7 @@ describe("FeaturesGrid", () => {
   });
 
   it("renders the Premium tier price", () => {
-    expect(screen.getByText("£1.99")).toBeInTheDocument();
+    expect(screen.getByText("£4.99")).toBeInTheDocument();
   });
 
   it("renders all free tier features", () => {
@@ -89,7 +89,7 @@ describe("FeaturesGrid", () => {
   });
 
   it("renders the annual premium price", () => {
-    expect(screen.getByText(/£14.99\/year/i)).toBeInTheDocument();
+    expect(screen.getByText(/£49.99\/year/i)).toBeInTheDocument();
   });
 
   it("renders Free tier CTA link pointing to #waitlist", () => {

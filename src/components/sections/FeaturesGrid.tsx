@@ -156,10 +156,10 @@ export function FeaturesGrid() {
             </div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-crumb-cream/50 mb-3">Premium</h3>
             <div className="mb-1">
-              <span className="text-4xl font-extrabold text-crumb-cream">&pound;1.99</span>
+              <span className="text-4xl font-extrabold text-crumb-cream">&pound;4.99</span>
               <span className="text-crumb-cream/50 text-sm"> / month</span>
             </div>
-            <p className="text-xs text-crumb-cream/40 mb-6">or &pound;14.99/year</p>
+            <p className="text-xs text-crumb-cream/40 mb-6">or &pound;49.99/year</p>
             <ul className="space-y-3 flex-1">
               {premiumFeatures.map((f) => (
                 <li key={f} className="flex items-center gap-2.5 text-sm text-crumb-cream/80">

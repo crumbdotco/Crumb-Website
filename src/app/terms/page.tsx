@@ -74,7 +74,7 @@ export default function TermsPage() {
             </h2>
             <p>
               Crumb Premium is a paid subscription that unlocks additional features.
-              Subscriptions are billed at £1.99/month or £14.99/year and are managed
+              Subscriptions are billed at £4.99/month or £49.99/year and are managed
               through Apple App Store or Google Play Store. Cancellation and refund
               policies are governed by the respective app store&apos;s terms.
             </p>
