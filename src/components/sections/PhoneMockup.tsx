@@ -33,7 +33,7 @@ export function PhoneMockup() {
             </div>
             <div className="flex-1 bg-crumb-card/60 rounded-lg p-2">
               <span className="text-[9px] text-crumb-muted">Favourite</span>
-              <p className="text-[11px] font-bold text-crumb-dark leading-tight">Sushi</p>
+              <p className="text-[11px] font-bold text-crumb-dark leading-tight">Indian</p>
             </div>
           </div>
 
@@ -78,7 +78,7 @@ export function PhoneMockup() {
         </div>
 
         {/* Tab bar */}
-        <div className="flex items-center justify-around px-4 py-2.5 border-t border-crumb-line">
+        <div className="flex items-center justify-around px-2 py-2.5 border-t border-crumb-line">
           <div className="flex flex-col items-center gap-0.5">
             <div className="w-4 h-4 bg-crumb-dark rounded" />
             <span className="text-[7px] font-medium text-crumb-dark">Home</span>
@@ -86,6 +86,13 @@ export function PhoneMockup() {
           <div className="flex flex-col items-center gap-0.5">
             <div className="w-4 h-4 bg-crumb-muted/40 rounded" />
             <span className="text-[7px] text-crumb-muted">Stats</span>
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            {/* Map pin icon for Reviews */}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-crumb-muted/40">
+              <path d="M8 1.5C5.515 1.5 3.5 3.515 3.5 6c0 3.75 4.5 8.5 4.5 8.5s4.5-4.75 4.5-8.5c0-2.485-2.015-4.5-4.5-4.5zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" fill="currentColor" />
+            </svg>
+            <span className="text-[7px] text-crumb-muted">Reviews</span>
           </div>
           <div className="flex flex-col items-center gap-0.5">
             <div className="w-4 h-4 bg-crumb-muted/40 rounded" />
