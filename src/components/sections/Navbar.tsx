@@ -29,6 +29,23 @@ export function Navbar() {
           crumb
         </motion.span>
 
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="hidden md:flex items-center gap-7"
+        >
+          <a href="#features-section" className="text-sm font-medium text-crumb-dark/70 hover:text-crumb-dark transition-colors">
+            Features
+          </a>
+          <a href="#wrapped" className="text-sm font-medium text-crumb-dark/70 hover:text-crumb-dark transition-colors">
+            Wrapped
+          </a>
+          <a href="#pricing-section" className="text-sm font-medium text-crumb-dark/70 hover:text-crumb-dark transition-colors">
+            Pricing
+          </a>
+        </motion.div>
+
         <motion.a
           href="#waitlist"
           initial={{ opacity: 0, x: 16 }}
