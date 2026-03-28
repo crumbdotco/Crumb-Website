@@ -1,48 +1,62 @@
 "use client";
 import { motion } from "framer-motion";
-import { BarChart3, Sparkles, Heart, Gift, Check } from "lucide-react";
+import { BarChart3, Map, Star, Gift, Heart, MessageCircle, Check, Crown } from "lucide-react";
 
 const features = [
   {
     icon: BarChart3,
-    title: "Deep stats",
-    desc: "Total orders, top restaurants, cuisine breakdown, peak ordering times \u2014 all in one place.",
+    title: "Deep Stats",
+    desc: "Total orders, top restaurants, cuisine breakdown, ordering patterns, and time period comparisons.",
+    accent: "bg-crumb-dark",
+  },
+  {
+    icon: Map,
+    title: "Restaurant Map",
+    desc: "See every restaurant you've ordered from on a map. Filter by been-to or want-to-try.",
+    accent: "bg-crumb-brown",
+  },
+  {
+    icon: Star,
+    title: "Reviews & Ratings",
+    desc: "Rate restaurants, tag occasions, pick favourite dishes, and keep notes. Your personal food journal.",
     accent: "bg-crumb-dark",
   },
   {
     icon: Gift,
     title: "Crumb Wrapped",
-    desc: "Your year in food delivery, beautifully packaged and ready to share every December.",
+    desc: "Your year in food delivery. Stats, personality, top restaurants — beautifully packaged and shareable.",
     accent: "bg-crumb-brown",
-  },
-  {
-    icon: Sparkles,
-    title: "Discover new food",
-    desc: "Personalised restaurant recommendations based on your taste profile. Like Discover Weekly for food.",
-    accent: "bg-crumb-dark",
   },
   {
     icon: Heart,
     title: "Food Soulmate",
-    desc: "Match with friends based on taste compatibility. See your percentage and shared favourites.",
+    desc: "Match with friends by taste compatibility. See your percentage and shared favourites.",
+    accent: "bg-crumb-dark",
+  },
+  {
+    icon: MessageCircle,
+    title: "Friends & Chat",
+    desc: "Add friends, compare stats, get recommendations, and chat about food in real-time.",
     accent: "bg-crumb-brown",
   },
 ];
 
 const freeFeatures = [
-  "All core stats",
+  "All core stats & graphs",
+  "Restaurant reviews & map",
   "Crumb Wrapped",
   "Friend soulmate matching",
-  "Restaurant recommendations",
-  "Deep links to delivery apps",
+  "Want to Try list (up to 10)",
+  "Achievement badges",
 ];
 
 const premiumFeatures = [
   "Everything in Free",
   "Ad-free experience",
-  "Drink statistics",
-  "Lifetime history",
-  "Percentile rankings",
+  "Year & Lifetime stats",
+  "Photo reviews",
+  "Friend recommendations",
+  "Unlimited Want to Try",
   "Random soulmate matching",
 ];
 
@@ -74,7 +88,7 @@ export function FeaturesGrid() {
         </div>
 
         {/* Feature cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-20">
           {features.map((f, i) => {
             const Icon = f.icon;
             return (
@@ -83,7 +97,7 @@ export function FeaturesGrid() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
                 className="bg-crumb-card rounded-2xl p-7 flex flex-col gap-4"
               >
                 <div className={`w-10 h-10 rounded-xl ${f.accent} flex items-center justify-center`}>
@@ -152,7 +166,8 @@ export function FeaturesGrid() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="relative bg-crumb-dark rounded-2xl p-8 flex flex-col"
           >
-            <div className="absolute -top-3 right-6 px-3 py-1 bg-crumb-card text-crumb-dark text-xs font-bold rounded-full">
+            <div className="absolute -top-3 right-6 px-3 py-1 bg-crumb-card text-crumb-dark text-xs font-bold rounded-full flex items-center gap-1.5">
+              <Crown size={11} />
               Premium
             </div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-crumb-cream/50 mb-3">Premium</h3>
