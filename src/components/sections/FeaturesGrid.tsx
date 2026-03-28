@@ -48,7 +48,7 @@ const premiumFeatures = [
 
 export function FeaturesGrid() {
   return (
-    <section className="relative bg-crumb-cream py-20 md:py-28">
+    <section id="features-section" className="relative bg-crumb-cream py-20 md:py-28">
       <div className="max-w-5xl mx-auto px-6">
 
         {/* Features header */}
@@ -98,6 +98,7 @@ export function FeaturesGrid() {
 
         {/* Pricing divider */}
         <motion.div
+          id="pricing-section"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
