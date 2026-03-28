@@ -7,20 +7,20 @@ const steps = [
   {
     number: "01",
     icon: Smartphone,
-    title: "Connect your accounts",
-    desc: "Link your Uber Eats and Just Eat accounts in seconds. Read-only access — we never see your password.",
+    title: "Sign up in seconds",
+    desc: "Use Apple, Google, or email. We connect to Uber Eats and Just Eat with read-only access — we never see your password.",
   },
   {
     number: "02",
     icon: BarChart3,
-    title: "We crunch the numbers",
-    desc: "Crumb pulls your full order history and builds your taste profile. Your data stays on your device.",
+    title: "We build your profile",
+    desc: "Your order history becomes stats, a taste profile, and a food personality. All processed and stored on your device.",
   },
   {
     number: "03",
     icon: Share2,
-    title: "See your stats and share them",
-    desc: "Get your personalised stats, Wrapped, food personality, and Food Soulmate match. Share with friends.",
+    title: "Discover, rate, and share",
+    desc: "Review restaurants, track your Want to Try list, explore the map, match with food soulmates, and share your Wrapped.",
   },
 ];
 
