@@ -1,6 +1,6 @@
 /**
  * SocialProof component tests
- * Tests headline, description, CTA, and footer note rendering.
+ * Tests headline, trust signals, CTA, and footer note rendering.
  */
 import React from "react";
 import { render, screen } from "@testing-library/react";
@@ -11,14 +11,26 @@ describe("SocialProof", () => {
     render(<SocialProof />);
   });
 
-  it("renders the headline", () => {
-    expect(screen.getByText(/Ready to see yours\?/i)).toBeInTheDocument();
+  it("renders the section label", () => {
+    expect(screen.getByText(/Trust/i)).toBeInTheDocument();
   });
 
-  it("renders the description text", () => {
+  it("renders the headline", () => {
     expect(
-      screen.getByText(/Crumb is launching soon in the UK. Join the waitlist now/i)
+      screen.getByRole("heading", { name: /Built for food lovers/i })
     ).toBeInTheDocument();
+  });
+
+  it("renders all three trust signal headings", () => {
+    expect(screen.getByText(/Data stored on your device/i)).toBeInTheDocument();
+    expect(screen.getByText(/Read-only access/i)).toBeInTheDocument();
+    expect(screen.getByText(/No passwords needed/i)).toBeInTheDocument();
+  });
+
+  it("renders all three trust signal sub-texts", () => {
+    expect(screen.getByText(/Your order history never leaves your phone/i)).toBeInTheDocument();
+    expect(screen.getByText(/We never see your delivery app passwords/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sign in with Apple, Google, or email OTP/i)).toBeInTheDocument();
   });
 
   it("renders the CTA link", () => {

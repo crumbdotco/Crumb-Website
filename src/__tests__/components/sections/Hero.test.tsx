@@ -22,18 +22,18 @@ describe("Hero", () => {
 
   it("renders the main headline text", () => {
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/See exactly how/i)).toBeInTheDocument();
-    expect(screen.getByText(/you really eat/i)).toBeInTheDocument();
+    expect(screen.getByText(/Know exactly/i)).toBeInTheDocument();
+    expect(screen.getByText(/how you eat/i)).toBeInTheDocument();
   });
 
   it("renders the label badge", () => {
     expect(
-      screen.getByText(/Spotify Wrapped - but for food delivery/i)
+      screen.getByText(/Your food delivery stats — beautifully wrapped/i)
     ).toBeInTheDocument();
   });
 
   it("renders the sub-headline description", () => {
-    expect(screen.getByText(/Connect your Uber Eats and Just Eat accounts/i)).toBeInTheDocument();
+    expect(screen.getByText(/Connect Uber Eats and Just Eat/i)).toBeInTheDocument();
   });
 
   it("renders the CTA link pointing to #waitlist", () => {
@@ -42,8 +42,8 @@ describe("Hero", () => {
     expect(ctaLink).toHaveAttribute("href", "#waitlist");
   });
 
-  it("renders the platform availability text", () => {
-    expect(screen.getByText(/Available on iOS & Android/i)).toBeInTheDocument();
+  it("renders the sign-in options text", () => {
+    expect(screen.getByText(/Sign in with Apple, Google, or email/i)).toBeInTheDocument();
   });
 
   it("renders the social proof micro-line", () => {

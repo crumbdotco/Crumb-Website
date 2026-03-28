@@ -39,7 +39,7 @@ describe("PhoneMockup", () => {
 
   it("renders the favourite cuisine", () => {
     expect(screen.getByText("Favourite")).toBeInTheDocument();
-    expect(screen.getByText("Sushi")).toBeInTheDocument();
+    expect(screen.getByText("Indian")).toBeInTheDocument();
   });
 
   it("renders the week chart heading", () => {
@@ -78,6 +78,7 @@ describe("PhoneMockup", () => {
   it("renders tab bar navigation items", () => {
     expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.getByText("Stats")).toBeInTheDocument();
+    expect(screen.getByText("Reviews")).toBeInTheDocument();
     expect(screen.getByText("Social")).toBeInTheDocument();
     expect(screen.getByText("Account")).toBeInTheDocument();
   });

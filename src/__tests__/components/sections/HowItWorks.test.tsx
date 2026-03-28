@@ -46,20 +46,20 @@ describe("HowItWorks", () => {
   });
 
   it("renders all step titles", () => {
-    expect(screen.getByText("Connect your accounts")).toBeInTheDocument();
-    expect(screen.getByText("We crunch the numbers")).toBeInTheDocument();
-    expect(screen.getByText("See your stats and share them")).toBeInTheDocument();
+    expect(screen.getByText("Sign up in seconds")).toBeInTheDocument();
+    expect(screen.getByText("We build your profile")).toBeInTheDocument();
+    expect(screen.getByText("Discover, rate, and share")).toBeInTheDocument();
   });
 
   it("renders all step descriptions", () => {
     expect(
-      screen.getByText(/Link your Uber Eats and Just Eat accounts in seconds/i)
+      screen.getByText(/Use Apple, Google, or email/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Crumb pulls your full order history and builds your taste profile/i)
+      screen.getByText(/Your order history becomes stats, a taste profile/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Get your personalised stats, Wrapped, food personality/i)
+      screen.getByText(/Review restaurants, track your Want to Try list/i)
     ).toBeInTheDocument();
   });
 
