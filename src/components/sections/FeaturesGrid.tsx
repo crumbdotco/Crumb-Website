@@ -7,49 +7,37 @@ const features = [
     icon: BarChart3,
     title: "Deep Stats",
     desc: "Total orders, top restaurants, cuisine breakdown, ordering patterns, and time period comparisons.",
-    accentColor: "#3D2B1F",
-    glowColor: "rgba(61,43,31,0.18)",
-    topLineColor: "rgba(61,43,31,0.6)",
+    accent: "bg-crumb-dark",
   },
   {
     icon: Map,
     title: "Restaurant Map",
     desc: "See every restaurant you've ordered from on a map. Filter by been-to or want-to-try.",
-    accentColor: "#8B7355",
-    glowColor: "rgba(139,115,85,0.2)",
-    topLineColor: "rgba(139,115,85,0.7)",
+    accent: "bg-crumb-brown",
   },
   {
     icon: Star,
     title: "Reviews & Ratings",
     desc: "Rate restaurants, tag occasions, pick favourite dishes, and keep notes. Your personal food journal.",
-    accentColor: "#3D2B1F",
-    glowColor: "rgba(61,43,31,0.18)",
-    topLineColor: "rgba(61,43,31,0.6)",
+    accent: "bg-crumb-dark",
   },
   {
     icon: Gift,
     title: "Crumb Wrapped",
     desc: "Your year in food delivery. Stats, personality, top restaurants — beautifully packaged and shareable.",
-    accentColor: "#8B7355",
-    glowColor: "rgba(139,115,85,0.2)",
-    topLineColor: "rgba(139,115,85,0.7)",
+    accent: "bg-crumb-brown",
   },
   {
     icon: Heart,
     title: "Food Soulmate",
     desc: "Match with friends by taste compatibility. See your percentage and shared favourites.",
-    accentColor: "#3D2B1F",
-    glowColor: "rgba(61,43,31,0.18)",
-    topLineColor: "rgba(61,43,31,0.6)",
+    accent: "bg-crumb-dark",
   },
   {
     icon: MessageCircle,
     title: "Friends & Chat",
     desc: "Add friends, compare stats, get recommendations, and chat about food in real-time.",
-    accentColor: "#8B7355",
-    glowColor: "rgba(139,115,85,0.2)",
-    topLineColor: "rgba(139,115,85,0.7)",
+    accent: "bg-crumb-brown",
   },
 ];
 
@@ -99,12 +87,10 @@ export function FeaturesGrid() {
           </motion.h2>
         </div>
 
-        {/* Feature cards — alternating row offset for stagger effect */}
+        {/* Feature cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-20">
           {features.map((f, i) => {
             const Icon = f.icon;
-            // Offset every second item in the middle column on large screens
-            const isOffsetRow = i % 2 === 1;
             return (
               <motion.div
                 key={i}
@@ -112,41 +98,11 @@ export function FeaturesGrid() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
-                whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                className={`relative bg-crumb-card rounded-2xl p-7 flex flex-col gap-4 cursor-default overflow-hidden group
-                  border border-crumb-line/60
-                  hover:border-crumb-brown/30
-                  hover:shadow-[0_12px_40px_rgba(61,43,31,0.14)]
-                  transition-[border-color,box-shadow] duration-300
-                  ${isOffsetRow ? "lg:translate-y-5" : ""}
-                `}
+                className="bg-crumb-card rounded-2xl p-7 flex flex-col gap-4"
               >
-                {/* Top gradient accent line */}
-                <div
-                  className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl"
-                  style={{
-                    background: `linear-gradient(90deg, ${f.topLineColor}, transparent)`,
-                  }}
-                />
-
-                {/* Icon with radial glow */}
-                <div className="relative w-10 h-10">
-                  {/* Glow behind icon */}
-                  <div
-                    className="absolute -inset-3 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ background: `radial-gradient(circle, ${f.glowColor} 0%, transparent 70%)` }}
-                  />
-                  <div
-                    className="relative w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: f.accentColor }}
-                  >
-                    <Icon
-                      size={20}
-                      className="text-white transition-transform duration-300 group-hover:scale-110"
-                    />
-                  </div>
+                <div className={`w-10 h-10 rounded-xl ${f.accent} flex items-center justify-center`}>
+                  <Icon size={20} className="text-white" />
                 </div>
-
                 <h3 className="text-lg font-bold text-crumb-dark">{f.title}</h3>
                 <p className="text-sm text-crumb-muted leading-relaxed">{f.desc}</p>
               </motion.div>
@@ -172,27 +128,25 @@ export function FeaturesGrid() {
         </motion.div>
 
         {/* Pricing cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* Free — clean, minimal */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Free */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-crumb-card rounded-2xl p-8 flex flex-col border border-crumb-line/60"
+            className="bg-crumb-card rounded-2xl p-8 flex flex-col"
           >
             <h3 className="text-sm font-semibold uppercase tracking-wider text-crumb-muted mb-3">Free</h3>
             <div className="mb-6">
               <span className="text-4xl font-extrabold text-crumb-dark">&pound;0</span>
               <span className="text-crumb-muted text-sm"> / month</span>
             </div>
-
-            {/* "or" divider with extending lines */}
             <ul className="space-y-3 flex-1">
-              {freeFeatures.map((feat) => (
-                <li key={feat} className="flex items-center gap-2.5 text-sm text-crumb-dark/80">
+              {freeFeatures.map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-sm text-crumb-dark/80">
                   <Check size={15} className="text-crumb-brown shrink-0" />
-                  {feat}
+                  {f}
                 </li>
               ))}
             </ul>
@@ -204,74 +158,46 @@ export function FeaturesGrid() {
             </a>
           </motion.div>
 
-          {/* Premium — dark with animated border glow */}
+          {/* Premium */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative rounded-2xl"
+            className="relative bg-crumb-dark rounded-2xl p-8 flex flex-col"
           >
-            {/* Animated border glow wrapper */}
-            <div className="absolute inset-0 rounded-2xl animated-border-gradient" style={{ padding: "1.5px" }}>
-              <div className="w-full h-full rounded-2xl bg-crumb-darkest" />
+            <div className="absolute -top-3 right-6 px-3 py-1 bg-crumb-card text-crumb-dark text-xs font-bold rounded-full flex items-center gap-1.5">
+              <Crown size={11} />
+              Premium
             </div>
-
-            {/* Card content sits above the border */}
-            <div className="relative bg-crumb-darkest rounded-2xl p-8 flex flex-col"
-              style={{
-                backgroundImage: "radial-gradient(ellipse at top right, rgba(139,115,85,0.08) 0%, transparent 60%)",
-              }}
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-crumb-cream/50 mb-3">Premium</h3>
+            <div className="mb-1">
+              <span className="text-4xl font-extrabold text-crumb-cream">&pound;4.99</span>
+              <span className="text-crumb-cream/50 text-sm"> / month</span>
+            </div>
+            <p className="text-xs text-crumb-cream/40 mb-6">or &pound;49.99/year</p>
+            <ul className="space-y-3 flex-1">
+              {premiumFeatures.map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-sm text-crumb-cream/80">
+                  <Check size={15} className="text-crumb-card shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a
+              href="#waitlist"
+              className="mt-8 inline-flex items-center justify-center h-12 bg-crumb-card text-crumb-dark text-sm font-semibold rounded-full hover:scale-[1.02] hover:shadow-lg transition-all"
             >
-              {/* Badges row */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="px-3 py-1 bg-crumb-card text-crumb-dark text-xs font-bold rounded-full flex items-center gap-1.5">
-                  <Crown size={11} />
-                  Premium
-                </div>
-                <div className="px-3 py-1 bg-crumb-brown/20 text-crumb-card text-xs font-bold rounded-full border border-crumb-brown/30">
-                  Recommended
-                </div>
-              </div>
-
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-crumb-cream/50 mb-3">Premium</h3>
-              <div className="mb-1">
-                <span className="text-4xl font-extrabold text-crumb-cream">&pound;4.99</span>
-                <span className="text-crumb-cream/50 text-sm"> / month</span>
-              </div>
-              <p className="text-xs text-crumb-cream/40 mb-6">or &pound;49.99/year</p>
-
-              <ul className="space-y-3 flex-1">
-                {premiumFeatures.map((feat) => (
-                  <li key={feat} className="flex items-center gap-2.5 text-sm text-crumb-cream/80">
-                    <Check size={15} className="text-emerald-400 shrink-0" />
-                    {feat}
-                  </li>
-                ))}
-              </ul>
-
-              <a
-                href="#waitlist"
-                className="mt-8 inline-flex items-center justify-center h-12 bg-crumb-card text-crumb-dark text-sm font-semibold rounded-full hover:scale-[1.02] hover:shadow-lg transition-all"
-              >
-                Start free, upgrade later
-              </a>
-              <p className="text-xs text-crumb-cream/30 text-center mt-4">
-                Or{" "}
-                <a href="#waitlist" className="underline hover:text-crumb-cream/60 transition-colors">
-                  become a Founding Member
-                </a>{" "}
-                - lifetime premium for &pound;4.99
-              </p>
-            </div>
+              Start free, upgrade later
+            </a>
+            <p className="text-xs text-crumb-cream/30 text-center mt-4">
+              Or{" "}
+              <a href="#waitlist" className="underline hover:text-crumb-cream/60 transition-colors">
+                become a Founding Member
+              </a>{" "}
+              - lifetime premium for &pound;4.99
+            </p>
           </motion.div>
-        </div>
-
-        {/* "or" separator between pricing cards — shown on mobile where cards stack */}
-        <div className="md:hidden flex items-center gap-3 my-2 px-2">
-          <div className="flex-1 h-px bg-crumb-line" />
-          <span className="text-xs text-crumb-muted font-medium uppercase tracking-widest">or</span>
-          <div className="flex-1 h-px bg-crumb-line" />
         </div>
 
       </div>

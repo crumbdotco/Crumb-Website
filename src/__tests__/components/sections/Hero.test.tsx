@@ -23,7 +23,7 @@ describe("Hero", () => {
   it("renders the main headline text", () => {
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByText(/Know exactly/i)).toBeInTheDocument();
-    expect(screen.getByText(/how you/i)).toBeInTheDocument();
+    expect(screen.getByText(/how you eat/i)).toBeInTheDocument();
   });
 
   it("renders the label badge", () => {

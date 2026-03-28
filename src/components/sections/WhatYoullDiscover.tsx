@@ -7,47 +7,38 @@ const discoveries = [
     stat: "147",
     label: "total orders",
     sub: "That's one every 2.5 days",
-    featured: true,
   },
   {
     emoji: "🗺️",
     stat: "15",
     label: "restaurants mapped",
     sub: "See everywhere you've been",
-    featured: false,
   },
   {
     emoji: "⭐",
     stat: "8.5",
     label: "average score",
     sub: "Rate every restaurant your way",
-    featured: false,
   },
   {
     emoji: "✨",
     stat: "Main Character",
     label: "your food personality",
     sub: "Your food personality revealed",
-    featured: false,
   },
   {
     emoji: "💛",
     stat: "92%",
     label: "taste match",
     sub: "Find your food soulmate",
-    featured: false,
   },
   {
     emoji: "🏆",
     stat: "12",
     label: "achievements unlocked",
     sub: "Earn badges as you eat",
-    featured: false,
   },
 ];
-
-const hoverShadow = "0 16px 48px rgba(61,43,31,0.14), 0 2px 8px rgba(61,43,31,0.08)";
-const defaultShadow = "0 1px 3px rgba(61,43,31,0.06)";
 
 export function WhatYoullDiscover() {
   return (
@@ -75,55 +66,25 @@ export function WhatYoullDiscover() {
           </motion.h2>
         </div>
 
-        {/* Bento grid — featured first card spans 2 cols on lg */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {discoveries.map((d, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{
-                y: -4,
-                boxShadow: hoverShadow,
-                transition: { type: "spring", stiffness: 320, damping: 22 },
-              }}
-              className={[
-                "bg-crumb-card rounded-2xl flex flex-col gap-2 card-warm-border cursor-default",
-                d.featured ? "lg:col-span-1 lg:row-span-2 p-8 md:p-10" : "p-7",
-              ].join(" ")}
-              style={{ boxShadow: defaultShadow }}
+              className="bg-crumb-card rounded-2xl p-7 flex flex-col gap-2 hover:scale-[1.01] transition-transform"
             >
-              <span className={d.featured ? "text-4xl mb-1" : "text-3xl"}>
-                {d.emoji}
-              </span>
-
-              {/* Stat value — shimmer effect on scroll entry */}
-              <motion.span
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.08 + 0.2 }}
-                className={[
-                  "font-extrabold text-crumb-dark leading-tight",
-                  d.featured ? "text-5xl md:text-6xl" : "text-3xl md:text-4xl",
-                ].join(" ")}
-              >
+              <span className="text-3xl">{d.emoji}</span>
+              <span className="text-3xl md:text-4xl font-extrabold text-crumb-dark leading-tight">
                 {d.stat}
-              </motion.span>
-
-              <span className={[
-                "font-medium text-crumb-brown",
-                d.featured ? "text-base" : "text-sm",
-              ].join(" ")}>
+              </span>
+              <span className="text-sm font-medium text-crumb-brown">
                 {d.label}
               </span>
-
-              <span className={[
-                "text-crumb-muted mt-auto pt-1",
-                d.featured ? "text-sm" : "text-xs",
-              ].join(" ")}>
+              <span className="text-xs text-crumb-muted mt-auto pt-1">
                 {d.sub}
               </span>
             </motion.div>
