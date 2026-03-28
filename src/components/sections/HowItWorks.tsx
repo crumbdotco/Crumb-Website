@@ -24,6 +24,23 @@ const steps = [
   },
 ];
 
+/* Gradient top-edge accent colours per card */
+const cardAccents = [
+  "linear-gradient(90deg, rgba(139,115,85,0.6) 0%, rgba(196,149,106,0.3) 60%, transparent 100%)",
+  "linear-gradient(90deg, rgba(196,149,106,0.5) 0%, rgba(139,115,85,0.25) 60%, transparent 100%)",
+  "linear-gradient(90deg, rgba(139,115,85,0.4) 0%, rgba(230,195,155,0.3) 60%, transparent 100%)",
+];
+
+/* Pulsing ring animation for icons on scroll */
+const iconPulse = {
+  hidden: { scale: 0.85, opacity: 0 },
+  visible: (i: number) => ({
+    scale: 1,
+    opacity: 1,
+    transition: { duration: 0.5, delay: i * 0.15, type: "spring" as const, stiffness: 300, damping: 18 },
+  }),
+};
+
 export function HowItWorks() {
   return (
     <section className="relative bg-crumb-darkest py-20 md:py-28 overflow-hidden">
@@ -60,30 +77,64 @@ export function HowItWorks() {
           </motion.h2>
         </div>
 
-        {/* Steps — cards with icons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+        {/* Connecting dotted line (desktop only) */}
+        <div className="hidden md:block absolute left-1/2 -translate-x-1/2 w-[calc(100%-8rem)] z-10 pointer-events-none"
+          style={{ top: "calc(50% + 20px)" }}>
+          <svg width="100%" height="2" xmlns="http://www.w3.org/2000/svg">
+            <line
+              x1="16%" y1="1" x2="84%" y2="1"
+              stroke="rgba(139,115,85,0.22)"
+              strokeWidth="1.5"
+              strokeDasharray="6 8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+
+        {/* Steps — cards with glassmorphism */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {steps.map((step, i) => {
             const Icon = step.icon;
             return (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 28 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-                className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-7 flex flex-col gap-4"
+                transition={{ duration: 0.5, delay: i * 0.13 }}
+                className="relative rounded-2xl p-7 flex flex-col gap-4 overflow-hidden glass"
               >
-                {/* Icon circle */}
-                <div className="w-11 h-11 rounded-full bg-white/[0.08] flex items-center justify-center mb-1">
-                  <Icon size={20} className="text-crumb-cream/70" />
-                </div>
-                <span className="text-5xl font-extrabold text-white/[0.06] leading-none select-none">
+                {/* Gradient top line accent */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl"
+                  style={{ background: cardAccents[i] }}
+                />
+
+                {/* Large semi-transparent step number behind the icon */}
+                <span
+                  className="absolute top-4 right-5 text-[5rem] font-extrabold leading-none select-none pointer-events-none"
+                  style={{ color: "rgba(255,255,255,0.04)" }}
+                >
                   {step.number}
                 </span>
-                <h3 className="text-xl font-bold text-crumb-cream -mt-2">
+
+                {/* Icon circle — pulse on entry */}
+                <motion.div
+                  custom={i}
+                  variants={iconPulse}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  className="w-12 h-12 rounded-full bg-white/[0.10] flex items-center justify-center mb-1 relative z-10"
+                  style={{ boxShadow: "0 0 0 1px rgba(255,255,255,0.08), 0 0 16px rgba(139,115,85,0.18)" }}
+                >
+                  <Icon size={22} className="text-crumb-cream/80" />
+                </motion.div>
+
+                <h3 className="text-xl font-bold text-crumb-cream relative z-10">
                   {step.title}
                 </h3>
-                <p className="text-sm md:text-base text-crumb-muted leading-relaxed">
+                <p className="text-sm md:text-base text-crumb-muted leading-relaxed relative z-10">
                   {step.desc}
                 </p>
               </motion.div>
