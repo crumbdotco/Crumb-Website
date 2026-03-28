@@ -6,13 +6,20 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://crumbify.co.uk"),
   title: "Crumb - Your Food Delivery Stats in One Place",
   description:
-    "Connect Uber Eats and Just Eat. See your stats, get your Wrapped, find your food soulmate. Free for iOS and Android.",
+    "Connect Uber Eats and Just Eat. See your stats, review restaurants, explore your food map, find your food soulmate, and get your annual Wrapped. Free for iOS and Android.",
   keywords: [
     "food delivery stats",
     "uber eats wrapped",
     "just eat stats",
     "food delivery analytics",
     "crumb app",
+    "restaurant reviews",
+    "food map",
+    "food personality",
+    "food journal",
+    "achievement badges",
+    "food friends",
+    "restaurant ratings",
   ],
   openGraph: {
     title: "Crumb - Your Food Delivery Stats in One Place",
