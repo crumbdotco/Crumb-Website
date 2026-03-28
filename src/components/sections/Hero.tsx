@@ -22,7 +22,7 @@ export function Hero() {
               className="inline-flex items-center gap-2 px-4 py-1.5 bg-crumb-card rounded-full text-xs font-semibold text-crumb-dark mb-6"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-crumb-brown" />
-              Spotify Wrapped - but for food delivery
+              Your food delivery stats — beautifully wrapped
             </motion.div>
 
             {/* Main headline */}
@@ -32,8 +32,8 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-extrabold text-crumb-dark leading-[1.05] tracking-tight mb-6"
             >
-              See exactly how<br />
-              you really eat
+              Know exactly<br />
+              how you eat
             </motion.h1>
 
             {/* Subheadline */}
@@ -43,9 +43,9 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg md:text-xl text-crumb-muted leading-relaxed max-w-[480px] mb-8"
             >
-              Connect your Uber Eats and Just Eat accounts. Crumb pulls your
-              entire order history and turns it into beautiful stats, a
-              year-in-review Wrapped, and more.
+              Connect Uber Eats and Just Eat. Get deep stats, a restaurant map,
+              personal reviews, your food personality, friend soulmate matching,
+              and your annual Wrapped — all in one place.
             </motion.p>
 
             {/* CTA */}
@@ -62,7 +62,7 @@ export function Hero() {
                 Join the waitlist - it&apos;s free
               </a>
               <p className="text-sm text-crumb-muted">
-                Available on iOS &amp; Android
+                Sign in with Apple, Google, or email
               </p>
             </motion.div>
 
