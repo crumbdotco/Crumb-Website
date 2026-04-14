@@ -1,12 +1,14 @@
+import dynamic from "next/dynamic";
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
-import { HowItWorks } from "@/components/sections/HowItWorks";
-import { FeaturesGrid } from "@/components/sections/FeaturesGrid";
-import { TrustStrip } from "@/components/sections/TrustStrip";
-import { CTASection } from "@/components/sections/CTASection";
-import { Footer } from "@/components/sections/Footer";
 import { FlowingBackground } from "@/components/shared/FlowingBackground";
 import { WaveDivider } from "@/components/shared/WaveDivider";
+
+const HowItWorks = dynamic(() => import("@/components/sections/HowItWorks").then(m => ({ default: m.HowItWorks })));
+const FeaturesGrid = dynamic(() => import("@/components/sections/FeaturesGrid").then(m => ({ default: m.FeaturesGrid })));
+const TrustStrip = dynamic(() => import("@/components/sections/TrustStrip").then(m => ({ default: m.TrustStrip })));
+const CTASection = dynamic(() => import("@/components/sections/CTASection").then(m => ({ default: m.CTASection })));
+const Footer = dynamic(() => import("@/components/sections/Footer").then(m => ({ default: m.Footer })));
 
 export default function Home() {
   return (

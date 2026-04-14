@@ -108,7 +108,7 @@ const reveal = {
 
 export function FeaturesGrid() {
   return (
-    <section id="features" className="relative z-1 bg-crumb-cream px-5 py-[50px] pb-16 md:px-10 md:py-[60px] md:pb-20">
+    <section id="features" className="relative z-1 px-5 py-[50px] pb-16 md:px-10 md:py-[60px] md:pb-20">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_500px_400px_at_70%_30%,rgba(230,195,155,0.15),transparent_70%)]" />
 
       <div className="relative z-[2] mx-auto max-w-[960px]">

@@ -36,8 +36,8 @@ export function FlowingBackground() {
           <path
             key={i}
             d={d}
-            stroke="rgba(180,160,140,0.18)"
-            strokeWidth={1.8}
+            stroke="rgba(139,115,85,0.12)"
+            strokeWidth={2}
             fill="none"
           />
         ))}

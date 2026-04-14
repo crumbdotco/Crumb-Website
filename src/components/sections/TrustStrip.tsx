@@ -65,7 +65,7 @@ const badges = [
 
 export function TrustStrip() {
   return (
-    <section className="relative z-1 bg-crumb-cream px-5 py-10 md:px-10 md:py-[50px]">
+    <section className="relative z-1 px-5 py-10 md:px-10 md:py-[50px]">
       <div className="relative z-[2] mx-auto max-w-[960px]">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}

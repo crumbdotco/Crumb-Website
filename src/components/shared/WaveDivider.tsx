@@ -24,7 +24,7 @@ const waves: Record<WaveVariant, { top: string; bottom: string; topFill: string;
 export function WaveDivider({ variant }: { variant: WaveVariant }) {
   const w = waves[variant];
   return (
-    <div className="wave-divider relative z-1 -mt-px">
+    <div className="wave-divider relative z-[2] -my-px">
       <svg
         viewBox="0 0 1440 120"
         preserveAspectRatio="none"
