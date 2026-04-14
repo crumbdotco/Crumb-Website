@@ -1,24 +1,26 @@
 import { Navbar } from "@/components/sections/Navbar";
 import { Hero } from "@/components/sections/Hero";
-import { WhatYoullDiscover } from "@/components/sections/WhatYoullDiscover";
 import { HowItWorks } from "@/components/sections/HowItWorks";
-import { WrappedPreview } from "@/components/sections/WrappedPreview";
 import { FeaturesGrid } from "@/components/sections/FeaturesGrid";
-import { SocialProof } from "@/components/sections/SocialProof";
-import { WaitlistSection } from "@/components/sections/WaitlistSection";
+import { TrustStrip } from "@/components/sections/TrustStrip";
+import { CTASection } from "@/components/sections/CTASection";
 import { Footer } from "@/components/sections/Footer";
+import { FlowingBackground } from "@/components/shared/FlowingBackground";
+import { WaveDivider } from "@/components/shared/WaveDivider";
 
 export default function Home() {
   return (
     <main>
+      <FlowingBackground />
       <Navbar />
       <Hero />
-      <WhatYoullDiscover />
+      <WaveDivider variant="cream-to-dark" />
       <HowItWorks />
-      <WrappedPreview />
+      <WaveDivider variant="dark-to-cream" />
       <FeaturesGrid />
-      <SocialProof />
-      <WaitlistSection />
+      <TrustStrip />
+      <WaveDivider variant="cream-to-dark-complex" />
+      <CTASection />
       <Footer />
     </main>
   );
