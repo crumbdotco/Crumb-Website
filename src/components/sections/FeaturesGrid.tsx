@@ -60,7 +60,7 @@ function BentoCard({
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true, margin: "-30px" }}
       transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className={`bento-card cursor-default overflow-hidden rounded-[18px] ${large ? "col-span-2 row-span-2 p-8" : "p-6"} ${base}`}
+      className={`bento-card cursor-default overflow-hidden rounded-[18px] ${large ? "md:col-span-2 md:row-span-2 p-6 md:p-8" : "p-6"} ${base}`}
     >
       <div
         className={`flex items-center justify-center rounded-[10px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110 group-hover:-rotate-[5deg] ${
@@ -92,7 +92,7 @@ const reveal = {
 
 export function FeaturesGrid() {
   return (
-    <section id="features" className="relative z-1 bg-crumb-cream px-10 py-[60px] pb-20">
+    <section id="features" className="relative z-1 bg-crumb-cream px-5 py-[50px] pb-16 md:px-10 md:py-[60px] md:pb-20">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_500px_400px_at_70%_30%,rgba(230,195,155,0.15),transparent_70%)]" />
 
       <div className="relative z-[2] mx-auto max-w-[960px]">

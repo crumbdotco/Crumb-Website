@@ -62,7 +62,7 @@ export function CTASection() {
   };
 
   return (
-    <section id="waitlist" className="relative z-1 overflow-hidden bg-crumb-dark px-10 py-[60px] pb-20 text-center text-crumb-cream">
+    <section id="waitlist" className="relative z-1 overflow-hidden bg-crumb-dark px-5 py-[50px] pb-16 text-center text-crumb-cream md:px-10 md:py-[60px] md:pb-20">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_600px_400px_at_50%_50%,rgba(230,195,155,0.08),transparent_70%)]" />
 
       <div className="relative z-[2] mx-auto max-w-[520px]">

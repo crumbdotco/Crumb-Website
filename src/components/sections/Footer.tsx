@@ -3,8 +3,8 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="relative z-1 border-t border-crumb-gold/[0.06] bg-crumb-darker px-10 py-7">
-      <div className="mx-auto flex max-w-[960px] items-center justify-between">
+    <footer className="relative z-1 border-t border-crumb-gold/[0.06] bg-crumb-darker px-5 py-6 md:px-10 md:py-7">
+      <div className="mx-auto flex max-w-[960px] flex-col items-center gap-4 md:flex-row md:justify-between md:gap-0">
         {/* Left */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -17,8 +17,8 @@ export function Footer() {
             />
             <span className="text-[13px] font-extrabold text-crumb-cream">crumb</span>
           </div>
-          <div className="h-3.5 w-px bg-white/[0.08]" />
-          <span className="text-[11px] text-[#6B5D4E]">
+          <div className="hidden h-3.5 w-px bg-white/[0.08] md:block" />
+          <span className="hidden text-[11px] text-[#6B5D4E] md:inline">
             Your food. Your stats. Your story.
           </span>
         </div>

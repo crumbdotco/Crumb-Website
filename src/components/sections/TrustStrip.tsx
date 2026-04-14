@@ -65,7 +65,7 @@ const badges = [
 
 export function TrustStrip() {
   return (
-    <section className="relative z-1 bg-crumb-cream px-10 py-[50px]">
+    <section className="relative z-1 bg-crumb-cream px-5 py-10 md:px-10 md:py-[50px]">
       <div className="relative z-[2] mx-auto max-w-[960px]">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -82,14 +82,12 @@ export function TrustStrip() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-30px" }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-7 flex overflow-hidden rounded-[18px] border border-crumb-dark/[0.06] bg-white/40 backdrop-blur-[4px]"
+          className="mt-7 grid grid-cols-3 overflow-hidden rounded-[18px] border border-crumb-dark/[0.06] bg-white/40 backdrop-blur-[4px] md:grid-cols-6"
         >
           {badges.map((b, i) => (
             <div
               key={b.label}
-              className={`group flex-1 px-3 py-5 text-center transition-colors duration-150 hover:bg-white/30 ${
-                i < badges.length - 1 ? "border-r border-crumb-dark/5" : ""
-              }`}
+              className="group border-r border-b border-crumb-dark/5 px-3 py-5 text-center transition-colors duration-150 last:border-r-0 hover:bg-white/30 md:border-b-0"
             >
               <div className="mb-1.5 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.12]">
                 {b.icon}

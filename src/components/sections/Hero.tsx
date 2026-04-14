@@ -212,7 +212,7 @@ export function Hero() {
   };
 
   return (
-    <section className="relative z-1 flex min-h-screen items-center justify-center overflow-hidden bg-crumb-cream px-10 pb-[60px] pt-20">
+    <section className="relative z-1 flex min-h-screen items-center justify-center overflow-hidden bg-crumb-cream px-5 pb-[60px] pt-24 md:px-10 md:pt-20">
       {/* Radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_600px_400px_at_40%_45%,rgba(230,195,155,0.2),transparent_70%)]" />
 

@@ -35,7 +35,7 @@ const reveal = {
 
 export function HowItWorks() {
   return (
-    <section className="relative z-1 overflow-hidden bg-crumb-dark px-10 py-[60px] pb-[70px] text-crumb-cream">
+    <section className="relative z-1 overflow-hidden bg-crumb-dark px-5 py-[50px] pb-[60px] text-crumb-cream md:px-10 md:py-[60px] md:pb-[70px]">
       {/* Radial glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_800px_400px_at_50%_80%,rgba(230,195,155,0.06),transparent_70%)]" />
 
@@ -62,7 +62,7 @@ export function HowItWorks() {
           Three steps.<br />Thirty seconds.
         </motion.h2>
 
-        <div className="mt-14 flex gap-0">
+        <div className="mt-10 flex flex-col gap-10 md:mt-14 md:flex-row md:gap-0">
           {steps.map((s, i) => (
             <motion.div
               key={s.num}
