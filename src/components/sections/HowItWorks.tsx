@@ -1,108 +1,93 @@
 "use client";
 import { motion } from "framer-motion";
-import { Smartphone, BarChart3, Share2 } from "lucide-react";
-import { EtherealShadow } from "../ui/ethereal-shadow";
 
 const steps = [
   {
-    number: "01",
-    icon: Smartphone,
-    title: "Sign up in seconds",
-    desc: "Use Apple, Google, or email. We connect to Uber Eats and Just Eat with read-only access — we never see your password.",
+    num: 1,
+    title: "Sign up",
+    desc: "Apple, Google, or email. No passwords to remember.",
+    detail: { bold: "10 seconds", rest: " · one tap" },
   },
   {
-    number: "02",
-    icon: BarChart3,
-    title: "We build your profile",
-    desc: "Your order history becomes stats, a taste profile, and a food personality. All processed and stored on your device.",
+    num: 2,
+    title: "Connect",
+    desc: "Link Uber Eats and Just Eat. Read-only — we never place orders.",
+    detail: { bold: "Read-only", rest: " · OAuth secure" },
   },
   {
-    number: "03",
-    icon: Share2,
-    title: "Discover, rate, and share",
-    desc: "Review restaurants, track your Want to Try list, explore the map, match with food soulmates, and share your Wrapped.",
+    num: 3,
+    title: "Discover",
+    desc: "Stats, map, personality, soulmate match, and your annual Wrapped.",
+    detail: { bold: "Instant", rest: " · processed on device" },
   },
 ];
 
+const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number];
+
+const reveal = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.06, duration: 0.7, ease: EASE },
+  }),
+};
+
 export function HowItWorks() {
   return (
-    <section className="relative bg-crumb-darkest py-20 md:py-28 overflow-hidden">
-      {/* Ethereal animated background */}
-      <div className="absolute inset-0 z-0">
-        <EtherealShadow
-          color="rgba(139, 115, 85, 0.4)"
-          animation={{ scale: 60, speed: 40 }}
-          noise={{ opacity: 0.3, scale: 1 }}
-          sizing="fill"
-        />
-      </div>
+    <section className="relative z-1 overflow-hidden bg-crumb-dark px-10 py-[60px] pb-[70px] text-crumb-cream">
+      {/* Radial glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_800px_400px_at_50%_80%,rgba(230,195,155,0.06),transparent_70%)]" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6">
-        {/* Header */}
-        <div className="text-center mb-14">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-crumb-muted mb-3"
-          >
-            How it works
-          </motion.p>
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl md:text-5xl font-bold text-crumb-cream"
-          >
-            Three steps to your stats
-          </motion.h2>
-        </div>
-
-        {/* Steps — cards with icons */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.12 }}
-                className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-7 flex flex-col gap-4"
-              >
-                {/* Icon circle */}
-                <div className="w-11 h-11 rounded-full bg-white/[0.08] flex items-center justify-center mb-1">
-                  <Icon size={20} className="text-crumb-cream/70" />
-                </div>
-                <span className="text-5xl font-extrabold text-white/[0.06] leading-none select-none">
-                  {step.number}
-                </span>
-                <h3 className="text-xl font-bold text-crumb-cream -mt-2">
-                  {step.title}
-                </h3>
-                <p className="text-sm md:text-base text-crumb-muted leading-relaxed">
-                  {step.desc}
-                </p>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Privacy note */}
+      <div className="relative z-[2] mx-auto max-w-[960px]">
         <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-center text-xs text-crumb-muted/50 mt-16"
+          variants={reveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-30px" }}
+          custom={0}
+          className="text-center text-[11px] font-bold uppercase tracking-[3px] text-crumb-brown"
         >
-          Your order data is stored locally on your device and never shared with us.
+          How it works
         </motion.p>
-      </div>
 
+        <motion.h2
+          variants={reveal}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-30px" }}
+          custom={1}
+          className="mt-2.5 text-center font-display text-[clamp(26px,3.8vw,40px)] font-bold leading-tight tracking-[-2px]"
+        >
+          Three steps.<br />Thirty seconds.
+        </motion.h2>
+
+        <div className="mt-14 flex gap-0">
+          {steps.map((s, i) => (
+            <motion.div
+              key={s.num}
+              variants={reveal}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-30px" }}
+              custom={i + 2}
+              className="group flex flex-1 flex-col items-center"
+            >
+              <div className="relative z-[2] flex h-14 w-14 items-center justify-center rounded-[14px] border border-crumb-gold/15 bg-crumb-gold/[0.08] font-display text-[22px] font-bold text-crumb-gold transition-all duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.08] group-hover:-rotate-3 group-hover:bg-crumb-gold/15">
+                {s.num}
+              </div>
+              <h3 className="mt-5 text-base font-extrabold tracking-tight">{s.title}</h3>
+              <p className="mt-1.5 max-w-[200px] text-center text-xs leading-relaxed text-crumb-brown">
+                {s.desc}
+              </p>
+              <div className="mt-3 max-w-[180px] rounded-[10px] border border-white/[0.06] bg-white/[0.04] px-3.5 py-2.5 text-center text-[11px] text-crumb-muted">
+                <strong className="text-crumb-gold">{s.detail.bold}</strong>
+                {s.detail.rest}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
