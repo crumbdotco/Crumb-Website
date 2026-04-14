@@ -1,31 +1,10 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import Image from "next/image";
-
-function useMagnetic() {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
-
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (isTouch || !ref.current) return;
-      const rect = ref.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      ref.current.style.transform = `translate(${x * 0.12}px, ${y * 0.12}px)`;
-    },
-    [isTouch],
-  );
-
-  const onMouseLeave = useCallback(() => {
-    if (ref.current) ref.current.style.transform = "";
-  }, []);
-
-  return { ref, onMouseMove, onMouseLeave };
-}
+import { useMagnetic } from "@/hooks/useMagnetic";
 
 export function Navbar() {
-  const magnetic = useMagnetic();
+  const magnetic = useMagnetic<HTMLAnchorElement>();
   const [open, setOpen] = useState(false);
 
   return (
@@ -58,6 +37,7 @@ export function Navbar() {
         {/* Desktop CTA */}
         <a
           ref={magnetic.ref}
+          onMouseEnter={magnetic.onMouseEnter}
           onMouseMove={magnetic.onMouseMove}
           onMouseLeave={magnetic.onMouseLeave}
           href="#waitlist"

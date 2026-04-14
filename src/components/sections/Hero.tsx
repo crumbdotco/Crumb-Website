@@ -1,14 +1,16 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useTurnstile } from "@/hooks/useTurnstile";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { useMagnetic } from "@/hooks/useMagnetic";
 
 /* ── Count-up hook ── */
 function useCountUp(target: number, duration = 1000) {
   const [value, setValue] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const done = useRef(false);
+  const prev = useRef(0);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -20,7 +22,11 @@ function useCountUp(target: number, duration = 1000) {
           (function tick(now: number) {
             const p = Math.min((now - start) / duration, 1);
             const eased = 1 - Math.pow(1 - p, 3);
-            setValue(Math.round(eased * target));
+            const rounded = Math.round(eased * target);
+            if (rounded !== prev.current) {
+              prev.current = rounded;
+              setValue(rounded);
+            }
             if (p < 1) requestAnimationFrame(tick);
           })(start);
         }
@@ -32,29 +38,6 @@ function useCountUp(target: number, duration = 1000) {
   }, [target, duration]);
 
   return { ref, value };
-}
-
-/* ── Magnetic button (desktop only) ── */
-function useMagnetic<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
-
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<T>) => {
-      if (isTouch || !ref.current) return;
-      const rect = ref.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      ref.current.style.transform = `translate(${x * 0.12}px, ${y * 0.12}px)`;
-    },
-    [isTouch],
-  );
-
-  const onMouseLeave = useCallback(() => {
-    if (ref.current) ref.current.style.transform = "";
-  }, []);
-
-  return { ref, onMouseMove, onMouseLeave };
 }
 
 /* ── Waitlist count ── */
@@ -271,6 +254,7 @@ export function Hero() {
                   />
                   <button
                     ref={magnetic.ref}
+                    onMouseEnter={magnetic.onMouseEnter}
                     onMouseMove={magnetic.onMouseMove}
                     onMouseLeave={magnetic.onMouseLeave}
                     type="submit"

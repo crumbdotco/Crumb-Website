@@ -4,28 +4,43 @@ import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 
 const STRIPE_LINK = process.env.NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK ?? "";
+const isBrowser = typeof window !== "undefined";
+const isTouch = isBrowser && "ontouchstart" in window;
 
-/* ── Tilt hook (desktop only) ── */
+/* ── RAF-throttled Tilt hook (desktop only) ── */
 function useTilt() {
   const ref = useRef<HTMLDivElement>(null);
-  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
+  const raf = useRef<number>(0);
+  const rect = useRef<DOMRect | null>(null);
+
+  const onMouseEnter = useCallback(() => {
+    if (isTouch || !ref.current) return;
+    rect.current = ref.current.getBoundingClientRect();
+  }, []);
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isTouch || !ref.current) return;
-      const r = ref.current.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      ref.current.style.transform = `perspective(600px) rotateY(${x * 5}deg) rotateX(${-y * 5}deg) translateY(-3px) scale(1.01)`;
+      if (isTouch || !ref.current || !rect.current) return;
+      if (raf.current) return;
+      raf.current = requestAnimationFrame(() => {
+        if (!ref.current || !rect.current) return;
+        const x = (e.clientX - rect.current.left) / rect.current.width - 0.5;
+        const y = (e.clientY - rect.current.top) / rect.current.height - 0.5;
+        ref.current.style.transform = `perspective(600px) rotateY(${x * 5}deg) rotateX(${-y * 5}deg) translateY(-3px) scale(1.01)`;
+        raf.current = 0;
+      });
     },
-    [isTouch],
+    [],
   );
 
   const onMouseLeave = useCallback(() => {
+    if (raf.current) cancelAnimationFrame(raf.current);
+    raf.current = 0;
+    rect.current = null;
     if (ref.current) ref.current.style.transform = "";
   }, []);
 
-  return { ref, onMouseMove, onMouseLeave };
+  return { ref, onMouseEnter, onMouseMove, onMouseLeave };
 }
 
 /* ── Bento Card ── */
@@ -54,6 +69,7 @@ function BentoCard({
   return (
     <motion.div
       ref={tilt.ref}
+      onMouseEnter={tilt.onMouseEnter}
       onMouseMove={tilt.onMouseMove}
       onMouseLeave={tilt.onMouseLeave}
       initial={{ opacity: 0, scale: 0.94 }}
@@ -96,16 +112,16 @@ export function FeaturesGrid() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_500px_400px_at_70%_30%,rgba(230,195,155,0.15),transparent_70%)]" />
 
       <div className="relative z-[2] mx-auto max-w-[960px]">
-        {/* Header */}
-        <motion.p variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-[11px] font-bold uppercase tracking-[3px] text-crumb-brown">
-          Features
-        </motion.p>
-        <motion.h2 variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }} className="mt-2.5 font-display text-[clamp(26px,3.8vw,40px)] font-bold tracking-[-2px]">
-          Everything you didn&apos;t<br />know you needed.
-        </motion.h2>
-        <motion.p variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }} className="mt-1.5 max-w-[460px] text-[15px] text-crumb-brown">
-          Your orders tell a story. We help you read it.
-        </motion.p>
+        {/* Header — single observer for group */}
+        <motion.div variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+          <p className="text-[11px] font-bold uppercase tracking-[3px] text-crumb-brown">Features</p>
+          <h2 className="mt-2.5 font-display text-[clamp(26px,3.8vw,40px)] font-bold tracking-[-2px]">
+            Everything you didn&apos;t<br />know you needed.
+          </h2>
+          <p className="mt-1.5 max-w-[460px] text-[15px] text-crumb-brown">
+            Your orders tell a story. We help you read it.
+          </p>
+        </motion.div>
 
         {/* Bento Grid */}
         <div className="mt-10 grid grid-cols-1 gap-2.5 md:grid-cols-3">
@@ -171,12 +187,12 @@ export function FeaturesGrid() {
 
         {/* ── Pricing ── */}
         <div id="pricing" className="mt-[60px]">
-          <motion.p variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-[11px] font-bold uppercase tracking-[3px] text-crumb-brown">
-            Pricing
-          </motion.p>
-          <motion.h2 variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }} className="mt-2.5 font-display text-[clamp(22px,3.2vw,34px)] font-bold tracking-[-1.5px]">
-            Start free. Upgrade<br />when you want more.
-          </motion.h2>
+          <motion.div variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+            <p className="text-[11px] font-bold uppercase tracking-[3px] text-crumb-brown">Pricing</p>
+            <h2 className="mt-2.5 font-display text-[clamp(22px,3.2vw,34px)] font-bold tracking-[-1.5px]">
+              Start free. Upgrade<br />when you want more.
+            </h2>
+          </motion.div>
 
           <div className="mt-8 grid grid-cols-1 gap-3.5 md:grid-cols-2">
             {/* Free tier */}

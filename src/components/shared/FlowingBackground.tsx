@@ -1,6 +1,3 @@
-"use client";
-import { motion } from "framer-motion";
-
 function generateLines(width: number, height: number, count: number): string[] {
   const paths: string[] = [];
   for (let i = 1; i <= count; i++) {
@@ -28,24 +25,23 @@ const lines = generateLines(1920, 1080, 12);
 
 export function FlowingBackground() {
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      <motion.svg
-        className="w-[200%] h-full will-change-transform"
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 will-change-transform">
+      <svg
+        className="h-full w-[200%] will-change-transform"
         viewBox="0 0 3840 1080"
         preserveAspectRatio="none"
-        animate={{ x: [0, -1920] }}
-        transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+        style={{ animation: "flow-scroll 50s linear infinite" }}
       >
         {lines.map((d, i) => (
           <path
             key={i}
             d={d}
-            stroke="rgba(255,255,255,0.35)"
-            strokeWidth={1.5}
+            stroke="rgba(180,160,140,0.18)"
+            strokeWidth={1.8}
             fill="none"
           />
         ))}
-      </motion.svg>
+      </svg>
     </div>
   );
 }

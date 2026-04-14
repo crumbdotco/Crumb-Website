@@ -24,11 +24,12 @@ const waves: Record<WaveVariant, { top: string; bottom: string; topFill: string;
 export function WaveDivider({ variant }: { variant: WaveVariant }) {
   const w = waves[variant];
   return (
-    <div className="wave-divider relative z-1">
+    <div className="wave-divider relative z-1 -mt-px">
       <svg
         viewBox="0 0 1440 120"
         preserveAspectRatio="none"
         xmlns="http://www.w3.org/2000/svg"
+        shapeRendering="geometricPrecision"
       >
         <path d={w.top} fill={w.topFill} />
         <path d={w.bottom} fill={w.bottomFill} />

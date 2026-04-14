@@ -1,32 +1,11 @@
 "use client";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useTurnstile } from "@/hooks/useTurnstile";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { useMagnetic } from "@/hooks/useMagnetic";
 
 const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number];
-
-function useMagnetic<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const isTouch = typeof window !== "undefined" && "ontouchstart" in window;
-
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<T>) => {
-      if (isTouch || !ref.current) return;
-      const rect = ref.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;
-      const y = e.clientY - rect.top - rect.height / 2;
-      ref.current.style.transform = `translate(${x * 0.12}px, ${y * 0.12}px)`;
-    },
-    [isTouch],
-  );
-
-  const onMouseLeave = useCallback(() => {
-    if (ref.current) ref.current.style.transform = "";
-  }, []);
-
-  return { ref, onMouseMove, onMouseLeave };
-}
 
 function useWaitlistCount() {
   const [count, setCount] = useState<number | null>(null);
@@ -129,6 +108,7 @@ export function CTASection() {
               />
               <button
                 ref={magnetic.ref}
+                onMouseEnter={magnetic.onMouseEnter}
                 onMouseMove={magnetic.onMouseMove}
                 onMouseLeave={magnetic.onMouseLeave}
                 type="submit"
