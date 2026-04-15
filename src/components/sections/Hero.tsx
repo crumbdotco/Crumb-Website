@@ -1,9 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { useTurnstile } from "@/hooks/useTurnstile";
-import { useWaitlist } from "@/hooks/useWaitlist";
-import { useMagnetic } from "@/hooks/useMagnetic";
 
 /* ── Count-up hook ── */
 function useCountUp(target: number, duration = 1000) {
@@ -182,17 +178,7 @@ function StatCard({
 
 /* ── Hero ── */
 export function Hero() {
-  const { token, containerRef: turnstileRef, hasTurnstile, reset } = useTurnstile("light");
-  const { email, setEmail, status, submit } = useWaitlist({ turnstileToken: token });
-  const magnetic = useMagnetic<HTMLButtonElement>();
   const waitlistCount = useWaitlistCount();
-
-  const buttonDisabled = status === "loading" || (hasTurnstile && !token);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    await submit(e);
-    if (status === "error") reset();
-  };
 
   return (
     <section className="relative z-1 flex min-h-screen items-center justify-center overflow-hidden px-5 pb-[60px] pt-24 md:px-10 md:pt-20">
@@ -220,57 +206,15 @@ export function Hero() {
 
           <Receipt />
 
-          {/* Waitlist form */}
+          {/* CTA — scrolls to waitlist section */}
           <div style={{ animation: "fade-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.65s both" }}>
-            {status === "success" ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-[10px] border border-crumb-gold/30 bg-crumb-gold/10 p-4 text-center"
-              >
-                <p className="font-bold text-crumb-dark">You&apos;re on the list!</p>
-                <p className="mt-1 text-xs text-crumb-brown">We&apos;ll email you on launch day.</p>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                {/* Honeypot */}
-                <input
-                  id="crumb-hp"
-                  type="text"
-                  name="website"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
-                  className="absolute h-0 w-0 overflow-hidden opacity-0 pointer-events-none"
-                />
-                <div className="flex max-w-[360px]">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="flex-1 rounded-l-[10px] border-[1.5px] border-r-0 border-crumb-dark/[0.12] bg-white/50 px-3.5 py-3 text-sm text-crumb-dark outline-none transition-all duration-150 placeholder:text-[#B0A090] focus:border-crumb-dark/25 focus:bg-white/75"
-                  />
-                  <button
-                    ref={magnetic.ref}
-                    onMouseEnter={magnetic.onMouseEnter}
-                    onMouseMove={magnetic.onMouseMove}
-                    onMouseLeave={magnetic.onMouseLeave}
-                    type="submit"
-                    disabled={buttonDisabled}
-                    className="whitespace-nowrap rounded-r-[10px] bg-crumb-dark px-5 py-3 text-[13px] font-bold text-crumb-cream transition-transform duration-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {status === "loading" ? "Joining..." : "Join Waitlist"}
-                  </button>
-                </div>
-                <div ref={turnstileRef} className="mt-2" />
-              </form>
-            )}
-            {status === "error" && (
-              <p className="mt-2 text-xs text-red-500">Something went wrong. Please try again.</p>
-            )}
-            <p className="mt-1.5 text-[11px] text-crumb-muted">We&apos;ll email you on launch day.</p>
+            <a
+              href="#waitlist"
+              className="inline-block rounded-[10px] bg-crumb-dark px-6 py-3 text-[14px] font-bold text-crumb-cream transition-transform duration-100 active:scale-[0.97]"
+            >
+              Join the Waitlist &darr;
+            </a>
+            <p className="mt-2 text-[11px] text-crumb-muted">We&apos;ll email you on launch day.</p>
             {waitlistCount !== null && (
               <div className="mt-3 flex items-center gap-2 text-xs text-crumb-brown">
                 <span className="h-[7px] w-[7px] rounded-full bg-green-400" style={{ animation: "pulse-dot 2s infinite" }} />
