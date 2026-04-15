@@ -95,14 +95,19 @@ export default function TermsPage() {
             <h2 className="mb-3 text-lg font-bold text-crumb-dark">
               6. Founding Member
             </h2>
-            <p>
-              Founding Member is a limited one-time payment of &pound;4.99 available via
-              the website (processed by Stripe) that grants lifetime Premium access.
-              This offer is available to early supporters before the App&apos;s public
-              launch and may be discontinued at any time. Founding Members receive
-              an exclusive profile badge and all future Premium features at no
-              additional cost.
+            <p className="mb-3">
+              Founding Member is a <strong className="text-crumb-dark">pre-launch only</strong> offer:
+              a one-time payment of &pound;4.99 (processed by Stripe) that grants
+              lifetime Premium access. This is separate from the recurring Premium
+              subscription (&pound;4.99/month or &pound;49.99/year) which will be
+              available after launch via the App Store and Google Play.
             </p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>Founding Members pay once and never pay again — no subscription, no recurring fees.</li>
+              <li>The Founding Member offer will be permanently removed once the App launches publicly.</li>
+              <li>Founding Members receive an exclusive profile badge and all current and future Premium features at no additional cost.</li>
+              <li>Founding Member status is non-transferable and tied to your Crumb account.</li>
+            </ul>
           </section>
 
           <section>

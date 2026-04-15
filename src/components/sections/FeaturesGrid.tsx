@@ -222,7 +222,7 @@ export function FeaturesGrid() {
               <div className="mt-1.5 font-display text-[44px] font-bold tracking-[-3px]">
                 &pound;4.99 <small className="text-[15px] font-medium tracking-normal text-crumb-muted">/month</small>
               </div>
-              <p className="text-xs text-crumb-muted">or &pound;49.99/year</p>
+              <p className="text-xs text-crumb-muted">or &pound;49.99/year &mdash; after launch</p>
               <ul className="mt-5 flex flex-col gap-2">
                 {["Everything in Free", "Advanced analytics", "Food soulmate matching", "Unlimited history", "No ads", "Export your data"].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-[13px] text-crumb-muted">
@@ -231,13 +231,21 @@ export function FeaturesGrid() {
                 ))}
               </ul>
 
-              {/* Founding badge */}
-              <div className="mt-5 rounded-xl border border-crumb-gold/15 bg-crumb-gold/10 px-[18px] py-3.5" style={{ animation: "f-pulse 3s ease-in-out infinite" }}>
+              {/* Divider */}
+              <div className="my-5 h-px bg-white/[0.08]" />
+
+              {/* Founding member — pre-launch only */}
+              <div className="rounded-xl border border-crumb-gold/15 bg-crumb-gold/10 px-[18px] py-4">
                 <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-crumb-gold">
                   <Star className="h-[15px] w-[15px] stroke-crumb-gold" strokeWidth={2} fill="none" />
-                  Founding Member — &pound;4.99 once
+                  Pre-launch: Founding Member
                 </div>
-                <p className="mt-[3px] text-[11px] text-crumb-brown">Pay once, get Premium forever. Limited spots.</p>
+                <p className="mt-1 text-[12px] text-crumb-cream/80">
+                  <span className="font-bold">&pound;4.99 once</span> &mdash; get Premium forever. No subscription, no recurring fees. This offer disappears at launch.
+                </p>
+                <p className="mt-1 text-[10px] text-crumb-brown">
+                  After launch, Premium will be &pound;4.99/month or &pound;49.99/year.
+                </p>
               </div>
 
               {STRIPE_LINK ? (
@@ -245,16 +253,16 @@ export function FeaturesGrid() {
                   href={STRIPE_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-5 block w-full rounded-[10px] bg-crumb-gold py-3 text-center text-sm font-bold text-crumb-darkest transition-colors hover:bg-crumb-cream"
+                  className="mt-4 block w-full rounded-[10px] bg-crumb-gold py-3 text-center text-sm font-bold text-crumb-darkest transition-colors hover:bg-crumb-cream"
                 >
-                  Become a Founding Member
+                  Become a Founding Member &mdash; &pound;4.99 once
                 </a>
               ) : (
                 <button
                   disabled
-                  className="mt-5 block w-full cursor-not-allowed rounded-[10px] bg-crumb-gold/30 py-3 text-center text-sm font-bold text-crumb-cream/30"
+                  className="mt-4 block w-full cursor-not-allowed rounded-[10px] bg-crumb-gold/30 py-3 text-center text-sm font-bold text-crumb-cream/30"
                 >
-                  Become a Founding Member
+                  Become a Founding Member &mdash; &pound;4.99 once
                 </button>
               )}
             </motion.div>
