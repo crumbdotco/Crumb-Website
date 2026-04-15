@@ -1,5 +1,4 @@
 "use client";
-import { motion } from "framer-motion";
 
 const badges = [
   {
@@ -67,23 +66,11 @@ export function TrustStrip() {
   return (
     <section className="relative z-1 px-5 py-10 md:px-10 md:py-[50px]">
       <div className="relative z-[2] mx-auto max-w-[960px]">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-30px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center font-display text-[22px] font-bold tracking-[-1px]"
-        >
+        <h2 className="text-center font-display text-[22px] font-bold tracking-[-1px]">
           Built for trust
-        </motion.h2>
+        </h2>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.94 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-30px" }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-7 grid grid-cols-3 overflow-hidden rounded-[18px] border border-crumb-dark/[0.06] bg-white/40 backdrop-blur-[4px] md:grid-cols-6"
-        >
+        <div className="mt-7 grid grid-cols-3 overflow-hidden rounded-[18px] border border-crumb-dark/[0.06] bg-white/60 md:grid-cols-6">
           {badges.map((b, i) => (
             <div
               key={b.label}
@@ -96,7 +83,7 @@ export function TrustStrip() {
               <div className="mt-0.5 text-[10px] text-crumb-brown">{b.desc}</div>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -51,7 +51,6 @@ function BentoCard({
   large,
   highlight,
   children,
-  delay = 0,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -59,23 +58,18 @@ function BentoCard({
   large?: boolean;
   highlight?: boolean;
   children?: React.ReactNode;
-  delay?: number;
 }) {
   const tilt = useTilt();
   const base = highlight
     ? "bg-crumb-dark text-crumb-cream border-none"
-    : "bg-white/50 border border-crumb-dark/[0.06] backdrop-blur-[4px]";
+    : "bg-white/70 border border-crumb-dark/[0.06]";
 
   return (
-    <motion.div
+    <div
       ref={tilt.ref}
       onMouseEnter={tilt.onMouseEnter}
       onMouseMove={tilt.onMouseMove}
       onMouseLeave={tilt.onMouseLeave}
-      initial={{ opacity: 0, scale: 0.94 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`bento-card cursor-default overflow-hidden rounded-[18px] ${large ? "md:col-span-2 md:row-span-2 p-6 md:p-8" : "p-6"} ${base}`}
     >
       <div
@@ -90,7 +84,7 @@ function BentoCard({
         {desc}
       </p>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -127,7 +121,7 @@ export function FeaturesGrid() {
         <div className="mt-10 grid grid-cols-1 gap-2.5 md:grid-cols-3">
           <BentoCard
             large
-            delay={0.06}
+
             icon={<svg className="h-[26px] w-[26px] stroke-crumb-dark fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></svg>}
             title="Crumb Wrapped"
             desc="Every December, get your year in food delivery. Top restaurants, total spent, food personality — shareable, beautiful, yours."
@@ -149,14 +143,14 @@ export function FeaturesGrid() {
           </BentoCard>
 
           <BentoCard
-            delay={0.12}
+
             icon={<svg className="h-5 w-5 stroke-crumb-dark fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6" /></svg>}
             title="Deep Stats"
             desc="Spending trends, peak hours, cuisine breakdowns, order frequency."
           />
 
           <BentoCard
-            delay={0.18}
+
             icon={<svg className="h-5 w-5 stroke-crumb-dark fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>}
             title="Food Map"
             desc="Every restaurant pinned. See where you've been, discover where to go."
@@ -164,21 +158,21 @@ export function FeaturesGrid() {
 
           <BentoCard
             highlight
-            delay={0.24}
+
             icon={<svg className="h-5 w-5 stroke-crumb-gold fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>}
             title="Food Soulmate"
             desc="Find your taste twin. Match percentage, shared favourites, compare side by side."
           />
 
           <BentoCard
-            delay={0.3}
+
             icon={<svg className="h-5 w-5 stroke-crumb-dark fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>}
             title="Reviews"
             desc="Rate restaurants, write notes, build your personal food diary."
           />
 
           <BentoCard
-            delay={0.36}
+
             icon={<svg className="h-5 w-5 stroke-crumb-dark fill-none" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>}
             title="Friends"
             desc="Add friends, compare stats, flex your spending."
@@ -201,7 +195,7 @@ export function FeaturesGrid() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="rounded-[22px] border border-crumb-dark/[0.06] bg-white/50 p-8 backdrop-blur-[4px] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px]"
+              className="rounded-[22px] border border-crumb-dark/[0.06] bg-white/70 p-8 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px]"
             >
               <p className="text-[11px] font-bold uppercase tracking-[2px] text-crumb-brown">Free</p>
               <div className="mt-1.5 font-display text-[44px] font-bold tracking-[-3px]">

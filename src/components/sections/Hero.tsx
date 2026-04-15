@@ -101,7 +101,7 @@ function StatsPanel() {
 
   return (
     <div
-      className="rounded-[18px] border border-crumb-dark/[0.06] bg-white/45 p-5 backdrop-blur-[8px]"
+      className="rounded-[18px] border border-crumb-dark/[0.06] bg-white/70 p-5"
       style={{ animation: "panel-in 1s cubic-bezier(0.16,1,0.3,1) 0.4s both" }}
     >
       <div className="mb-2.5 text-center text-[10px] uppercase tracking-[2px] text-crumb-muted">

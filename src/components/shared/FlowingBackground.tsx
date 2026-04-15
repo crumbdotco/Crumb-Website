@@ -5,10 +5,10 @@ function generateLines(width: number, height: number, count: number): string[] {
     const amp1 = 12 + (i % 3) * 8;
     const amp2 = 8 + ((i + 1) % 4) * 6;
     const phase = (i * 37) % 100;
-    let d = `M -50 ${baseY}`;
+    let d = `M 0 ${baseY}`;
     const segments = 10;
     for (let j = 1; j <= segments; j++) {
-      const x = (j / segments) * (width * 2 + 100) - 50;
+      const x = (j / segments) * width;
       const t = j / segments;
       const y =
         baseY +
@@ -21,16 +21,15 @@ function generateLines(width: number, height: number, count: number): string[] {
   return paths;
 }
 
-const lines = generateLines(1920, 1080, 12);
+const lines = generateLines(1920, 1080, 10);
 
 export function FlowingBackground() {
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 will-change-transform">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       <svg
-        className="h-full w-[200%] will-change-transform"
-        viewBox="0 0 3840 1080"
+        className="h-full w-full"
+        viewBox="0 0 1920 1080"
         preserveAspectRatio="none"
-        style={{ animation: "flow-scroll 50s linear infinite" }}
       >
         {lines.map((d, i) => (
           <path

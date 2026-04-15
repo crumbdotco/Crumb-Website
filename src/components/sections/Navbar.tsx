@@ -9,7 +9,7 @@ export function Navbar() {
 
   return (
     <nav
-      className={`fixed top-3.5 left-1/2 z-[200] border border-crumb-dark/[0.06] bg-white/60 px-4 py-2 backdrop-blur-[20px] md:px-6 ${open ? "rounded-[22px]" : "rounded-full"}`}
+      className={`fixed top-3.5 left-1/2 z-[200] border border-crumb-dark/[0.06] bg-white/90 px-4 py-2 md:px-6 ${open ? "rounded-[22px]" : "rounded-full"}`}
       style={{ animation: "nav-in 0.5s cubic-bezier(0.16,1,0.3,1) both" }}
     >
       <div className="flex items-center gap-4 md:gap-7">
