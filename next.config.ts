@@ -60,6 +60,23 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Apple App Site Association must be served as application/json with
+        // no extension. Next.js defaults to octet-stream for extension-less
+        // files — override so iOS accepts the file for universal links.
+        source: "/.well-known/apple-app-site-association",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
         // Apply security headers to all routes
         source: "/(.*)",
         headers: securityHeaders,
