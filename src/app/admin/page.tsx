@@ -1,7 +1,9 @@
+import { redirect } from 'next/navigation';
 import { fetchSupabaseAdminMetrics } from '@/lib/admin/supabase-admin';
 import { fetchRcMetrics } from '@/lib/admin/revenuecat';
 import { fetchAscMetrics } from '@/lib/admin/asc';
 import { fetchSentryMetrics } from '@/lib/admin/sentry';
+import { requireAdmin } from '@/lib/admin/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
@@ -9,6 +11,9 @@ export const revalidate = 300;
 const RC_PROJECT_ID = process.env.REVENUECAT_PROJECT_ID ?? '';
 
 export default async function AdminPage() {
+  const userId = await requireAdmin();
+  if (!userId) redirect('/admin/signin');
+
   // Fetch in parallel — each source caches independently via fetch()
   // revalidate, so a failure in one doesn't block the others.
   const [supabase, rc, asc, sentry] = await Promise.all([
