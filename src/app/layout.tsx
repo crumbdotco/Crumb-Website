@@ -34,8 +34,8 @@ export const metadata: Metadata = {
     "Screenshot your order history from any delivery app. See your stats, top restaurants, food personality, soulmates, and annual Wrapped. Free for iOS and Android.",
   keywords: [
     "food delivery stats",
-    "uber eats wrapped",
-    "just eat stats",
+    "food stats app",
+    "food wrapped",
     "food delivery analytics",
     "crumb app",
     "restaurant reviews",
