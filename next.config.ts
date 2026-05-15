@@ -40,7 +40,7 @@ const securityHeaders = [
       // Scripts: self + Next.js inline hydration + Cloudflare Turnstile
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
       // API calls to same origin + Cloudflare Turnstile verification
-      "connect-src 'self' https://challenges.cloudflare.com",
+      "connect-src 'self' https://challenges.cloudflare.com https://ymibczzgqpyslonqankc.supabase.co",
       // Cloudflare Turnstile renders in an iframe
       "frame-src https://challenges.cloudflare.com",
       // No plugins

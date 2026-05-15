@@ -30,12 +30,12 @@ export function Screen2() {
   return (
     <div className="p-4 pt-12">
       <div className="inline-block px-2 py-0.5 rounded-full bg-[#E6C39B]/15 text-[#E6C39B] text-[8px] font-bold tracking-[1.5px] uppercase mb-4">
-        ✦ Wrapped 2025
+        ✦ Wrapped 2026
       </div>
       <div className="font-headline text-[30px] text-white leading-[0.95] mb-1 tracking-[-0.01em]">
         Your Year<br />in Food
       </div>
-      <div className="text-[11px] text-[#E0D5C9]/30 mb-5">Jan — Dec 2025</div>
+      <div className="text-[11px] text-[#E0D5C9]/30 mb-5">Jan — Dec 2026</div>
       <div className="grid grid-cols-2 gap-2">
         {[['147', 'Orders'], ['38', 'Restaurants'], ["Nando's", 'Top Spot'], ['Indian', 'Top Cuisine']].map(([v, l]) => (
           <div key={l} className="bg-[#2A2118] rounded-xl p-3 border border-white/5">

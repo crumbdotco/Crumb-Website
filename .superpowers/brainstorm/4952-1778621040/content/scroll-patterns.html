@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll Pattern Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --cream: #E0D5C9; --cream-soft: #EDE2D5; --cream-card: #F0E6D9;
+    --gold: #E6C39B; --gold-deep: #C9A077;
+    --ink: #3E2723; --ink-soft: #5C4438; --ink-muted: #8A7060;
+    --dark: #1A1208; --dark-card: #2A2118;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0705; color: white; overflow-x: hidden; }
+
+  /* ── CHOICE BANNER ── */
+  .choice-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(10,7,5,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(230,195,155,0.2);
+    padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .choice-banner h2 { font-size: 13px; color: var(--gold); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+  .choice-banner p { font-size: 11px; color: #8A7060; }
+  .btn-choose { padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+  .btn-a { background: var(--gold); color: var(--ink); margin-right: 8px; }
+  .btn-a:hover { background: var(--gold-deep); }
+  .btn-b { background: transparent; color: var(--gold); border: 1px solid var(--gold); }
+  .btn-b:hover { background: rgba(230,195,155,.1); }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    position: sticky; top: 52px; z-index: 100;
+    background: rgba(26,18,8,0.8); backdrop-filter: blur(8px);
+    padding: 8px 24px; font-size: 11px; color: var(--gold);
+    font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    border-bottom: 1px solid rgba(230,195,155,0.1);
+  }
+
+  /* ═══════════════════════════════════════════
+     PATTERN A — SCROLL-PINNED PHONE
+     (Arc / Raycast / Superhuman style)
+  ═══════════════════════════════════════════ */
+  #pattern-a { background: var(--dark); }
+
+  .pinned-wrapper {
+    display: flex; position: relative;
+  }
+  .pinned-phone-col {
+    width: 50%; position: sticky; top: 52px;
+    height: calc(100vh - 52px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px;
+  }
+  .phone-shell {
+    width: 200px; background: #0d0908; border-radius: 40px;
+    border: 2px solid #333; padding: 16px 12px;
+    box-shadow: 0 40px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.08);
+    position: relative;
+  }
+  .phone-notch {
+    width: 60px; height: 8px; background: #111; border-radius: 4px;
+    margin: 0 auto 12px;
+  }
+  .phone-screen {
+    border-radius: 24px; overflow: hidden; background: var(--dark-card);
+    height: 320px; position: relative;
+  }
+
+  /* Screen slides */
+  .screen-slide {
+    position: absolute; inset: 0; padding: 14px;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity .5s ease, transform .5s ease;
+    pointer-events: none;
+  }
+  .screen-slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  /* Stats screen */
+  .stat-row { display: flex; gap: 6px; margin-bottom: 8px; }
+  .stat-chip {
+    flex: 1; background: rgba(230,195,155,.08); border: 1px solid rgba(230,195,155,.15);
+    border-radius: 10px; padding: 8px 6px; text-align: center;
+  }
+  .stat-chip .num { font-size: 17px; font-weight: 800; color: var(--cream); }
+  .stat-chip .lbl { font-size: 7px; color: var(--ink-muted); margin-top: 1px; }
+  .bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .bar-label { font-size: 7px; color: var(--cream); width: 48px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; height: 5px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--gold); animation: barGrow .8s ease both; }
+  @keyframes barGrow { from { width: 0 !important; } }
+  .bar-count { font-size: 7px; color: var(--gold); width: 16px; text-align: right; }
+
+  /* Wrapped screen */
+  .wrapped-card {
+    background: linear-gradient(135deg, #2A1A08 0%, #1A1208 100%);
+    border-radius: 14px; padding: 14px; text-align: center;
+    border: 1px solid rgba(230,195,155,.2);
+  }
+  .wrapped-year { font-size: 9px; color: var(--gold); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+  .wrapped-big { font-size: 36px; font-weight: 900; color: var(--cream); line-height: 1; }
+  .wrapped-sub { font-size: 8px; color: var(--ink-muted); margin-top: 4px; }
+  .wrapped-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .wrapped-tile { background: rgba(230,195,155,.06); border-radius: 8px; padding: 8px; text-align: center; }
+  .wrapped-tile .v { font-size: 14px; font-weight: 800; color: var(--gold); }
+  .wrapped-tile .k { font-size: 6px; color: #8A7060; }
+
+  /* Personality screen */
+  .personality-badge {
+    text-align: center; padding: 12px 0;
+  }
+  .p-emoji { font-size: 40px; display: block; margin-bottom: 6px; }
+  .p-type { font-size: 16px; font-weight: 800; color: var(--gold); margin-bottom: 3px; }
+  .p-desc { font-size: 8px; color: var(--ink-muted); line-height: 1.4; margin-bottom: 10px; }
+  .p-pill-grid { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .p-pill {
+    padding: 3px 8px; border-radius: 20px; font-size: 7px; font-weight: 600;
+    background: rgba(255,255,255,.05); color: #8A7060;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .p-pill.active { background: rgba(230,195,155,.15); color: var(--gold); border-color: rgba(230,195,155,.3); }
+
+  /* Soulmate screen */
+  .soulmate-pair { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 0; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .match-pct { text-align: center; }
+  .match-pct .pct { font-size: 28px; font-weight: 900; color: var(--gold); }
+  .match-pct .lbl { font-size: 8px; color: var(--ink-muted); }
+  .soulmate-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; justify-content: center; }
+  .s-tag { padding: 3px 8px; border-radius: 20px; font-size: 7px; background: rgba(230,195,155,.1); color: var(--gold); border: 1px solid rgba(230,195,155,.2); }
+
+  /* Scroll features col */
+  .scroll-features-col {
+    width: 50%; padding: 80px 40px;
+  }
+  .feature-block {
+    min-height: 85vh; display: flex; flex-direction: column; justify-content: center;
+    opacity: 0; transform: translateX(24px);
+    transition: opacity .6s ease, transform .6s ease;
+    padding: 20px 0;
+  }
+  .feature-block.visible { opacity: 1; transform: translateX(0); }
+  .feature-tag { font-size: 11px; color: var(--gold); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+  .feature-title { font-size: 36px; font-weight: 900; color: white; line-height: 1.1; margin-bottom: 14px; }
+  .feature-title em { color: var(--gold); font-style: normal; }
+  .feature-body { font-size: 15px; color: #8A7060; line-height: 1.7; max-width: 340px; }
+
+  /* ═══════════════════════════════════════════
+     PATTERN B — FULL-VIEWPORT IMMERSIVE
+     (Stripe / Apple product page style)
+  ═══════════════════════════════════════════ */
+  #pattern-b { }
+  .vp-section {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 80px 40px; position: relative; overflow: hidden;
+  }
+  .vp-section .content { position: relative; z-index: 2; max-width: 700px; }
+  .vp-section .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .15em;
+    text-transform: uppercase; margin-bottom: 20px; display: inline-block;
+    padding: 5px 14px; border-radius: 20px;
+  }
+  .vp-section .headline {
+    font-size: clamp(36px, 6vw, 60px); font-weight: 900; line-height: 1.08; margin-bottom: 20px;
+  }
+  .vp-section .subline { font-size: 17px; line-height: 1.7; max-width: 500px; margin: 0 auto; }
+
+  /* VP1 — hero */
+  .vp1 { background: radial-gradient(ellipse 80% 60% at 50% 30%, #2A1A08 0%, #1A1208 50%, #0a0705 100%); }
+  .vp1 .eyebrow { background: rgba(230,195,155,.1); color: var(--gold); border: 1px solid rgba(230,195,155,.2); }
+  .vp1 .headline { color: white; }
+  .vp1 .headline em { color: var(--gold); font-style: normal; }
+  .vp1 .subline { color: #8A7060; }
+  .vp1 .floating-phone {
+    width: 160px; margin: 40px auto 0; background: #0d0908;
+    border-radius: 32px; border: 2px solid #333; padding: 14px 10px;
+    box-shadow: 0 60px 120px rgba(0,0,0,.8), 0 0 60px rgba(230,195,155,.05);
+    animation: phoneFloat 4s ease-in-out infinite;
+  }
+  @keyframes phoneFloat {
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50% { transform: translateY(-12px) rotate(1deg); }
+  }
+  .vp1 .floating-phone .mini-screen {
+    background: var(--dark-card); border-radius: 18px; height: 220px; padding: 12px;
+  }
+
+  /* VP2 — stats */
+  .vp2 { background: var(--cream); }
+  .vp2 .eyebrow { background: rgba(62,39,35,.08); color: var(--ink); border: 1px solid rgba(62,39,35,.15); }
+  .vp2 .headline { color: var(--ink); }
+  .vp2 .subline { color: var(--ink-muted); }
+  .counter-row { display: flex; gap: 24px; justify-content: center; margin: 36px 0; flex-wrap: wrap; }
+  .counter-item { text-align: center; }
+  .counter-num { font-size: 52px; font-weight: 900; color: var(--ink); line-height: 1; }
+  .counter-num span { color: var(--gold-deep); }
+  .counter-lbl { font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+
+  /* VP3 — personality */
+  .vp3 { background: #0f0a06; }
+  .vp3 .eyebrow { background: rgba(230,195,155,.08); color: var(--gold); border: 1px solid rgba(230,195,155,.15); }
+  .vp3 .headline { color: white; }
+  .vp3 .headline em { color: var(--gold); font-style: normal; }
+  .vp3 .subline { color: #8A7060; }
+  .type-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 36px 0; }
+  .type-card {
+    padding: 10px 16px; border-radius: 28px; font-size: 13px; font-weight: 600;
+    background: rgba(230,195,155,.06); color: #8A7060;
+    border: 1px solid rgba(230,195,155,.1);
+    cursor: pointer; transition: all .3s;
+    animation: typeFloat linear infinite;
+  }
+  .type-card:hover, .type-card.lit {
+    background: rgba(230,195,155,.15); color: var(--gold);
+    border-color: rgba(230,195,155,.4);
+    transform: scale(1.05);
+  }
+  @keyframes typeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* VP4 — wrapped */
+  .vp4 {
+    background: radial-gradient(ellipse 100% 80% at 50% 50%, #1E1206 0%, #0a0705 100%);
+    border-top: 1px solid rgba(230,195,155,.05);
+  }
+  .vp4 .eyebrow { background: rgba(230,195,155,.08); color: var(--gold); border: 1px solid rgba(230,195,155,.15); }
+  .vp4 .headline { color: white; }
+  .vp4 .headline em { color: var(--gold); font-style: normal; }
+  .vp4 .subline { color: #8A7060; }
+
+  /* BG orbs */
+  .orb {
+    position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 1;
+  }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity .8s ease, transform .8s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-delay-1 { transition-delay: .1s; }
+  .reveal-delay-2 { transition-delay: .2s; }
+  .reveal-delay-3 { transition-delay: .35s; }
+
+  /* Nav labels */
+  .nav-label {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 16px 32px; display: flex; align-items: center; gap: 10px;
+    font-size: 11px; color: rgba(255,255,255,.3); letter-spacing: .05em;
+  }
+  .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); opacity: .5; }
+
+  /* Divider */
+  .pattern-divider {
+    padding: 40px; text-align: center; background: #070503;
+    border-top: 1px solid rgba(230,195,155,.08); border-bottom: 1px solid rgba(230,195,155,.08);
+  }
+  .pattern-divider h3 { font-size: 11px; color: #8A7060; letter-spacing: .15em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<!-- CHOICE BANNER -->
+<div class="choice-banner">
+  <div>
+    <h2>Pick a scroll pattern</h2>
+    <p>Scroll down ↓ &nbsp; Pattern A first (pinned phone), then Pattern B (full-viewport)</p>
+  </div>
+  <div>
+    <button class="btn-choose btn-a" onclick="choose('pinned-phone')">✓ Choose A — Pinned Phone</button>
+    <button class="btn-choose btn-b" onclick="choose('full-viewport')">Choose B — Full Viewport</button>
+  </div>
+</div>
+
+<!-- ══ PATTERN A ══ -->
+<div id="pattern-a" style="padding-top:52px;">
+  <div class="section-label">Pattern A — Scroll-pinned phone (Arc / Raycast style)</div>
+
+  <div class="pinned-wrapper">
+    <!-- FIXED PHONE -->
+    <div class="pinned-phone-col">
+      <div class="phone-shell" id="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+
+          <!-- Screen 0: Stats -->
+          <div class="screen-slide active" id="screen-stats">
+            <div style="font-size:9px;color:var(--gold);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">Your Stats</div>
+            <div class="stat-row">
+              <div class="stat-chip"><div class="num">247</div><div class="lbl">orders</div></div>
+              <div class="stat-chip"><div class="num" style="color:var(--gold)">38</div><div class="lbl">places</div></div>
+              <div class="stat-chip"><div class="num">£841</div><div class="lbl">spent</div></div>
+            </div>
+            <div style="font-size:8px;color:#8A7060;margin:8px 0 5px;font-weight:600;">Top restaurants</div>
+            <div class="bar-row"><div class="bar-label">Dishoom</div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><div class="bar-count">41</div></div>
+            <div class="bar-row"><div class="bar-label">Nandos</div><div class="bar-track"><div class="bar-fill" style="width:62%"></div></div><div class="bar-count">30</div></div>
+            <div class="bar-row"><div class="bar-label">Five Guys</div><div class="bar-track"><div class="bar-fill" style="width:45%"></div></div><div class="bar-count">22</div></div>
+            <div class="bar-row"><div class="bar-label">Wagamama</div><div class="bar-track"><div class="bar-fill" style="width:33%"></div></div><div class="bar-count">16</div></div>
+            <div style="margin-top:10px;background:rgba(230,195,155,.06);border-radius:8px;padding:7px 8px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:7px;color:#8A7060;">Your cuisine</span>
+              <span style="font-size:9px;color:var(--gold);font-weight:700;">🍛 South Asian · 42%</span>
+            </div>
+          </div>
+
+          <!-- Screen 1: Wrapped -->
+          <div class="screen-slide" id="screen-wrapped">
+            <div class="wrapped-card">
+              <div class="wrapped-year">2024 Wrapped</div>
+              <div class="wrapped-big">247</div>
+              <div class="wrapped-sub">orders this year</div>
+              <div class="wrapped-grid">
+                <div class="wrapped-tile"><div class="v">38</div><div class="k">restaurants</div></div>
+                <div class="wrapped-tile"><div class="v">£841</div><div class="k">spent</div></div>
+                <div class="wrapped-tile"><div class="v">Dishoom</div><div class="k">top spot</div></div>
+                <div class="wrapped-tile"><div class="v">🍛</div><div class="k">top cuisine</div></div>
+              </div>
+            </div>
+            <div style="margin-top:8px;text-align:center;font-size:9px;color:var(--gold);font-weight:700;">🍛 Cuisine Collector</div>
+          </div>
+
+          <!-- Screen 2: Personality -->
+          <div class="screen-slide" id="screen-personality">
+            <div class="personality-badge">
+              <span class="p-emoji">🌍</span>
+              <div class="p-type">Adventurer</div>
+              <div class="p-desc">You've tried 12 cuisines this month. Always chasing something new.</div>
+            </div>
+            <div class="p-pill-grid">
+              <div class="p-pill active">🌍 Adventurer</div>
+              <div class="p-pill">🦥 Creature of Habit</div>
+              <div class="p-pill">🌙 Night Owl</div>
+              <div class="p-pill">🍗 Chicken Champion</div>
+              <div class="p-pill">🏋️ Bulk Orderer</div>
+              <div class="p-pill">⏰ Lunch Break Hero</div>
+            </div>
+          </div>
+
+          <!-- Screen 3: Soulmate -->
+          <div class="screen-slide" id="screen-soulmate">
+            <div style="font-size:9px;color:var(--gold);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;">Food Soulmate</div>
+            <div class="soulmate-pair">
+              <div class="avatar" style="background:#2A2118;border:2px solid var(--gold);">🧑</div>
+              <div class="match-pct">
+                <div class="pct">94%</div>
+                <div class="lbl">match</div>
+              </div>
+              <div class="avatar" style="background:#2A2118;border:2px solid rgba(230,195,155,.3);">👩</div>
+            </div>
+            <div class="soulmate-tags">
+              <div class="s-tag">Both love Dishoom</div>
+              <div class="s-tag">South Asian obsessed</div>
+              <div class="s-tag">Weekend warriors</div>
+              <div class="s-tag">Late night orders</div>
+            </div>
+            <div style="margin-top:12px;background:rgba(230,195,155,.08);border-radius:10px;padding:8px;text-align:center;font-size:8px;color:#8A7060;">
+              Matched with <strong style="color:var(--cream)">@jess_eats</strong> · 3 friends away
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- SCROLLING CONTENT -->
+    <div class="scroll-features-col">
+      <div class="feature-block" id="feat0">
+        <div class="feature-tag">Stats</div>
+        <div class="feature-title">Every order.<br><em>Counted.</em></div>
+        <div class="feature-body">See exactly how many times you've ordered from that one place you pretend you don't go to every week. Top restaurants, top cuisines, spend breakdowns — all pulled automatically.</div>
+      </div>
+      <div class="feature-block" id="feat1">
+        <div class="feature-tag">Wrapped</div>
+        <div class="feature-title">Your year<br>in food, <em>revealed.</em></div>
+        <div class="feature-body">Like Spotify Wrapped, but for your delivery habit. Every December, Crumb builds your personal food story — the numbers, the obsessions, the questionable 3am choices.</div>
+      </div>
+      <div class="feature-block" id="feat2">
+        <div class="feature-tag">Personality</div>
+        <div class="feature-title">11 types.<br>Which one <em>are you?</em></div>
+        <div class="feature-body">Are you a Creature of Habit — 87% of orders from the same 3 spots? An Adventurer who tried 12 cuisines this month? Your order history decides. No quiz needed.</div>
+      </div>
+      <div class="feature-block" id="feat3">
+        <div class="feature-tag">Soulmate</div>
+        <div class="feature-title">Find your<br><em>food soulmate.</em></div>
+        <div class="feature-body">Crumb analyses your taste profile and matches you with friends (or strangers) who order the exact same things. 94% match with someone who orders Dishoom at midnight? Meant to be.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DIVIDER -->
+<div class="pattern-divider">
+  <h3>↓ &nbsp; Pattern B — Full Viewport Immersive &nbsp; ↓</h3>
+</div>
+
+<!-- ══ PATTERN B ══ -->
+<div id="pattern-b">
+
+  <!-- VP1 Hero -->
+  <div class="vp-section vp1">
+    <div class="orb" style="width:400px;height:400px;background:rgba(230,195,155,.04);top:-100px;left:50%;transform:translateX(-50%);"></div>
+    <div class="content">
+      <div class="eyebrow reveal">Your Food Delivery Stats</div>
+      <div class="headline reveal reveal-delay-1">Your food story,<br><em>finally told.</em></div>
+      <div class="subline reveal reveal-delay-2">Connect your Uber Eats. Get your stats, personality, annual Wrapped, and find your food soulmate.</div>
+      <div class="floating-phone reveal reveal-delay-3">
+        <div class="mini-screen">
+          <div style="font-size:8px;color:var(--gold);font-weight:700;margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase;">Home</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div style="flex:1;background:rgba(230,195,155,.06);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--cream);">247</div><div style="font-size:6px;color:#8A7060;">orders</div></div>
+            <div style="flex:1;background:rgba(230,195,155,.06);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--gold);">38</div><div style="font-size:6px;color:#8A7060;">places</div></div>
+            <div style="flex:1;background:rgba(230,195,155,.06);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--cream);">£841</div><div style="font-size:6px;color:#8A7060;">spent</div></div>
+          </div>
+          <div style="background:rgba(230,195,155,.08);border-radius:10px;padding:10px;text-align:center;">
+            <div style="font-size:11px;font-weight:800;color:var(--gold);">🌍 Adventurer</div>
+            <div style="font-size:7px;color:#8A7060;margin-top:3px;">12 cuisines this month</div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;">
+            <div style="flex:1;background:rgba(230,195,155,.05);border-radius:8px;padding:7px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--cream);">7</div><div style="font-size:6px;color:#8A7060;">day streak</div></div>
+            <div style="flex:1;background:rgba(230,195,155,.05);border-radius:8px;padding:7px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--gold);">94%</div><div style="font-size:6px;color:#8A7060;">soulmate match</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VP2 Stats — cream background -->
+  <div class="vp-section vp2">
+    <div class="content">
+      <div class="eyebrow reveal">Deep dive</div>
+      <div class="headline reveal reveal-delay-1">Numbers you<br>never knew existed.</div>
+      <div class="counter-row reveal reveal-delay-2">
+        <div class="counter-item">
+          <div class="counter-num" data-target="247"><span>0</span></div>
+          <div class="counter-lbl">total orders</div>
+        </div>
+        <div class="counter-item">
+          <div class="counter-num" data-target="38"><span>0</span></div>
+          <div class="counter-lbl">restaurants tried</div>
+        </div>
+        <div class="counter-item">
+          <div class="counter-num" data-target="841">£<span>0</span></div>
+          <div class="counter-lbl">total spent</div>
+        </div>
+      </div>
+      <div class="subline reveal reveal-delay-3" style="color:var(--ink-muted);">Platform comparison. Top items. Cuisine breakdown. Time-period filters. Your stats in obsessive detail.</div>
+    </div>
+  </div>
+
+  <!-- VP3 Personality — dark -->
+  <div class="vp-section vp3">
+    <div class="orb" style="width:500px;height:300px;background:rgba(201,160,119,.03);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+    <div class="content">
+      <div class="eyebrow reveal">11 personality types</div>
+      <div class="headline reveal reveal-delay-1">What kind of<br>eater are <em>you?</em></div>
+      <div class="type-grid reveal reveal-delay-2">
+        <div class="type-card lit" style="animation-duration:3.1s;animation-delay:0s">🦥 Creature of Habit</div>
+        <div class="type-card" style="animation-duration:2.8s;animation-delay:.3s">🌍 Adventurer</div>
+        <div class="type-card" style="animation-duration:3.4s;animation-delay:.6s">🌙 Night Owl</div>
+        <div class="type-card" style="animation-duration:2.6s;animation-delay:.2s">📅 Weekend Warrior</div>
+        <div class="type-card" style="animation-duration:3.2s;animation-delay:.8s">🍱 Cuisine Collector</div>
+        <div class="type-card" style="animation-duration:2.9s;animation-delay:.4s">🍗 Chicken Champion</div>
+        <div class="type-card" style="animation-duration:3.5s;animation-delay:.1s">🔁 The Regular</div>
+        <div class="type-card" style="animation-duration:2.7s;animation-delay:.5s">💸 Deal Hunter</div>
+        <div class="type-card" style="animation-duration:3.3s;animation-delay:.7s">⏰ Lunch Break Hero</div>
+        <div class="type-card" style="animation-duration:3.0s;animation-delay:.9s">🏋️ Bulk Orderer</div>
+        <div class="type-card" style="animation-duration:2.8s;animation-delay:.3s">🍽️ The Foodie</div>
+      </div>
+      <div class="subline reveal reveal-delay-3">Your order history decides. No quiz. No input. Just your data, analysed.</div>
+    </div>
+  </div>
+
+  <!-- VP4 Wrapped — cinematic -->
+  <div class="vp-section vp4">
+    <div class="orb" style="width:600px;height:600px;background:rgba(230,195,155,.02);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+    <div class="content">
+      <div class="eyebrow reveal">Annual Wrapped</div>
+      <div class="headline reveal reveal-delay-1">Like Spotify Wrapped.<br>But for <em>your food habit.</em></div>
+      <div class="subline reveal reveal-delay-2">Every December, Crumb reveals your year in food — the stats, the obsessions, the personality, the soulmate match. Shareable. Beautiful. Unmissable.</div>
+      <div style="margin-top:40px;" class="reveal reveal-delay-3">
+        <div style="display:inline-flex;gap:16px;align-items:center;background:rgba(230,195,155,.06);border:1px solid rgba(230,195,155,.15);border-radius:16px;padding:16px 24px;">
+          <div style="text-align:center;"><div style="font-size:28px;font-weight:900;color:var(--gold);">247</div><div style="font-size:10px;color:#8A7060;">orders</div></div>
+          <div style="width:1px;height:40px;background:rgba(230,195,155,.1);"></div>
+          <div style="text-align:center;"><div style="font-size:28px;font-weight:900;color:var(--cream);">38</div><div style="font-size:10px;color:#8A7060;">restaurants</div></div>
+          <div style="width:1px;height:40px;background:rgba(230,195,155,.1);"></div>
+          <div style="text-align:center;"><div style="font-size:28px;font-weight:900;color:var(--cream);">£841</div><div style="font-size:10px;color:#8A7060;">spent</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Pattern A: Scroll-pinned phone screen switching ──
+const features = ['feat0','feat1','feat2','feat3'];
+const screens  = ['screen-stats','screen-wrapped','screen-personality','screen-soulmate'];
+let activeScreen = 0;
+
+function getScrollProgress() {
+  const pA = document.getElementById('pattern-a');
+  if (!pA) return 0;
+  const rect = pA.getBoundingClientRect();
+  const total = pA.offsetHeight - window.innerHeight;
+  const scrolled = -rect.top;
+  return Math.max(0, Math.min(1, scrolled / total));
+}
+
+function switchScreen(idx) {
+  if (idx === activeScreen) return;
+  const prev = document.getElementById(screens[activeScreen]);
+  const next = document.getElementById(screens[idx]);
+  if (prev) prev.classList.remove('active');
+  if (next) next.classList.add('active');
+  activeScreen = idx;
+}
+
+function onScroll() {
+  const progress = getScrollProgress();
+  const featIdx = Math.min(features.length - 1, Math.floor(progress * features.length * 1.1));
+
+  // Switch phone screen
+  switchScreen(Math.min(screens.length - 1, featIdx));
+
+  // Reveal feature blocks
+  features.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const inView = rect.top < window.innerHeight * 0.7 && rect.bottom > window.innerHeight * 0.2;
+    el.classList.toggle('visible', inView);
+  });
+
+  // Scroll reveal for pattern B
+  document.querySelectorAll('.reveal').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.85) {
+      el.classList.add('visible');
+    }
+  });
+
+  // Counter animation
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.8 && !el.dataset.counted) {
+      el.dataset.counted = '1';
+      const target = parseInt(el.dataset.target);
+      const span = el.querySelector('span');
+      let start = 0;
+      const step = target / 60;
+      const interval = setInterval(() => {
+        start = Math.min(start + step, target);
+        span.textContent = Math.round(start).toLocaleString();
+        if (start >= target) clearInterval(interval);
+      }, 16);
+    }
+  });
+
+  // Personality type cycling
+  const types = document.querySelectorAll('.type-card');
+  types.forEach(t => t.classList.remove('lit'));
+  const litIdx = Math.floor(Date.now() / 2000) % types.length;
+  if (types[litIdx]) types[litIdx].classList.add('lit');
+}
+
+// Choose buttons
+function choose(choice) {
+  const data = { type: 'click', choice, text: choice === 'pinned-phone' ? 'Pattern A — Pinned Phone' : 'Pattern B — Full Viewport', timestamp: Date.now() };
+  fetch('/event', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }).catch(()=>{});
+  document.querySelectorAll('.btn-choose').forEach(b => b.style.opacity = '.5');
+  const btn = choice === 'pinned-phone' ? document.querySelector('.btn-a') : document.querySelector('.btn-b');
+  if (btn) { btn.style.opacity = '1'; btn.textContent = '✓ ' + btn.textContent.replace('✓ ',''); }
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+setInterval(() => {
+  document.querySelectorAll('.type-card').forEach(t => t.classList.remove('lit'));
+  const types = document.querySelectorAll('.type-card');
+  const litIdx = Math.floor(Date.now() / 2000) % types.length;
+  if (types[litIdx]) types[litIdx].classList.add('lit');
+}, 100);
+
+// Initial call
+onScroll();
+</script>
+</body>
+</html>

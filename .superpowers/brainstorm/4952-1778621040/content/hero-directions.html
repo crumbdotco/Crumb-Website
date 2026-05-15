@@ -1,0 +1,130 @@
+<style>
+  :root {
+    --cream: #E0D5C9;
+    --cream-soft: #EDE2D5;
+    --cream-card: #F0E6D9;
+    --gold: #E6C39B;
+    --gold-deep: #C9A077;
+    --ink: #3E2723;
+    --ink-soft: #5C4438;
+    --ink-muted: #8A7060;
+    --dark: #1A1208;
+    --dark-card: #2A2118;
+  }
+</style>
+
+<h2>Hero Section Direction</h2>
+<p class="subtitle">What's the opening story of the new site? Pick the direction that feels most "Crumb".</p>
+
+<div class="cards">
+
+  <!-- Option A: Stats Identity -->
+  <div class="card" data-choice="stats-identity" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:var(--cream);padding:20px;font-family:system-ui;">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <!-- Phone mockup -->
+        <div style="background:var(--dark);border-radius:28px;width:120px;min-width:120px;padding:12px 8px;border:3px solid #333;">
+          <div style="background:var(--dark-card);border-radius:12px;padding:10px;">
+            <div style="font-size:8px;color:var(--gold);font-weight:700;margin-bottom:6px;">Your Stats</div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <div style="text-align:center;">
+                <div style="font-size:14px;font-weight:800;color:var(--cream);">247</div>
+                <div style="font-size:6px;color:var(--ink-muted);color:#8A7060;">orders</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:14px;font-weight:800;color:var(--gold);">38</div>
+                <div style="font-size:6px;color:#8A7060;">places</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:14px;font-weight:800;color:var(--cream);">£841</div>
+                <div style="font-size:6px;color:#8A7060;">spent</div>
+              </div>
+            </div>
+            <div style="font-size:7px;color:#8A7060;margin-bottom:4px;">Top restaurant</div>
+            <div style="background:#2A2118;border-radius:6px;padding:5px 6px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:8px;color:var(--cream);font-weight:600;">Dishoom</span>
+              <span style="font-size:8px;color:var(--gold);">41×</span>
+            </div>
+            <div style="margin-top:6px;font-size:7px;color:#E6C39B;font-weight:600;text-align:center;">🍛 Cuisine Collector</div>
+          </div>
+        </div>
+        <!-- Hero copy -->
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--ink-muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;">Food Delivery Stats</div>
+          <div style="font-size:18px;font-weight:800;color:var(--ink);line-height:1.2;margin-bottom:6px;">Finally know your food story.</div>
+          <div style="font-size:9px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;">Stats, personality types, and your full order history — all in one place.</div>
+          <div style="background:var(--gold);border-radius:8px;padding:6px 10px;display:inline-block;font-size:9px;font-weight:700;color:var(--ink);">Join waitlist</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Stats Identity</h3>
+      <p>Phone mockup front-and-centre showing real stat numbers. Hero copy is "finally know your food story." Straightforward, credible.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Personality Hook -->
+  <div class="card" data-choice="personality-hook" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:var(--dark);padding:20px;font-family:system-ui;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">What kind of eater are you?</div>
+        <div style="font-size:22px;font-weight:800;color:var(--cream);line-height:1.1;margin-bottom:6px;">You're a<br><span style="color:var(--gold);">Creature of Habit.</span></div>
+        <div style="font-size:9px;color:#8A7060;margin-bottom:12px;">87% of your orders go to the same 3 restaurants</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="background:#2A2118;border:1px solid #E6C39B33;border-radius:20px;padding:4px 10px;font-size:8px;color:var(--gold);">🦥 Creature of Habit</div>
+        <div style="background:#2A2118;border:1px solid #ffffff22;border-radius:20px;padding:4px 10px;font-size:8px;color:#8A7060;">🌍 Adventurer</div>
+        <div style="background:#2A2118;border:1px solid #ffffff22;border-radius:20px;padding:4px 10px;font-size:8px;color:#8A7060;">🌙 Night Owl</div>
+        <div style="background:#2A2118;border:1px solid #ffffff22;border-radius:20px;padding:4px 10px;font-size:8px;color:#8A7060;">🍗 Chicken Champion</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="background:var(--gold);border-radius:8px;padding:6px 16px;display:inline-block;font-size:9px;font-weight:700;color:var(--ink);">Find out yours →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Personality Hook</h3>
+      <p>Dark hero, huge personality reveal. "What kind of eater are you?" The 11 personality types shown as pills. Viral, curiosity-driven, speaks to 18-25s wanting identity.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Wrapped Moment -->
+  <div class="card" data-choice="wrapped-moment" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:linear-gradient(135deg,#2A1A0A 0%,#1A1208 60%,#0D0A05 100%);padding:20px;font-family:system-ui;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="background:#1E150A;border-radius:28px;width:110px;min-width:110px;padding:10px 8px;border:2px solid #E6C39B44;overflow:hidden;">
+          <div style="text-align:center;margin-bottom:6px;">
+            <div style="font-size:7px;color:#8A7060;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">2024 Wrapped</div>
+          </div>
+          <div style="background:var(--dark-card);border-radius:10px;padding:8px;margin-bottom:6px;text-align:center;">
+            <div style="font-size:20px;font-weight:800;color:var(--gold);">247</div>
+            <div style="font-size:7px;color:#8A7060;">orders this year</div>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:6px;">
+            <div style="flex:1;background:#2A2118;border-radius:6px;padding:5px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;color:var(--cream);">38</div>
+              <div style="font-size:6px;color:#8A7060;">places</div>
+            </div>
+            <div style="flex:1;background:#2A2118;border-radius:6px;padding:5px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;color:var(--cream);">£841</div>
+              <div style="font-size:6px;color:#8A7060;">spent</div>
+            </div>
+          </div>
+          <div style="background:var(--gold);border-radius:6px;padding:4px;text-align:center;">
+            <div style="font-size:7px;font-weight:700;color:var(--ink);">🍛 Cuisine Collector</div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:9px;color:var(--gold);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Like Spotify Wrapped,<br>but for food</div>
+          <div style="font-size:17px;font-weight:800;color:var(--cream);line-height:1.15;margin-bottom:8px;">Your year in food, revealed.</div>
+          <div style="font-size:8px;color:#8A7060;line-height:1.5;margin-bottom:10px;">See every order, every craving, every obsession — beautifully summarised.</div>
+          <div style="background:var(--gold);border-radius:8px;padding:6px 12px;display:inline-block;font-size:9px;font-weight:700;color:var(--ink);">Join waitlist</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Wrapped Moment</h3>
+      <p>Dark cinematic hero. "Like Spotify Wrapped, but for food." Immediately positions Crumb against a cultural touchpoint everyone knows. High shareability signal.</p>
+    </div>
+  </div>
+
+</div>

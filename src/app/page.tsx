@@ -4,7 +4,7 @@ import { PlatformMarquee } from "@/components/sections/v2/PlatformMarquee";
 import { FeatureScroll }   from "@/components/sections/v2/FeatureScroll";
 import { StatsBand }       from "@/components/sections/v2/StatsBand";
 import { BentoSection }    from "@/components/sections/v2/BentoSection";
-import { DownloadCTA }     from "@/components/sections/v2/DownloadCTA";
+import { WaitlistSection } from "@/components/sections/v2/WaitlistSection";
 import { Footer }          from "@/components/sections/v2/Footer";
 
 export default function Home() {
@@ -16,7 +16,7 @@ export default function Home() {
       <FeatureScroll />
       <StatsBand />
       <BentoSection />
-      <DownloadCTA />
+      <WaitlistSection />
       <Footer />
     </main>
   );

@@ -1,64 +1,40 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces, Instrument_Serif } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { Preloader } from "@/components/ui/Preloader";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  axes: ["opsz", "SOFT"],
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  variable: "--font-accent",
-  display: "swap",
-  weight: "400",
-  style: ["normal", "italic"],
-});
-
 export const metadata: Metadata = {
   metadataBase: new URL("https://crumbify.co.uk"),
-  title: "Crumb - Your Food Delivery Stats in One Place",
+  title: "Crumbify — Your Food Delivery Stats",
   description:
-    "Screenshot your order history from any delivery app. See your stats, top restaurants, food personality, soulmates, and annual Wrapped. Free for iOS and Android.",
+    "Screenshot your order history from any delivery app. See your stats, top restaurants, food personality, soulmates, and annual Wrapped. Join the waitlist.",
   keywords: [
     "food delivery stats",
     "food stats app",
     "food wrapped",
-    "food delivery analytics",
-    "crumb app",
-    "restaurant reviews",
-    "food map",
+    "crumbify",
+    "crumbify app",
+    "restaurant tracker",
     "food personality",
     "food journal",
-    "achievement badges",
+    "food map",
     "food friends",
-    "restaurant ratings",
   ],
   openGraph: {
-    title: "Crumb - Your Food Delivery Stats in One Place",
-    description: "Your food. Your stats. Your story.",
+    title: "Crumbify — Your Food Delivery Stats",
+    description: "Read the crumbs.",
     url: "https://crumbify.co.uk",
-    siteName: "Crumb",
+    siteName: "Crumbify",
     images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
     locale: "en_GB",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crumb - Your Food Delivery Stats in One Place",
-    description: "Your food. Your stats. Your story.",
+    title: "Crumbify — Your Food Delivery Stats",
+    description: "Read the crumbs.",
     images: ["/images/og-image.png"],
   },
 };
@@ -70,7 +46,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${fraunces.variable} ${instrumentSerif.variable} antialiased`}>
+      <body className="antialiased">
         <Preloader />
         <SmoothScroll>
           <CustomCursor />

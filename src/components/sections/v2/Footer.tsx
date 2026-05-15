@@ -4,13 +4,13 @@ export function Footer() {
     <footer className="bg-[#0E0805] px-6 pt-16 pb-8 border-t border-[#E6C39B]/8">
       <div className="max-w-[1100px] mx-auto">
         {/* Big tagline */}
-        <div className="font-headline text-[clamp(60px,10vw,140px)] text-[#E0D5C9]/8 leading-none tracking-[-0.03em] mb-12 select-none pointer-events-none">
-          Crumb<span className="font-accent italic">.</span>
+        <div className="font-headline text-[clamp(64px,11vw,160px)] text-[#E0D5C9]/8 leading-none mb-12 select-none pointer-events-none">
+          Crumbify.
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10">
           <div>
-            <div className="font-headline text-[22px] text-[#E6C39B] tracking-[0.15em] mb-2">CRUMB</div>
+            <div className="text-[22px] text-[#E6C39B] tracking-[0.12em] font-extrabold mb-2">CRUMBIFY</div>
             <div className="text-[12px] text-[#E0D5C9]/30">Your food delivery stats in one place</div>
           </div>
           <ul className="flex gap-6 flex-wrap">
@@ -28,7 +28,7 @@ export function Footer() {
           </ul>
         </div>
         <div className="pt-6 border-t border-white/6 flex flex-col md:flex-row justify-between items-center gap-2">
-          <span className="text-[11px] text-[#E0D5C9]/20">© 2025 Crumb. All rights reserved.</span>
+          <span className="text-[11px] text-[#E0D5C9]/20">© 2026 Crumbify. All rights reserved.</span>
           <span className="text-[11px] text-[#E0D5C9]/20 font-mono">crumbify.co.uk</span>
         </div>
       </div>

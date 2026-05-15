@@ -50,21 +50,23 @@ export function Hero() {
         {/* Text — 7 cols */}
         <div className="md:col-span-7 flex flex-col gap-7">
           {/* Status badge */}
-          <motion.div
+          <motion.a
+            href="#waitlist"
+            data-cursor="pointer"
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.5 }}
-            className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-full border border-[#E6C39B]/15 bg-[#E6C39B]/[0.06] text-[11px] font-semibold text-[#E6C39B]/70 tracking-[1.2px] uppercase"
+            className="flex items-center gap-2 w-fit px-3 py-1.5 rounded-full border border-[#E6C39B]/15 bg-[#E6C39B]/[0.06] text-[11px] font-semibold text-[#E6C39B]/70 tracking-[1.2px] uppercase hover:border-[#E6C39B]/30 hover:text-[#E6C39B]/90 transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 motion-safe:animate-pulse" />
-            Now in TestFlight
-          </motion.div>
+            Coming soon · Join the waitlist
+          </motion.a>
 
           {/* Headline */}
-          <div className="font-headline leading-[0.88] tracking-[-0.02em]">
-            {HERO_HEADLINE.map((line, i) => (
-              <div key={i} className="overflow-hidden">
-                <motion.div
+          <h1 className="font-headline leading-[0.88]">
+            {HERO_HEADLINE.map((word, i) => (
+              <span key={i} className="block overflow-hidden">
+                <motion.span
                   initial={reduce ? { opacity: 0 } : { y: '100%' }}
                   animate={{ y: '0%', opacity: 1 }}
                   transition={{
@@ -72,21 +74,20 @@ export function Hero() {
                     ease: [0.16, 1, 0.3, 1],
                     delay: 0.7 + i * 0.09,
                   }}
-                  className="text-[clamp(64px,9vw,128px)] text-[#E0D5C9]"
+                  className="block text-[clamp(72px,11vw,164px)] text-[#E0D5C9]"
                 >
-                  {i === 1 ? (
+                  {i === HERO_HEADLINE.length - 1 ? (
                     <>
-                      Your{' '}
-                      <span className="font-accent italic text-[#E6C39B]">story</span>
-                      .
+                      {word.replace('.', '')}
+                      <span className="text-[#E6C39B]">.</span>
                     </>
                   ) : (
-                    line
+                    word
                   )}
-                </motion.div>
-              </div>
+                </motion.span>
+              </span>
             ))}
-          </div>
+          </h1>
 
           {/* Sub */}
           <motion.p
@@ -106,10 +107,10 @@ export function Hero() {
             className="flex items-center gap-5"
           >
             <MagneticButton
-              onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-2 px-7 py-3.5 rounded-[12px] bg-[#E6C39B] text-[#1A1208] text-[14px] font-bold hover:bg-[#C9A077] transition-colors duration-150"
             >
-              Download Free
+              Join the Waitlist
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
                 <path d="M6.5 1v7M3 4.5l3.5 3.5 3.5-3.5M1 11h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -168,7 +169,7 @@ export function Hero() {
                   Your Stats
                 </span>
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E6C39B]/15 text-[#E6C39B] font-bold tracking-[1px]">
-                  2025
+                  2026
                 </span>
               </div>
               <div className="bg-[#2A2118] rounded-2xl p-4 border border-white/5">

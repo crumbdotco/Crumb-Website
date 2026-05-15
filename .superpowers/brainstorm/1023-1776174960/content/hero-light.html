@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crumb — Light Hero Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #E0D5C9; color: #3D2B1F; }
+
+  .concept-label {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(224,213,201,0.92); backdrop-filter: blur(12px);
+    padding: 14px 32px; border-bottom: 1px solid rgba(61,43,31,0.08);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .concept-label .badge {
+    background: #3D2B1F; color: #E0D5C9; font-weight: 800; font-size: 12px;
+    padding: 3px 10px; border-radius: 99px;
+  }
+  .concept-label p { color: #8B7355; font-size: 13px; }
+
+  /* Shared */
+  .input-row { display: flex; gap: 0; max-width: 400px; }
+  .input-row input {
+    flex: 1; padding: 15px 18px; border: 1.5px solid rgba(61,43,31,0.12);
+    border-right: none; border-radius: 12px 0 0 12px;
+    background: rgba(255,255,255,0.5); color: #3D2B1F; font-size: 15px;
+    outline: none; font-family: 'Inter', sans-serif;
+  }
+  .input-row input::placeholder { color: #B0A090; }
+  .input-row input:focus { border-color: rgba(61,43,31,0.25); background: rgba(255,255,255,0.7); }
+  .input-row button {
+    padding: 15px 24px; background: #3D2B1F; color: #E0D5C9;
+    border: none; border-radius: 0 12px 12px 0; font-weight: 700; font-size: 15px;
+    cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif;
+  }
+  .micro { color: #A09080; font-size: 11px; margin-top: 8px; }
+  .divider { height: 1px; background: rgba(61,43,31,0.06); }
+
+  /* Receipt shared */
+  .receipt {
+    background: #fff; color: #1A1208; border-radius: 4px;
+    font-family: 'Courier New', monospace; position: relative;
+    box-shadow: 0 8px 40px rgba(61,43,31,0.12);
+  }
+  .receipt::after {
+    content: ''; position: absolute; bottom: -10px; left: 0; right: 0; height: 10px;
+    background: linear-gradient(135deg, #fff 33.3%, transparent 33.3%) -10px 0,
+                linear-gradient(225deg, #fff 33.3%, transparent 33.3%) -10px 0;
+    background-size: 10px 10px;
+  }
+  .r-header { text-align: center; border-bottom: 1.5px dashed #D4C9BC; padding-bottom: 10px; margin-bottom: 10px; }
+  .r-header h4 { font-size: 14px; font-weight: 900; font-family: 'Inter', sans-serif; color: #3D2B1F; }
+  .r-header span { font-size: 10px; color: #8B7355; }
+  .r-line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+  .r-line .lab { color: #8B7355; }
+  .r-line .val { font-weight: 700; color: #3D2B1F; }
+  .r-total {
+    border-top: 1.5px dashed #D4C9BC; margin-top: 8px; padding-top: 8px;
+    display: flex; justify-content: space-between; font-size: 16px; font-weight: 900;
+    font-family: 'Inter', sans-serif;
+  }
+  .r-total .amt { color: #C4513D; }
+
+  /* ===== V1: Split ===== */
+  .hero-v1 {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 80px 40px; position: relative; overflow: hidden;
+  }
+  .hero-v1::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 600px 400px at 35% 45%, rgba(230,195,155,0.2) 0%, transparent 70%);
+  }
+  .v1-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+    max-width: 1100px; width: 100%; align-items: center; position: relative; z-index: 2;
+  }
+  .v1-left { display: flex; flex-direction: column; gap: 32px; }
+  .v1-left h1 {
+    font-size: clamp(32px, 4.5vw, 52px); font-weight: 900; letter-spacing: -2.5px; line-height: 1.05;
+  }
+  .v1-left h1 .accent { color: #8B7355; }
+  .v1-left .sub { color: #8B7355; font-size: 16px; line-height: 1.6; max-width: 420px; }
+  .v1-receipt { padding: 24px 28px; max-width: 300px; transform: rotate(-1.5deg); }
+
+  .stats-panel {
+    background: rgba(255,255,255,0.45); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 20px; padding: 24px; backdrop-filter: blur(8px);
+  }
+  .panel-label {
+    text-align: center; font-size: 10px; color: #A09080;
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+  }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .s-card {
+    background: rgba(255,255,255,0.5); border: 1px solid rgba(61,43,31,0.05);
+    border-radius: 14px; padding: 18px;
+  }
+  .s-card .s-label { font-size: 10px; color: #A09080; text-transform: uppercase; letter-spacing: 0.5px; }
+  .s-card .s-value { font-size: 28px; font-weight: 900; color: #3D2B1F; margin-top: 2px; letter-spacing: -1px; }
+  .s-card .s-sub { font-size: 11px; color: #8B7355; margin-top: 1px; }
+  .s-card.wide { grid-column: span 2; }
+  .s-card.featured { background: rgba(230,195,155,0.25); border-color: rgba(230,195,155,0.3); }
+  .s-card.featured .s-value { color: #6B4E1F; font-size: 40px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 48px; margin-top: 12px; }
+  .bar { flex: 1; background: rgba(61,43,31,0.08); border-radius: 4px 4px 0 0; min-height: 8px; }
+  .bar.active { background: #8B7355; }
+  .bar-labels { display: flex; gap: 6px; margin-top: 4px; }
+  .bar-labels span { flex: 1; text-align: center; font-size: 9px; color: #A09080; }
+
+  /* ===== V2: Side + Strip ===== */
+  .hero-v2 {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 80px 24px; position: relative; overflow: hidden;
+    background: #D8CCBF;
+  }
+  .hero-v2::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 700px 500px at 50% 35%, rgba(255,255,255,0.3) 0%, transparent 70%);
+  }
+  .v2-top {
+    display: flex; align-items: center; gap: 60px;
+    max-width: 900px; width: 100%; position: relative; z-index: 2;
+  }
+  .v2-receipt { padding: 28px 24px; width: 260px; flex-shrink: 0; transform: rotate(-2deg); }
+  .v2-text { flex: 1; }
+  .v2-text h1 {
+    font-size: clamp(28px, 4vw, 44px); font-weight: 900; letter-spacing: -2px; line-height: 1.1;
+  }
+  .v2-text h1 .accent { color: #8B7355; }
+  .v2-text .sub { color: #8B7355; font-size: 15px; margin-top: 12px; line-height: 1.5; }
+  .v2-stats {
+    display: flex; gap: 12px; margin-top: 48px; max-width: 900px; width: 100%;
+    position: relative; z-index: 2;
+  }
+  .v2-stat {
+    flex: 1; background: rgba(255,255,255,0.4); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 14px; padding: 20px; text-align: center; backdrop-filter: blur(4px);
+  }
+  .v2-stat .emoji { font-size: 24px; margin-bottom: 6px; }
+  .v2-stat .num { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: #3D2B1F; }
+  .v2-stat .desc { font-size: 11px; color: #8B7355; margin-top: 2px; }
+  .v2-cta {
+    margin-top: 40px; display: flex; flex-direction: column; align-items: center;
+    position: relative; z-index: 2;
+  }
+
+  /* ===== V3: Bento ===== */
+  .hero-v3 {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 80px 24px; position: relative; overflow: hidden;
+    background: #E4D9CD;
+  }
+  .hero-v3::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 600px 400px at 50% 40%, rgba(255,255,255,0.25) 0%, transparent 70%);
+  }
+  .v3-header { text-align: center; position: relative; z-index: 2; margin-bottom: 48px; }
+  .v3-header .logo-row {
+    display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px;
+  }
+  .logo-dot {
+    width: 28px; height: 28px; border-radius: 50%; background: #3D2B1F;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .v3-header h1 {
+    font-size: clamp(32px, 5vw, 56px); font-weight: 900; letter-spacing: -3px; line-height: 1.05;
+  }
+  .v3-header h1 .accent { color: #8B7355; }
+  .v3-header .sub { color: #8B7355; font-size: 16px; margin-top: 12px; }
+
+  .bento-grid {
+    display: grid; grid-template-columns: 280px 1fr 1fr; grid-template-rows: auto auto;
+    gap: 12px; max-width: 900px; width: 100%; position: relative; z-index: 2;
+  }
+  .bento-receipt {
+    grid-row: span 2; padding: 24px 20px;
+    display: flex; flex-direction: column; justify-content: center;
+    border-radius: 16px;
+  }
+  .bento-stat {
+    background: rgba(255,255,255,0.45); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 16px; padding: 20px; backdrop-filter: blur(4px);
+  }
+  .bento-stat .bs-label { font-size: 10px; color: #A09080; text-transform: uppercase; letter-spacing: 0.5px; }
+  .bento-stat .bs-value { font-size: 32px; font-weight: 900; margin-top: 4px; letter-spacing: -1px; color: #3D2B1F; }
+  .bento-stat .bs-sub { font-size: 11px; color: #8B7355; margin-top: 2px; }
+  .bento-stat.warm { background: rgba(230,195,155,0.3); border-color: rgba(230,195,155,0.35); }
+  .bento-stat.warm .bs-value { color: #6B4E1F; }
+  .v3-cta {
+    margin-top: 40px; display: flex; flex-direction: column; align-items: center;
+    position: relative; z-index: 2;
+  }
+
+  /* Vote */
+  .vote-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(224,213,201,0.95); backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(61,43,31,0.08);
+    padding: 14px 32px; display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .vote-bar span { color: #8B7355; font-size: 13px; }
+  .vote-btn {
+    padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 13px;
+    cursor: pointer; border: 1.5px solid rgba(61,43,31,0.12); background: rgba(255,255,255,0.4);
+    color: #3D2B1F; transition: all 0.2s; font-family: 'Inter', sans-serif;
+  }
+  .vote-btn:hover, .vote-btn.selected { background: #3D2B1F; color: #E0D5C9; border-color: #3D2B1F; }
+</style>
+</head>
+<body>
+
+<!-- V1: Split -->
+<div class="concept-label">
+  <span class="badge">1</span>
+  <p>Split — receipt left, stats dashboard right</p>
+</div>
+<section class="hero-v1">
+  <div class="v1-layout">
+    <div class="v1-left">
+      <div>
+        <h1>Your food delivery<br><span class="accent">receipt.</span></h1>
+        <p class="sub">Connect Uber Eats & Just Eat. See every order, every pound, every guilty pleasure.</p>
+      </div>
+      <div class="receipt v1-receipt">
+        <div class="r-header"><h4>Your 2025 Receipt</h4><span>Uber Eats · Just Eat</span></div>
+        <div class="r-line"><span class="lab">Orders</span><span class="val">147</span></div>
+        <div class="r-line"><span class="lab">Restaurants</span><span class="val">38</span></div>
+        <div class="r-line"><span class="lab">Top Cuisine</span><span class="val">Indian 🍛</span></div>
+        <div class="r-line"><span class="lab">Favourite</span><span class="val">Nando's</span></div>
+        <div class="r-total"><span>TOTAL</span><span class="amt">£2,847</span></div>
+      </div>
+      <div>
+        <div class="input-row"><input type="email" placeholder="your@email.com" /><button>Join Waitlist</button></div>
+        <p class="micro">Free · No spam · UK only</p>
+      </div>
+    </div>
+    <div class="stats-panel">
+      <div class="panel-label">What you'll discover</div>
+      <div class="stats-grid">
+        <div class="s-card featured wide">
+          <div class="s-label">Total Spent</div>
+          <div class="s-value">£2,847</div>
+          <div class="s-sub">across 147 orders this year</div>
+        </div>
+        <div class="s-card"><div class="s-label">Top Spot</div><div class="s-value" style="font-size:22px">Nando's</div><div class="s-sub">21 orders</div></div>
+        <div class="s-card"><div class="s-label">Personality</div><div class="s-value" style="font-size:18px">Main Character</div><div class="s-sub">top 3%</div></div>
+        <div class="s-card"><div class="s-label">Restaurants</div><div class="s-value">38</div><div class="s-sub">on your food map</div></div>
+        <div class="s-card"><div class="s-label">Soulmate</div><div class="s-value">92%</div><div class="s-sub">taste match</div></div>
+        <div class="s-card wide" style="padding:14px 18px;">
+          <div class="s-label">Weekly Spending</div>
+          <div class="bar-chart">
+            <div class="bar" style="height:35%"></div><div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:25%"></div><div class="bar active" style="height:80%"></div>
+            <div class="bar" style="height:45%"></div><div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:30%"></div>
+          </div>
+          <div class="bar-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- V2: Side + Strip -->
+<div class="concept-label">
+  <span class="badge">2</span>
+  <p>Receipt + text top, stats strip below</p>
+</div>
+<section class="hero-v2">
+  <div class="v2-top">
+    <div class="receipt v2-receipt">
+      <div class="r-header"><h4>Your 2025 Receipt</h4><span>Uber Eats · Just Eat</span></div>
+      <div class="r-line"><span class="lab">Orders</span><span class="val">147</span></div>
+      <div class="r-line"><span class="lab">Restaurants</span><span class="val">38</span></div>
+      <div class="r-line"><span class="lab">Favourite</span><span class="val">Nando's</span></div>
+      <div class="r-total"><span>TOTAL</span><span class="amt">£2,847</span></div>
+    </div>
+    <div class="v2-text">
+      <h1>Your food delivery<br><span class="accent">receipt.</span></h1>
+      <p class="sub">Every order. Every pound. Every guilty pleasure. Connect your apps and see it all.</p>
+    </div>
+  </div>
+  <div class="v2-stats">
+    <div class="v2-stat"><div class="emoji">📦</div><div class="num">147</div><div class="desc">total orders</div></div>
+    <div class="v2-stat"><div class="emoji">🗺️</div><div class="num">38</div><div class="desc">restaurants mapped</div></div>
+    <div class="v2-stat"><div class="emoji">✨</div><div class="num" style="font-size:20px">Main Character</div><div class="desc">food personality</div></div>
+    <div class="v2-stat"><div class="emoji">💛</div><div class="num">92%</div><div class="desc">taste match</div></div>
+  </div>
+  <div class="v2-cta">
+    <div class="input-row"><input type="email" placeholder="your@email.com" /><button>Join Waitlist</button></div>
+    <p class="micro">Free · No spam · UK only</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- V3: Bento -->
+<div class="concept-label">
+  <span class="badge">3</span>
+  <p>Headline top → bento grid (receipt + stats cards)</p>
+</div>
+<section class="hero-v3">
+  <div class="v3-header">
+    <div class="logo-row">
+      <div class="logo-dot">🍞</div>
+      <span style="font-weight:800;font-size:17px;">crumb</span>
+    </div>
+    <h1>Your food delivery<br><span class="accent">receipt.</span></h1>
+    <p class="sub">Connect your apps. See every order, pound, and guilty pleasure.</p>
+  </div>
+  <div class="bento-grid">
+    <div class="receipt bento-receipt" style="border-radius:16px;">
+      <div class="r-header"><h4 style="font-size:13px">Your 2025 Receipt</h4><span style="font-size:9px">Uber Eats · Just Eat</span></div>
+      <div class="r-line" style="font-size:11px"><span class="lab">Orders</span><span class="val">147</span></div>
+      <div class="r-line" style="font-size:11px"><span class="lab">Restaurants</span><span class="val">38</span></div>
+      <div class="r-line" style="font-size:11px"><span class="lab">Top Cuisine</span><span class="val">Indian 🍛</span></div>
+      <div class="r-line" style="font-size:11px"><span class="lab">Favourite</span><span class="val">Nando's</span></div>
+      <div class="r-line" style="font-size:11px"><span class="lab">Personality</span><span class="val">Main Character</span></div>
+      <div class="r-total" style="font-size:14px"><span>TOTAL</span><span class="amt">£2,847</span></div>
+    </div>
+    <div class="bento-stat warm"><div class="bs-label">Total Spent</div><div class="bs-value">£2,847</div><div class="bs-sub">across all platforms</div></div>
+    <div class="bento-stat"><div class="bs-label">Top Restaurant</div><div class="bs-value" style="font-size:22px">Nando's</div><div class="bs-sub">21 orders</div></div>
+    <div class="bento-stat"><div class="bs-label">Personality</div><div class="bs-value" style="font-size:20px">Main Character</div><div class="bs-sub">top 3%</div></div>
+    <div class="bento-stat"><div class="bs-label">Taste Match</div><div class="bs-value">92%</div><div class="bs-sub">food soulmate</div></div>
+  </div>
+  <div class="v3-cta">
+    <div class="input-row"><input type="email" placeholder="your@email.com" /><button>Join Waitlist</button></div>
+    <p class="micro">Free · No spam · UK only</p>
+  </div>
+</section>
+
+<div class="vote-bar">
+  <span>Pick layout:</span>
+  <button class="vote-btn" onclick="vote('1',this)">1 — Split</button>
+  <button class="vote-btn" onclick="vote('2',this)">2 — Side + Strip</button>
+  <button class="vote-btn" onclick="vote('3',this)">3 — Bento</button>
+</div>
+<script>
+function vote(c, el) {
+  document.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  if (window.__sendEvent) window.__sendEvent({ type: 'click', choice: c, text: el.textContent });
+}
+</script>
+</body>
+</html>

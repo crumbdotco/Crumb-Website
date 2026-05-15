@@ -11,6 +11,7 @@ interface UseWaitlistOptions {
 export function useWaitlist({ turnstileToken, honeypotId = "crumb-hp" }: UseWaitlistOptions) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [alreadyExists, setAlreadyExists] = useState(false);
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -34,6 +35,8 @@ export function useWaitlist({ turnstileToken, honeypotId = "crumb-hp" }: UseWait
         });
 
         if (res.ok) {
+          const body = await res.json() as { success: boolean; alreadyExists?: boolean };
+          setAlreadyExists(body.alreadyExists === true);
           setStatus("success");
         } else {
           setStatus("error");
@@ -45,5 +48,5 @@ export function useWaitlist({ turnstileToken, honeypotId = "crumb-hp" }: UseWait
     [email, turnstileToken, honeypotId],
   );
 
-  return { email, setEmail, status, submit };
+  return { email, setEmail, status, alreadyExists, submit };
 }

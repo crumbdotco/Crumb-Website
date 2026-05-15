@@ -137,42 +137,54 @@ export function BentoSection() {
             </div>
           </BentoCard>
 
-          {/* Streaks — wide */}
+          {/* Food Map — wide */}
           <BentoCard className="md:col-span-2" delay={0.3}>
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-[#E6C39B]/10 flex items-center justify-center text-xl mb-4">
-                  🔥
+                  📍
                 </div>
                 <h3 className="font-headline text-[36px] text-[#E0D5C9] tracking-[-0.02em] mb-3">
-                  Streaks.
+                  Food Map.
                 </h3>
                 <p className="text-[14px] leading-[1.65] text-[#E0D5C9]/45">
-                  Track how many days in a row you&apos;ve ordered. Personal bests, current streaks, weekly patterns.
+                  Every restaurant you&apos;ve ordered from, plotted on the map. See your hotspots, untouched corners, and the radius of your appetite.
                 </p>
               </div>
-              <div>
-                <div className="text-[10px] font-semibold text-[#E0D5C9]/25 uppercase tracking-[1.5px] mb-3 font-mono">
-                  Last 14 days
+              <div className="relative h-[180px] rounded-2xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+                {/* Faux map: grid lines + pins */}
+                <div
+                  className="absolute inset-0 opacity-40"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(rgba(230,195,155,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(230,195,155,0.08) 1px, transparent 1px)',
+                    backgroundSize: '28px 28px',
+                  }}
+                />
+                {[
+                  { x: '22%', y: '34%', size: 14 },
+                  { x: '48%', y: '52%', size: 22 },
+                  { x: '70%', y: '28%', size: 12 },
+                  { x: '64%', y: '70%', size: 18 },
+                  { x: '32%', y: '74%', size: 10 },
+                  { x: '82%', y: '54%', size: 14 },
+                ].map((p, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-full bg-[#E6C39B]"
+                    style={{
+                      left: p.x,
+                      top: p.y,
+                      width: p.size,
+                      height: p.size,
+                      transform: 'translate(-50%,-50%)',
+                      boxShadow: '0 0 0 4px rgba(230,195,155,0.12), 0 0 12px rgba(230,195,155,0.5)',
+                    }}
+                  />
+                ))}
+                <div className="absolute bottom-3 left-3 text-[9px] uppercase tracking-[1.5px] text-[#E0D5C9]/40 font-mono">
+                  38 spots · London
                 </div>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {[1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1].map((done, i) => (
-                    <div
-                      key={i}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold ${
-                        done
-                          ? 'bg-[#C9A077] text-[#1A1208]'
-                          : 'bg-white/[0.05] text-[#E0D5C9]/20'
-                      }`}
-                    >
-                      {done ? '✓' : '—'}
-                    </div>
-                  ))}
-                </div>
-                <div className="font-headline text-[36px] text-[#E6C39B] leading-none tracking-[-0.02em]">
-                  7 Day Streak 🔥
-                </div>
-                <div className="text-[10px] text-[#E0D5C9]/25 mt-1">Personal best: 12 days</div>
               </div>
             </div>
           </BentoCard>

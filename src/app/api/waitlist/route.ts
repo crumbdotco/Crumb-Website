@@ -267,18 +267,29 @@ export async function POST(request: Request) {
     }
 
     // ---------------------------------------------------------------
-    // Layer 6: Insert (ignoreDuplicates — never overwrites existing rows)
+    // Layer 6: Check existence first — catches founding members and
+    // repeat submits alike. ignoreDuplicates return value is unreliable
+    // (Supabase returns null instead of [] on conflict).
     // ---------------------------------------------------------------
-    const { error } = await supabase.from('waitlist').upsert(
-      {
+    const { data: existing } = await supabase
+      .from('waitlist')
+      .select('email')
+      .eq('email', normalised)
+      .maybeSingle();
+
+    const alreadyExists = existing !== null;
+
+    let error: { message: string } | null = null;
+    if (!alreadyExists) {
+      const { error: insertError } = await supabase.from('waitlist').insert({
         email: normalised,
         tier: 'free',
         signup_ip: ip !== 'unknown' ? ip : null,
         signup_user_agent: userAgent,
         signup_country: country,
-      },
-      { onConflict: 'email', ignoreDuplicates: true },
-    );
+      });
+      error = insertError;
+    }
 
     // ---------------------------------------------------------------
     // Layer 7: Audit log — record every attempt for forensics
@@ -288,7 +299,7 @@ export async function POST(request: Request) {
       ip,
       user_agent: userAgent,
       country,
-      action: error ? 'signup_error' : 'signup_attempt',
+      action: error ? 'signup_error' : alreadyExists ? 'signup_duplicate' : 'signup_attempt',
       blocked_reason: error ? error.message : null,
     });
 
@@ -300,7 +311,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, alreadyExists });
   } catch (err) {
     // Do not surface internal error details to the client
     if (err instanceof Error && err.message.includes('environment variables')) {

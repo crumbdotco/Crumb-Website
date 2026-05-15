@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crumb — Full Page Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #E0D5C9; color: #3D2B1F; }
+
+  /* ===== NAV ===== */
+  .nav {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 200;
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(16px);
+    border: 1px solid rgba(61,43,31,0.08); border-radius: 99px;
+    padding: 10px 28px; display: flex; align-items: center; gap: 32px;
+  }
+  .nav .logo { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 16px; }
+  .nav .logo .dot { width: 24px; height: 24px; border-radius: 50%; background: #3D2B1F; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a { text-decoration: none; color: #8B7355; font-size: 13px; font-weight: 600; }
+  .nav-links a:hover { color: #3D2B1F; }
+  .nav-cta {
+    padding: 8px 18px; background: #3D2B1F; color: #E0D5C9; border-radius: 99px;
+    font-size: 13px; font-weight: 700; text-decoration: none;
+  }
+
+  /* ===== 1. HERO ===== */
+  .hero {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 100px 40px 80px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 600px 400px at 40% 45%, rgba(230,195,155,0.2) 0%, transparent 70%);
+  }
+  .hero-layout {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+    max-width: 1000px; width: 100%; align-items: center; position: relative; z-index: 2;
+  }
+  .hero-left { display: flex; flex-direction: column; gap: 28px; }
+  .hero-left h1 { font-size: clamp(32px, 4.5vw, 50px); font-weight: 900; letter-spacing: -2.5px; line-height: 1.05; }
+  .hero-left h1 .accent { color: #8B7355; }
+  .hero-left .sub { color: #8B7355; font-size: 16px; line-height: 1.6; max-width: 400px; }
+
+  .receipt {
+    background: #fff; color: #1A1208; border-radius: 4px;
+    padding: 22px 26px; max-width: 280px;
+    font-family: 'Courier New', monospace; position: relative;
+    box-shadow: 0 8px 36px rgba(61,43,31,0.12); transform: rotate(-1.5deg);
+  }
+  .receipt::after {
+    content: ''; position: absolute; bottom: -10px; left: 0; right: 0; height: 10px;
+    background: linear-gradient(135deg, #fff 33.3%, transparent 33.3%) -10px 0,
+                linear-gradient(225deg, #fff 33.3%, transparent 33.3%) -10px 0;
+    background-size: 10px 10px;
+  }
+  .r-header { text-align: center; border-bottom: 1.5px dashed #D4C9BC; padding-bottom: 10px; margin-bottom: 10px; }
+  .r-header h4 { font-size: 13px; font-weight: 900; font-family: 'Inter', sans-serif; }
+  .r-header span { font-size: 10px; color: #8B7355; }
+  .r-line { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
+  .r-line .lab { color: #8B7355; }
+  .r-line .val { font-weight: 700; }
+  .r-total {
+    border-top: 1.5px dashed #D4C9BC; margin-top: 8px; padding-top: 8px;
+    display: flex; justify-content: space-between; font-size: 15px; font-weight: 900;
+    font-family: 'Inter', sans-serif;
+  }
+  .r-total .amt { color: #C4513D; }
+
+  .input-row { display: flex; gap: 0; max-width: 380px; }
+  .input-row input {
+    flex: 1; padding: 14px 16px; border: 1.5px solid rgba(61,43,31,0.12);
+    border-right: none; border-radius: 12px 0 0 12px;
+    background: rgba(255,255,255,0.5); color: #3D2B1F; font-size: 14px;
+    outline: none; font-family: 'Inter', sans-serif;
+  }
+  .input-row input::placeholder { color: #B0A090; }
+  .input-row button {
+    padding: 14px 22px; background: #3D2B1F; color: #E0D5C9;
+    border: none; border-radius: 0 12px 12px 0; font-weight: 700; font-size: 14px;
+    cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif;
+  }
+  .micro { color: #A09080; font-size: 11px; margin-top: 6px; }
+
+  .stats-panel {
+    background: rgba(255,255,255,0.45); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 20px; padding: 22px; backdrop-filter: blur(8px);
+  }
+  .panel-label { text-align: center; font-size: 10px; color: #A09080; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .s-card {
+    background: rgba(255,255,255,0.5); border: 1px solid rgba(61,43,31,0.05);
+    border-radius: 14px; padding: 16px;
+  }
+  .s-card .s-label { font-size: 10px; color: #A09080; text-transform: uppercase; letter-spacing: 0.5px; }
+  .s-card .s-value { font-size: 26px; font-weight: 900; color: #3D2B1F; margin-top: 2px; letter-spacing: -1px; }
+  .s-card .s-sub { font-size: 11px; color: #8B7355; margin-top: 1px; }
+  .s-card.wide { grid-column: span 2; }
+  .s-card.featured { background: rgba(230,195,155,0.25); border-color: rgba(230,195,155,0.3); }
+  .s-card.featured .s-value { color: #6B4E1F; font-size: 38px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 44px; margin-top: 10px; }
+  .bar { flex: 1; background: rgba(61,43,31,0.08); border-radius: 4px 4px 0 0; min-height: 8px; }
+  .bar.active { background: #8B7355; }
+  .bar-labels { display: flex; gap: 5px; margin-top: 4px; }
+  .bar-labels span { flex: 1; text-align: center; font-size: 9px; color: #A09080; }
+
+  /* ===== SECTION DIVIDER ===== */
+  .section-divider { height: 1px; background: rgba(61,43,31,0.06); max-width: 1000px; margin: 0 auto; }
+
+  /* ===== 2. HOW IT WORKS ===== */
+  .how-section {
+    padding: 100px 40px; max-width: 1000px; margin: 0 auto;
+  }
+  .section-title { font-size: 36px; font-weight: 900; letter-spacing: -1.5px; text-align: center; }
+  .section-sub { color: #8B7355; font-size: 15px; text-align: center; margin-top: 8px; }
+
+  .steps {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 56px;
+    position: relative;
+  }
+  .steps::before {
+    content: ''; position: absolute; top: 36px; left: 15%; right: 15%;
+    height: 2px; background: rgba(61,43,31,0.08);
+  }
+  .step {
+    text-align: center; position: relative; z-index: 2;
+    background: #E0D5C9; padding: 0 8px;
+  }
+  .step-num {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto;
+    background: rgba(255,255,255,0.6); border: 1.5px solid rgba(61,43,31,0.08);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+  }
+  .step h3 { font-size: 17px; font-weight: 800; margin-top: 20px; letter-spacing: -0.5px; }
+  .step p { font-size: 13px; color: #8B7355; margin-top: 8px; line-height: 1.5; max-width: 240px; margin-left: auto; margin-right: auto; }
+
+  /* ===== 3. FEATURES + PRICING ===== */
+  .features-section {
+    padding: 100px 40px; background: #D8CCBF;
+  }
+  .features-inner { max-width: 1000px; margin: 0 auto; }
+
+  .features-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 56px;
+  }
+  .feat-card {
+    background: rgba(255,255,255,0.45); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 16px; padding: 24px; backdrop-filter: blur(4px);
+  }
+  .feat-card .feat-emoji { font-size: 28px; margin-bottom: 12px; }
+  .feat-card h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+  .feat-card p { font-size: 13px; color: #8B7355; margin-top: 6px; line-height: 1.5; }
+
+  .pricing-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px;
+  }
+  .price-card {
+    background: rgba(255,255,255,0.5); border: 1px solid rgba(61,43,31,0.06);
+    border-radius: 20px; padding: 32px; backdrop-filter: blur(4px);
+  }
+  .price-card.premium { background: #3D2B1F; color: #E0D5C9; border: none; }
+  .price-card .tier { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #8B7355; font-weight: 700; }
+  .price-card.premium .tier { color: #E6C39B; }
+  .price-card .price { font-size: 40px; font-weight: 900; letter-spacing: -2px; margin-top: 8px; }
+  .price-card .price small { font-size: 16px; font-weight: 500; color: #8B7355; }
+  .price-card.premium .price small { color: #A09080; }
+  .price-card .period { font-size: 13px; color: #A09080; margin-top: 2px; }
+  .price-features { margin-top: 20px; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .price-features li { font-size: 13px; display: flex; align-items: center; gap: 8px; color: #5A4D3E; }
+  .price-card.premium .price-features li { color: #B0A090; }
+  .price-features li::before { content: '✓'; font-weight: 800; color: #8B7355; font-size: 14px; }
+  .price-card.premium .price-features li::before { color: #E6C39B; }
+  .founding {
+    margin-top: 16px; padding: 14px 18px; background: rgba(230,195,155,0.15);
+    border-radius: 12px; border: 1px solid rgba(230,195,155,0.2);
+  }
+  .founding-text { font-size: 12px; color: #E6C39B; font-weight: 700; }
+  .founding-price { font-size: 11px; color: #A09080; margin-top: 2px; }
+
+  /* ===== 4. TRUST ===== */
+  .trust-section {
+    padding: 80px 40px; max-width: 1000px; margin: 0 auto;
+  }
+  .trust-grid {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-top: 40px;
+  }
+  .trust-badge {
+    text-align: center; padding: 20px 12px;
+    background: rgba(255,255,255,0.35); border: 1px solid rgba(61,43,31,0.05);
+    border-radius: 14px;
+  }
+  .trust-badge .t-icon { font-size: 24px; margin-bottom: 8px; }
+  .trust-badge .t-label { font-size: 11px; font-weight: 700; letter-spacing: -0.2px; }
+  .trust-badge .t-desc { font-size: 10px; color: #8B7355; margin-top: 2px; }
+
+  /* ===== 5. FINAL CTA ===== */
+  .cta-section {
+    padding: 100px 40px; text-align: center; background: #D4C9BC;
+  }
+  .cta-section h2 { font-size: 40px; font-weight: 900; letter-spacing: -2px; }
+  .cta-section h2 .accent { color: #8B7355; }
+  .cta-section .sub { color: #8B7355; font-size: 16px; margin-top: 10px; }
+  .cta-section .input-row { margin: 32px auto 0; justify-content: center; }
+  .cta-section .micro { text-align: center; }
+
+  /* ===== 6. FOOTER ===== */
+  .footer {
+    padding: 40px; background: #3D2B1F; color: #A09080;
+  }
+  .footer-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-logo { display: flex; align-items: center; gap: 6px; }
+  .footer-logo .dot { width: 20px; height: 20px; border-radius: 50%; background: #E6C39B; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .footer-logo span { font-weight: 800; font-size: 15px; color: #E0D5C9; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: #8B7355; text-decoration: none; font-size: 13px; }
+  .footer-links a:hover { color: #E0D5C9; }
+  .footer-copy { font-size: 11px; color: #6B5D4E; }
+  .footer-tagline { font-size: 12px; color: #6B5D4E; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="logo"><div class="dot">🍞</div> crumb</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <a href="#waitlist" class="nav-cta">Join Waitlist</a>
+</nav>
+
+<!-- 1. HERO -->
+<section class="hero">
+  <div class="hero-layout">
+    <div class="hero-left">
+      <div>
+        <h1>Your food delivery<br><span class="accent">receipt.</span></h1>
+        <p class="sub">Connect Uber Eats & Just Eat. See every order, every pound, every guilty pleasure.</p>
+      </div>
+      <div class="receipt">
+        <div class="r-header"><h4>Your 2025 Receipt</h4><span>Uber Eats · Just Eat</span></div>
+        <div class="r-line"><span class="lab">Orders</span><span class="val">147</span></div>
+        <div class="r-line"><span class="lab">Restaurants</span><span class="val">38</span></div>
+        <div class="r-line"><span class="lab">Top Cuisine</span><span class="val">Indian 🍛</span></div>
+        <div class="r-line"><span class="lab">Favourite</span><span class="val">Nando's</span></div>
+        <div class="r-total"><span>TOTAL</span><span class="amt">£2,847</span></div>
+      </div>
+      <div>
+        <div class="input-row"><input type="email" placeholder="your@email.com" /><button>Join Waitlist</button></div>
+        <p class="micro">Free · No spam · UK only</p>
+      </div>
+    </div>
+    <div class="stats-panel">
+      <div class="panel-label">What you'll discover</div>
+      <div class="stats-grid">
+        <div class="s-card featured wide">
+          <div class="s-label">Total Spent</div><div class="s-value">£2,847</div><div class="s-sub">across 147 orders this year</div>
+        </div>
+        <div class="s-card"><div class="s-label">Top Spot</div><div class="s-value" style="font-size:20px">Nando's</div><div class="s-sub">21 orders</div></div>
+        <div class="s-card"><div class="s-label">Personality</div><div class="s-value" style="font-size:16px">Main Character</div><div class="s-sub">top 3%</div></div>
+        <div class="s-card"><div class="s-label">Restaurants</div><div class="s-value">38</div><div class="s-sub">on your food map</div></div>
+        <div class="s-card"><div class="s-label">Soulmate</div><div class="s-value">92%</div><div class="s-sub">taste match</div></div>
+        <div class="s-card wide" style="padding:12px 16px;">
+          <div class="s-label">Weekly Spending</div>
+          <div class="bar-chart">
+            <div class="bar" style="height:35%"></div><div class="bar" style="height:55%"></div>
+            <div class="bar" style="height:25%"></div><div class="bar active" style="height:80%"></div>
+            <div class="bar" style="height:45%"></div><div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:30%"></div>
+          </div>
+          <div class="bar-labels"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 2. HOW IT WORKS -->
+<section class="how-section">
+  <h2 class="section-title">How it works</h2>
+  <p class="section-sub">Three steps. Thirty seconds. All your stats.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">📱</div>
+      <h3>Sign up</h3>
+      <p>Create an account with Apple, Google, or email. Takes 10 seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">🔗</div>
+      <h3>Connect your apps</h3>
+      <p>Link Uber Eats and Just Eat. Read-only — we never place orders.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">📊</div>
+      <h3>See your stats</h3>
+      <p>Spending, restaurants, food personality, soulmate match, and your annual Wrapped.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- 3. FEATURES + PRICING -->
+<section class="features-section" id="features">
+  <div class="features-inner">
+    <h2 class="section-title">Everything in one app</h2>
+    <p class="section-sub">Stats, maps, friends, and your annual food story.</p>
+
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-emoji">📊</div>
+        <h3>Deep Stats</h3>
+        <p>Spending, order frequency, top cuisines, peak hours, and trends over time.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-emoji">🗺️</div>
+        <h3>Restaurant Map</h3>
+        <p>Every restaurant you've ordered from, pinned on a personal food map.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-emoji">⭐</div>
+        <h3>Reviews & Ratings</h3>
+        <p>Rate restaurants, write notes, track your favourites and avoid list.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-emoji">🎁</div>
+        <h3>Crumb Wrapped</h3>
+        <p>Your year in food delivery. Every December, like Spotify Wrapped but for food.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-emoji">💛</div>
+        <h3>Food Soulmate</h3>
+        <p>Find users with similar taste. See your match percentage and compare stats.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-emoji">👥</div>
+        <h3>Friends & Social</h3>
+        <p>Add friends, compare stats, share achievements, and see who spends more.</p>
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div id="pricing" style="margin-top: 80px;">
+      <h2 class="section-title">Simple pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you want more.</p>
+      <div class="pricing-row">
+        <div class="price-card">
+          <div class="tier">Free</div>
+          <div class="price">£0 <small>/month</small></div>
+          <ul class="price-features">
+            <li>Basic spending stats</li>
+            <li>Restaurant map</li>
+            <li>Rate & review</li>
+            <li>Food personality</li>
+            <li>Add friends</li>
+            <li>Crumb Wrapped</li>
+          </ul>
+        </div>
+        <div class="price-card premium">
+          <div class="tier">Premium</div>
+          <div class="price">£4.99 <small>/month</small></div>
+          <div class="period">or £49.99/year</div>
+          <ul class="price-features">
+            <li>Everything in Free</li>
+            <li>Advanced analytics</li>
+            <li>Cuisine deep dives</li>
+            <li>Food soulmate matching</li>
+            <li>Unlimited history</li>
+            <li>Priority support</li>
+            <li>No ads</li>
+            <li>Early access to features</li>
+            <li>Export your data</li>
+          </ul>
+          <div class="founding">
+            <div class="founding-text">👑 Founding Member — £4.99 one-time</div>
+            <div class="founding-price">Pay once, get Premium forever. Limited spots.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. TRUST -->
+<section class="trust-section">
+  <h2 class="section-title">Built for trust</h2>
+  <p class="section-sub">Your data, your rules. Always.</p>
+  <div class="trust-grid">
+    <div class="trust-badge"><div class="t-icon">🔒</div><div class="t-label">On device</div><div class="t-desc">Data stays local</div></div>
+    <div class="trust-badge"><div class="t-icon">👁️</div><div class="t-label">Read-only</div><div class="t-desc">We can't order</div></div>
+    <div class="trust-badge"><div class="t-icon">🚫</div><div class="t-label">No passwords</div><div class="t-desc">OAuth only</div></div>
+    <div class="trust-badge"><div class="t-icon">🛡️</div><div class="t-label">Encrypted</div><div class="t-desc">End-to-end</div></div>
+    <div class="trust-badge"><div class="t-icon">🇬🇧</div><div class="t-label">UK built</div><div class="t-desc">By students</div></div>
+    <div class="trust-badge"><div class="t-icon">💚</div><div class="t-label">Transparent</div><div class="t-desc">Open policies</div></div>
+  </div>
+</section>
+
+<!-- 5. FINAL CTA -->
+<section class="cta-section" id="waitlist">
+  <h2>Ready to see your<br><span class="accent">food story?</span></h2>
+  <p class="sub">Join the waitlist. We'll email you on launch day.</p>
+  <div class="input-row">
+    <input type="email" placeholder="your@email.com" />
+    <button>Join Waitlist</button>
+  </div>
+  <p class="micro">Free · No spam · UK only</p>
+</section>
+
+<!-- 6. FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo"><div class="dot">🍞</div><span>crumb</span></div>
+      <div class="footer-tagline">Your food. Your stats. Your story.</div>
+    </div>
+    <div class="footer-links">
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/support">Support</a>
+      <a href="mailto:hello@crumbify.co.uk">Contact</a>
+    </div>
+    <div class="footer-copy">© 2025 Crumb. Built by students in the UK.</div>
+  </div>
+</footer>
+
+</body>
+</html>

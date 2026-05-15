@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 const LINKS = [
   { label: 'Features', href: '#features' },
   { label: 'Discover', href: '#discover' },
-  { label: 'Download', href: '#download' },
+  { label: 'Waitlist', href: '#waitlist' },
 ];
 
 export function Navbar() {
@@ -42,10 +42,10 @@ export function Navbar() {
       >
         <a
           href="/"
-          className="font-headline text-xl text-[#E6C39B] tracking-[0.15em]"
+          className="text-xl text-[#E6C39B] tracking-[0.12em] font-extrabold"
           data-cursor="pointer"
         >
-          CRUMB
+          CRUMBIFY
         </a>
         <ul className="hidden md:flex items-center gap-1">
           {LINKS.map((l) => (
@@ -62,11 +62,11 @@ export function Navbar() {
         </ul>
         <div className="flex items-center gap-2">
           <a
-            href="#download"
+            href="#waitlist"
             className="hidden md:inline-flex px-4 py-2 rounded-[10px] bg-[#E6C39B] text-[#1A1208] text-[13px] font-bold hover:bg-[#C9A077] transition-colors duration-150"
             data-cursor="pointer"
           >
-            Get the App
+            Join Waitlist
           </a>
           <button
             className="md:hidden p-2 text-[#E0D5C9]"
@@ -114,12 +114,12 @@ export function Navbar() {
               ))}
               <li className="mt-2">
                 <a
-                  href="#download"
+                  href="#waitlist"
                   onClick={() => setOpen(false)}
                   className="block px-4 py-3 rounded-lg bg-[#E6C39B] text-[#1A1208] text-[14px] font-bold text-center"
                   data-cursor="pointer"
                 >
-                  Get the App
+                  Join Waitlist
                 </a>
               </li>
             </ul>
