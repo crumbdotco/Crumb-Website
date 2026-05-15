@@ -38,6 +38,19 @@ body {
   font-family: var(--font-accent);
 }
 
+/* ── Custom cursor scope ── */
+html[data-custom-cursor="on"] body,
+html[data-custom-cursor="on"] a,
+html[data-custom-cursor="on"] button,
+html[data-custom-cursor="on"] [data-cursor="pointer"] {
+  cursor: none;
+}
+html[data-custom-cursor="on"] input,
+html[data-custom-cursor="on"] textarea,
+html[data-custom-cursor="on"] [contenteditable] {
+  cursor: text;
+}
+
 /* ── Grain texture overlay ── */
 .grain::after {
   content: "";

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces, Instrument_Serif } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SmoothScroll } from "@/components/providers/SmoothScroll";
+import { CustomCursor } from "@/components/ui/CustomCursor";
+import { Preloader } from "@/components/ui/Preloader";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://crumbify.co.uk"),
   title: "Crumb - Your Food Delivery Stats in One Place",
   description:
-    "Connect Uber Eats and Just Eat. See your stats, review restaurants, explore your food map, find your food soulmate, and get your annual Wrapped. Free for iOS and Android.",
+    "Screenshot your order history from any delivery app. See your stats, top restaurants, food personality, soulmates, and annual Wrapped. Free for iOS and Android.",
   keywords: [
     "food delivery stats",
     "uber eats wrapped",
@@ -68,7 +71,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${fraunces.variable} ${instrumentSerif.variable} antialiased`}>
-        {children}
+        <Preloader />
+        <SmoothScroll>
+          <CustomCursor />
+          {children}
+        </SmoothScroll>
         <SpeedInsights />
       </body>
     </html>
