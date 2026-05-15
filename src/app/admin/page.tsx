@@ -12,7 +12,7 @@ const RC_PROJECT_ID = process.env.REVENUECAT_PROJECT_ID ?? '';
 
 export default async function AdminPage() {
   const userId = await requireAdmin();
-  if (!userId) redirect('/admin/signin');
+  if (!userId) redirect('/admin/signin?error=unauthorized');
 
   // Fetch in parallel — each source caches independently via fetch()
   // revalidate, so a failure in one doesn't block the others.

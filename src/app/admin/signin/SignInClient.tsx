@@ -10,7 +10,13 @@ function getSupabase() {
   return createClient(url, anon);
 }
 
-export default function SignInClient({ callerIp }: { callerIp: string | null }) {
+export default function SignInClient({
+  callerIp,
+  unauthorised = false,
+}: {
+  callerIp: string | null;
+  unauthorised?: boolean;
+}) {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'error'>('idle');
@@ -92,6 +98,14 @@ export default function SignInClient({ callerIp }: { callerIp: string | null }) 
           </p>
         </div>
 
+        {unauthorised && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            <strong>OTP verified but access denied.</strong> Your user ID isn&apos;t in{' '}
+            <code className="font-mono">ADMIN_USER_IDS</code>. Update that Vercel env var with your
+            current Supabase UUID and redeploy.
+          </div>
+        )}
+
         {status === 'idle' || status === 'sending' || (status === 'error' && !token) ? (
           <form onSubmit={handleSendOtp} className="space-y-3">
             <input
@@ -101,7 +115,7 @@ export default function SignInClient({ callerIp }: { callerIp: string | null }) 
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="alibars999@gmail.com"
+              placeholder="you@example.com"
               className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm outline-none focus:border-[#E6C39B]"
             />
             <button
