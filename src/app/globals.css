@@ -1,29 +1,41 @@
 @import "tailwindcss";
 
 @theme inline {
+  /* Palette */
+  --color-crumb-ink-deep: #0E0805;
+  --color-crumb-ink: #1A1208;
+  --color-crumb-ink-soft: #2A2118;
+  --color-crumb-ink-muted: #8A7060;
   --color-crumb-cream: #E0D5C9;
-  --color-crumb-card: #DDD0C0;
-  --color-crumb-brown: #8B7355;
-  --color-crumb-dark: #3D2B1F;
-  --color-crumb-darker: #2A1E14;
-  --color-crumb-darkest: #1A1208;
-  --color-crumb-muted: #A09080;
-  --color-crumb-line: #D4C9BC;
+  --color-crumb-cream-soft: #EDE2D5;
   --color-crumb-gold: #E6C39B;
+  --color-crumb-gold-deep: #C9A077;
   --color-crumb-red: #C4513D;
+
+  /* Fonts */
   --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
+  --font-display: 'Fraunces', 'Times New Roman', serif;
+  --font-accent: 'Instrument Serif', 'Times New Roman', serif;
+
+  /* Easings (CSS custom-property) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
+html { scroll-behavior: auto; } /* Lenis handles */
+html, body { background: #0E0805; color: #E0D5C9; }
 body {
-  background: #E0D5C9;
-  color: #3D2B1F;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+}
+
+/* Headline utility — Tailwind 4 needs explicit @utility for `font-headline` to work as class */
+@utility font-headline {
+  font-family: var(--font-display);
+}
+@utility font-accent {
+  font-family: var(--font-accent);
 }
 
 /* ── Grain texture overlay ── */
@@ -159,4 +171,13 @@ body {
 ::selection {
   background: rgba(230, 195, 155, 0.4);
   color: #3D2B1F;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
