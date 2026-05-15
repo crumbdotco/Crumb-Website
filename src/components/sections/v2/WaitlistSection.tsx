@@ -111,10 +111,10 @@ export function WaitlistSection() {
     <section
       ref={ref}
       id="waitlist"
-      className="relative bg-[#0E0805] px-6 py-28 overflow-hidden"
+      className="relative bg-[#0E0805] px-6 py-20 md:py-28 overflow-hidden"
     >
       {/* Glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-[radial-gradient(ellipse,rgba(201,160,119,0.18),transparent_70%)] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] md:w-[700px] h-[300px] md:h-[500px] bg-[radial-gradient(ellipse,rgba(201,160,119,0.18),transparent_70%)] pointer-events-none" />
 
       <div className="relative z-10 max-w-[640px] mx-auto text-center">
         <motion.p
@@ -223,7 +223,7 @@ export function WaitlistSection() {
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : undefined}
           transition={{ delay: 1.0, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-[#1A1208] border border-[#E6C39B]/20 rounded-3xl p-8 max-w-[520px] mx-auto text-left relative overflow-hidden"
+          className="bg-[#1A1208] border border-[#E6C39B]/20 rounded-3xl p-6 md:p-8 max-w-[520px] mx-auto text-left relative overflow-hidden"
         >
           {/* Inner shimmer */}
           <div
@@ -241,7 +241,7 @@ export function WaitlistSection() {
 
           <p className="relative text-[#E0D5C9]/60 text-[14px] mb-2">Pay once. Get premium forever.</p>
 
-          <div className="relative flex items-baseline gap-3 mb-6">
+          <div className="relative flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-6">
             <span className="font-headline text-[40px] text-[#E0D5C9] leading-none">£4.99</span>
             <span className="text-[#E0D5C9]/40 text-[13px]">one-time</span>
             <span className="text-[#E0D5C9]/25 line-through text-[12px]">£4.99/month</span>

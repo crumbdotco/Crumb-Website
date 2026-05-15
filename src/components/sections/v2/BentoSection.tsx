@@ -21,7 +21,7 @@ function BentoCard({
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 32 }}
       animate={inView ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1], delay }}
-      className={`bg-[#1A1208] rounded-3xl border border-white/6 p-8 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300 ${className}`}
+      className={`bg-[#1A1208] rounded-3xl border border-white/6 p-6 md:p-8 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300 ${className}`}
     >
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -38,9 +38,9 @@ function BentoCard({
 
 export function BentoSection() {
   return (
-    <section className="bg-[#0E0805] px-6 py-28" id="discover">
+    <section className="bg-[#0E0805] px-6 py-20 md:py-28" id="discover">
       <div className="max-w-[1100px] mx-auto">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 md:mb-16">
           <p className="text-[10px] font-bold tracking-[3px] uppercase text-[#E0D5C9]/25 mb-4 font-mono">
             What&apos;s inside
           </p>
@@ -54,7 +54,7 @@ export function BentoSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Wrapped — wide */}
           <BentoCard className="md:col-span-2" delay={0}>
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="grid md:grid-cols-2 gap-5 md:gap-8 items-center">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-[#E6C39B]/10 flex items-center justify-center text-xl mb-4">
                   ✦
@@ -139,7 +139,7 @@ export function BentoSection() {
 
           {/* Food Map — wide */}
           <BentoCard className="md:col-span-2" delay={0.3}>
-            <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="grid md:grid-cols-2 gap-5 md:gap-8 items-center">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-[#E6C39B]/10 flex items-center justify-center text-xl mb-4">
                   📍

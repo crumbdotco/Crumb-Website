@@ -66,7 +66,7 @@ export function FeatureScroll() {
         {FEATURE_SLIDES.map((slide, i) => {
           const Screen = SCREENS[i];
           return (
-            <div key={i} className="px-6 py-16 border-b border-[#E6C39B]/8">
+            <div key={i} className="px-5 py-10 sm:px-6 sm:py-16 border-b border-[#E6C39B]/8">
               <div className="flex justify-center mb-8">
                 <PhoneShell className="w-[240px]" screenClassName="h-[440px]">
                   <Screen />
@@ -75,7 +75,7 @@ export function FeatureScroll() {
               <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#E6C39B] mb-2 font-mono">
                 {slide.num} / 04
               </div>
-              <h2 className="font-headline text-[40px] text-[#E0D5C9] leading-[0.95] tracking-[-0.02em] mb-3 whitespace-pre-line">
+              <h2 className="font-headline text-[32px] sm:text-[40px] text-[#E0D5C9] leading-[0.95] tracking-[-0.02em] mb-3 whitespace-pre-line">
                 {slide.title}
               </h2>
               <p className="text-[14px] text-[#E0D5C9]/45 leading-[1.65] mb-4">{slide.body}</p>

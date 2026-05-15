@@ -31,14 +31,14 @@ export function Hero() {
     <motion.section
       ref={sectionRef}
       style={{ opacity: fadeOut }}
-      className="relative min-h-screen bg-[#0E0805] flex items-center overflow-hidden px-6 pt-28 pb-24"
+      className="relative min-h-screen bg-[#0E0805] flex items-center overflow-hidden px-6 pt-24 pb-16 md:pt-28 md:pb-24"
       id="hero"
     >
       {/* Mouse-parallax gold blob */}
       <motion.div
         ref={blob.ref as React.RefObject<HTMLDivElement>}
         style={{ x: blob.x, y: blob.y }}
-        className="absolute top-[35%] right-[10%] w-[600px] h-[500px] rounded-full pointer-events-none"
+        className="hidden md:block absolute top-[35%] right-[10%] w-[600px] h-[500px] rounded-full pointer-events-none"
         aria-hidden="true"
       >
         <div className="w-full h-full bg-[radial-gradient(ellipse,rgba(201,160,119,0.18),transparent_60%)]" />
@@ -48,7 +48,7 @@ export function Hero() {
 
       <div className="relative z-10 w-full max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
         {/* Text — 7 cols */}
-        <div className="md:col-span-7 flex flex-col gap-7">
+        <div className="md:col-span-7 flex flex-col gap-6 md:gap-7">
           {/* Status badge */}
           <motion.a
             href="#waitlist"
@@ -74,7 +74,7 @@ export function Hero() {
                     ease: [0.16, 1, 0.3, 1],
                     delay: 0.7 + i * 0.09,
                   }}
-                  className="block text-[clamp(72px,11vw,164px)] text-[#E0D5C9]"
+                  className="block text-[clamp(56px,12vw,164px)] text-[#E0D5C9]"
                 >
                   {i === HERO_HEADLINE.length - 1 ? (
                     <>
@@ -104,7 +104,7 @@ export function Hero() {
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.6 }}
-            className="flex items-center gap-5"
+            className="flex flex-wrap items-center gap-3 md:gap-5"
           >
             <MagneticButton
               onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}
@@ -232,7 +232,7 @@ export function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.6 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="hidden md:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2"
         aria-hidden="true"
       >
         <span className="text-[10px] tracking-[2px] uppercase text-[#E0D5C9]/20 font-mono">
