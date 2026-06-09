@@ -6,13 +6,12 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://crumbify.co.uk"),
-  title: "Crumbify — Your Food Delivery Stats",
+  title: "Crumbify - Your Food Delivery Stats",
   description:
-    "Screenshot your order history from any delivery app. See your stats, top restaurants, food personality, soulmates, and annual Wrapped. Join the waitlist.",
+    "Screenshot your delivery orders and Crumbify reads them into your food stats, top restaurants, food personality, soulmate matches, groups, and a global feed. Get early access.",
   keywords: [
     "food delivery stats",
     "food stats app",
-    "food wrapped",
     "crumbify",
     "crumbify app",
     "restaurant tracker",
@@ -20,9 +19,11 @@ export const metadata: Metadata = {
     "food journal",
     "food map",
     "food friends",
+    "global feed",
+    "food groups",
   ],
   openGraph: {
-    title: "Crumbify — Your Food Delivery Stats",
+    title: "Crumbify - Your Food Delivery Stats",
     description: "Read the crumbs.",
     url: "https://crumbify.co.uk",
     siteName: "Crumbify",
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crumbify — Your Food Delivery Stats",
+    title: "Crumbify - Your Food Delivery Stats",
     description: "Read the crumbs.",
     images: ["/images/og-image.png"],
   },
