@@ -11,15 +11,19 @@ import {
   useSpring,
 } from "framer-motion";
 import { Fredoka, Nunito } from "next/font/google";
+import Lenis from "lenis";
 import { LedgeButton } from "@/components/preview/LedgeButton";
 import { CrumbParticles } from "@/components/preview/CrumbParticles";
 import { PhoneFrame } from "@/components/preview/PhoneFrame";
 import { FeaturePhoneA } from "@/components/preview/FeaturePhoneA";
-import { WrappedCard } from "@/components/preview/WrappedCard";
+import { FeedPostCard } from "@/components/preview/FeedPostCard";
+import { GroupCard } from "@/components/preview/GroupCard";
+import { DiscoverCard } from "@/components/preview/DiscoverCard";
 import { PersonalityChart } from "@/components/preview/PersonalityChart";
 import { SoulmateCard } from "@/components/preview/SoulmateCard";
+import { FoundingSection } from "@/components/preview/FoundingSection";
 import { EmailCapture } from "@/components/preview/EmailCapture";
-import { C, warmShadow } from "@/components/preview/tokens";
+import { C } from "@/components/preview/tokens";
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
 const fredoka = Fredoka({
@@ -71,6 +75,43 @@ const DARK_GRAIN = {
   pointerEvents: "none" as const,
 };
 
+// Gradient bleed helpers for section transitions
+function TopBleed({ from }: { from: string }) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 160,
+        background: `linear-gradient(to bottom, ${from}, transparent)`,
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
+function BottomBleed({ to }: { to: string }) {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 160,
+        background: `linear-gradient(to top, ${to}, transparent)`,
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
 // ─── Feature tag pill ─────────────────────────────────────────────────────────
 function TagPill({ label, nunitoClass }: { label: string; nunitoClass: string }) {
   return (
@@ -115,6 +156,19 @@ function PreviewNavbar({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const navLinkStyle: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 15,
+    fontWeight: 700,
+    color: C.onHeroSoft,
+    padding: "12px 0",
+    minHeight: 44,
+    display: "none",
+    transition: "color 160ms ease",
+  };
+
   return (
     <nav
       style={{
@@ -156,19 +210,19 @@ function PreviewNavbar({
           onClick={() => {
             document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
           }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 15,
-            fontWeight: 700,
-            color: C.onHeroSoft,
-            padding: "12px 0",
-            minHeight: 44,
-            display: "none",
-          }}
+          style={navLinkStyle}
         >
           Features
+        </button>
+        <button
+          id="nav-founding-link"
+          className={nunitoClass}
+          onClick={() => {
+            document.getElementById("founding")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          style={navLinkStyle}
+        >
+          Founding member
         </button>
         <LedgeButton ledgeOffset={4} fontClassName={nunitoClass} variant="accent" onClick={onGetEarlyAccess}>
           <span style={{ fontSize: 14 }}>Get early access</span>
@@ -178,7 +232,9 @@ function PreviewNavbar({
       <style>{`
         @media (min-width: 640px) {
           #nav-features-link { display: block !important; }
+          #nav-founding-link { display: block !important; }
         }
+        nav button:hover { color: ${C.accent} !important; }
       `}</style>
     </nav>
   );
@@ -217,7 +273,7 @@ function HeroMoment({
         position: "relative",
         height: "100dvh",
         minHeight: 580,
-        backgroundColor: C.heroDeep,
+        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 80%, ${C.heroDark} 100%)`,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -258,6 +314,9 @@ function HeroMoment({
           clipPath: "polygon(0% 0%, 70% 0%, 70% 100%, 0% 100%)",
         }}
       />
+
+      {/* Bottom bleed into PlatformLine */}
+      <BottomBleed to={C.heroDark} />
 
       <div
         className="hero-grid"
@@ -323,7 +382,7 @@ function HeroMoment({
           </h1>
 
           <motion.p
-            className={nunitoClass}
+            className={nunito.className}
             initial={reduced ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: reduced ? 0 : 0.55, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -376,7 +435,7 @@ function HeroMoment({
   );
 }
 
-// ─── Platform Line (dark) ─────────────────────────────────────────────────────
+// ─── Platform Line ────────────────────────────────────────────────────────────
 function PlatformLine({
   fredokaClass,
   nunitoClass,
@@ -390,21 +449,9 @@ function PlatformLine({
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   const platforms = [
-    {
-      name: "Uber Eats",
-      logo: "https://cdn.simpleicons.org/ubereats/E6C39B",
-      alt: "Uber Eats",
-    },
-    {
-      name: "Just Eat",
-      logo: "https://cdn.simpleicons.org/justeat/E6C39B",
-      alt: "Just Eat",
-    },
-    {
-      name: "Deliveroo",
-      logo: "https://cdn.simpleicons.org/deliveroo/E6C39B",
-      alt: "Deliveroo",
-    },
+    { name: "Uber Eats", logo: "https://cdn.simpleicons.org/ubereats/E6C39B", alt: "Uber Eats" },
+    { name: "Just Eat", logo: "https://cdn.simpleicons.org/justeat/E6C39B", alt: "Just Eat" },
+    { name: "Deliveroo", logo: "https://cdn.simpleicons.org/deliveroo/E6C39B", alt: "Deliveroo" },
   ];
 
   return (
@@ -412,14 +459,15 @@ function PlatformLine({
       ref={ref}
       style={{
         position: "relative",
-        backgroundColor: C.heroDark,
-        borderTop: `1px solid rgba(230,195,155,0.08)`,
-        borderBottom: `1px solid rgba(230,195,155,0.08)`,
+        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 100%)`,
+        borderTop: `1px solid rgba(230,195,155,0.06)`,
+        borderBottom: `1px solid rgba(230,195,155,0.06)`,
         padding: "clamp(48px, 7vw, 88px) clamp(16px, 4vw, 64px)",
         overflow: "hidden",
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <BottomBleed to={C.heroDeep} />
 
       <motion.div
         initial={reduced ? false : { opacity: 0, y: 20 }}
@@ -435,7 +483,6 @@ function PlatformLine({
           gap: 28,
         }}
       >
-        {/* Headline copy */}
         <p
           className={fredokaClass}
           style={{
@@ -451,7 +498,6 @@ function PlatformLine({
           <span style={{ color: C.onHeroSoft }}>or any restaurant you log by hand.</span>
         </p>
 
-        {/* Sub-copy */}
         <p
           className={nunitoClass}
           style={{
@@ -466,15 +512,7 @@ function PlatformLine({
           OCR screenshot reading and manual entry. No account connection, no logins, no data shared with delivery apps.
         </p>
 
-        {/* Logo row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "clamp(24px, 4vw, 44px)",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: "clamp(24px, 4vw, 44px)", flexWrap: "wrap" }}>
           {platforms.map((p, i) => (
             <motion.div
               key={p.name}
@@ -484,13 +522,7 @@ function PlatformLine({
               style={{ display: "flex", alignItems: "center" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.logo}
-                alt={p.alt}
-                width={32}
-                height={32}
-                style={{ opacity: 0.7, display: "block" }}
-              />
+              <img src={p.logo} alt={p.alt} width={32} height={32} style={{ opacity: 0.7, display: "block" }} />
             </motion.div>
           ))}
         </div>
@@ -499,8 +531,7 @@ function PlatformLine({
   );
 }
 
-// ─── Feature A: "See where you really eat" ───────────────────────────────────
-// Layout: visual LEFT, text RIGHT
+// ─── Feature A: "See where you really eat" — visual LEFT, text RIGHT ──────────
 function FeatureMomentA({
   fredokaClass,
   nunitoClass,
@@ -512,12 +543,7 @@ function FeatureMomentA({
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-100px" });
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const phoneY = useTransform(scrollYProgress, [0, 1], [60, -60]);
   const phoneSpring = useSpring(phoneY, { stiffness: 60, damping: 20 });
 
@@ -528,13 +554,15 @@ function FeatureMomentA({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        backgroundColor: C.heroDeep,
+        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroPanel} />
+      <BottomBleed to={C.heroDark} />
 
       <div
         className="feat-grid feat-grid-a"
@@ -551,47 +579,21 @@ function FeatureMomentA({
           alignItems: "center",
         }}
       >
-        {/* Visual: phone frame LEFT */}
-        <motion.div
-          style={{
-            flex: "0 1 auto",
-            display: "flex",
-            justifyContent: "center",
-            y: reduced ? 0 : phoneSpring,
-          }}
-        >
+        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : phoneSpring }}>
           <FeaturePhoneA fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
 
-        {/* Text RIGHT */}
-        <div
-          style={{
-            flex: "1 1 320px",
-            minWidth: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
+        <div style={{ flex: "1 1 320px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
           <motion.h2
             className={fredokaClass}
             initial={reduced ? false : { opacity: 0, x: 32 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(40px, 6vw, 84px)",
-              fontWeight: 600,
-              lineHeight: 0.92,
-              color: C.onHero,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}
+            style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
           >
             See where
-            <br />
-            you really
-            <br />
-            <span style={{ color: C.accent }}>eat.</span>
+            <br />you really
+            <br /><span style={{ color: C.accent }}>eat.</span>
           </motion.h2>
 
           <motion.p
@@ -599,14 +601,7 @@ function FeatureMomentA({
             initial={reduced ? false : { opacity: 0, x: 24 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(16px, 1.4vw, 18px)",
-              lineHeight: 1.65,
-              color: C.onHeroSoft,
-              maxWidth: 400,
-              margin: 0,
-              fontWeight: 400,
-            }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 400, margin: 0, fontWeight: 400 }}
           >
             Top restaurants ranked by visits, cuisine breakdown at a glance. Patterns you never noticed, surfaced automatically.
           </motion.p>
@@ -624,17 +619,12 @@ function FeatureMomentA({
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .feat-grid-a { flex-direction: column !important; align-items: center !important; }
-        }
-      `}</style>
+      <style>{`@media (max-width: 768px) { .feat-grid-a { flex-direction: column !important; align-items: center !important; } }`}</style>
     </section>
   );
 }
 
-// ─── Feature B: "Your year, Wrapped" — centered editorial break ───────────────
-// Layout: full-width centered with card floating below
+// ─── Feature B: "Share what you eat" — Global Feed — text LEFT, card RIGHT ────
 function FeatureMomentB({
   fredokaClass,
   nunitoClass,
@@ -646,12 +636,7 @@ function FeatureMomentB({
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-100px" });
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const cardY = useTransform(scrollYProgress, [0, 1], [60, -60]);
   const cardSpring = useSpring(cardY, { stiffness: 60, damping: 20 });
 
@@ -661,7 +646,102 @@ function FeatureMomentB({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        backgroundColor: C.heroPanel,
+        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDark} 100%)`,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroDeep} />
+      <BottomBleed to={C.heroDeep} />
+
+      <div
+        className="feat-grid feat-grid-b"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: 1280,
+          margin: "0 auto",
+          width: "100%",
+          padding: "clamp(72px, 10vh, 128px) clamp(16px, 4vw, 64px)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "clamp(48px, 6vw, 80px)",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Text LEFT */}
+        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+          <motion.h2
+            className={fredokaClass}
+            initial={reduced ? false : { opacity: 0, y: 32 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
+          >
+            Share what
+            <br />you
+            <br /><span style={{ color: C.accent }}>eat.</span>
+          </motion.h2>
+
+          <motion.p
+            className={nunitoClass}
+            initial={reduced ? false : { opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 380, margin: 0, fontWeight: 400 }}
+          >
+            Post a photo from your order, write a note, like and comment on your friends. The food social feed that actually makes sense.
+          </motion.p>
+
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.28, duration: 0.45 }}
+            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+          >
+            {["Photo Posts", "Likes", "Comments"].map((tag) => (
+              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Card RIGHT */}
+        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+          <FeedPostCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+        </motion.div>
+      </div>
+
+      <style>{`@media (max-width: 768px) { .feat-grid-b { flex-direction: column !important; align-items: center !important; } }`}</style>
+    </section>
+  );
+}
+
+// ─── Feature C: "Plan it with your group" — Groups — centered editorial ────────
+function FeatureMomentC({
+  fredokaClass,
+  nunitoClass,
+  reduced,
+}: {
+  fredokaClass: string;
+  nunitoClass: string;
+  reduced: boolean | null;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
+  const cardY = useTransform(scrollYProgress, [0, 1], [60, -60]);
+  const cardSpring = useSpring(cardY, { stiffness: 60, damping: 20 });
+
+  return (
+    <section
+      ref={sectionRef}
+      style={{
+        position: "relative",
+        minHeight: "100dvh",
+        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
@@ -669,6 +749,8 @@ function FeatureMomentB({
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroPanel} />
+      <BottomBleed to={C.heroDark} />
 
       <div
         style={{
@@ -685,25 +767,16 @@ function FeatureMomentB({
           textAlign: "center",
         }}
       >
-        {/* Big centered headline */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
           <motion.h2
             className={fredokaClass}
             initial={reduced ? false : { opacity: 0, y: 32, filter: "blur(6px)" }}
             animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
             transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(52px, 9vw, 120px)",
-              fontWeight: 600,
-              lineHeight: 0.9,
-              color: C.onHero,
-              margin: 0,
-              letterSpacing: "-0.025em",
-            }}
+            style={{ fontSize: "clamp(52px, 9vw, 120px)", fontWeight: 600, lineHeight: 0.9, color: C.onHero, margin: 0, letterSpacing: "-0.025em" }}
           >
-            Your year,
-            <br />
-            <span style={{ color: C.accent }}>Wrapped.</span>
+            Plan it with
+            <br /><span style={{ color: C.accent }}>your group.</span>
           </motion.h2>
 
           <motion.p
@@ -711,16 +784,9 @@ function FeatureMomentB({
             initial={reduced ? false : { opacity: 0, y: 18 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.18, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(16px, 1.4vw, 18px)",
-              lineHeight: 1.65,
-              color: C.onHeroSoft,
-              maxWidth: 500,
-              margin: 0,
-              fontWeight: 400,
-            }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 500, margin: 0, fontWeight: 400 }}
           >
-            Every year, Crumbify builds your annual food recap. Orders, restaurants, your top spot - the full story of your year in food.
+            Share restaurants with your group, build a shared Want-to-Try list, and rate places together. Food decisions, finally collaborative.
           </motion.p>
 
           <motion.div
@@ -729,163 +795,21 @@ function FeatureMomentB({
             transition={{ delay: 0.3, duration: 0.45 }}
             style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}
           >
-            {["Annual Recap", "Shareable", "Year in Food"].map((tag) => (
+            {["Shared Lists", "Group Ratings", "Photos"].map((tag) => (
               <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
             ))}
           </motion.div>
         </div>
 
-        {/* Card floats below text */}
-        <motion.div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            y: reduced ? 0 : cardSpring,
-          }}
-        >
-          <WrappedCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+        <motion.div style={{ display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+          <GroupCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
       </div>
     </section>
   );
 }
 
-// ─── Feature C: "Discover your food personality" ─────────────────────────────
-// Layout: text LEFT, chart RIGHT
-function FeatureMomentC({
-  fredokaClass,
-  nunitoClass,
-  reduced,
-}: {
-  fredokaClass: string;
-  nunitoClass: string;
-  reduced: boolean | null;
-}) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const inView = useInView(sectionRef, { once: true, margin: "-100px" });
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
-  const chartY = useTransform(scrollYProgress, [0, 1], [50, -50]);
-  const chartSpring = useSpring(chartY, { stiffness: 60, damping: 20 });
-
-  return (
-    <section
-      ref={sectionRef}
-      style={{
-        position: "relative",
-        minHeight: "100dvh",
-        backgroundColor: C.heroDark,
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "center",
-      }}
-    >
-      <div aria-hidden style={DARK_GRAIN} />
-
-      <div
-        className="feat-grid feat-grid-c"
-        style={{
-          position: "relative",
-          zIndex: 1,
-          maxWidth: 1280,
-          margin: "0 auto",
-          width: "100%",
-          padding: "clamp(72px, 10vh, 128px) clamp(16px, 4vw, 64px)",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "clamp(48px, 6vw, 80px)",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        {/* Text LEFT */}
-        <div
-          style={{
-            flex: "1 1 300px",
-            minWidth: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
-          <motion.h2
-            className={fredokaClass}
-            initial={reduced ? false : { opacity: 0, y: 32 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(40px, 6vw, 84px)",
-              fontWeight: 600,
-              lineHeight: 0.92,
-              color: C.onHero,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Discover your
-            <br />
-            food
-            <br />
-            <span style={{ color: C.accent }}>personality.</span>
-          </motion.h2>
-
-          <motion.p
-            className={nunitoClass}
-            initial={reduced ? false : { opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(16px, 1.4vw, 18px)",
-              lineHeight: 1.65,
-              color: C.onHeroSoft,
-              maxWidth: 380,
-              margin: 0,
-              fontWeight: 400,
-            }}
-          >
-            Creature of Habit, or The Explorer? Your cuisine mix tells the story. Crumbify gives it a name.
-          </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, y: 14 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.28, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["Personality Type", "Cuisine Analysis", "Cuisine Split"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Chart RIGHT */}
-        <motion.div
-          style={{
-            flex: "0 1 auto",
-            display: "flex",
-            justifyContent: "center",
-            y: reduced ? 0 : chartSpring,
-          }}
-        >
-          <PersonalityChart fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
-        </motion.div>
-      </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .feat-grid-c { flex-direction: column !important; align-items: center !important; }
-        }
-      `}</style>
-    </section>
-  );
-}
-
-// ─── Feature D: "Find your food soulmate" ────────────────────────────────────
-// Layout: card LEFT, text RIGHT
+// ─── Feature D: "Discover your next meal" — Discover — card LEFT, text RIGHT ──
 function FeatureMomentD({
   fredokaClass,
   nunitoClass,
@@ -897,12 +821,7 @@ function FeatureMomentD({
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-100px" });
-
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
   const cardY = useTransform(scrollYProgress, [0, 1], [50, -50]);
   const cardSpring = useSpring(cardY, { stiffness: 60, damping: 20 });
 
@@ -912,13 +831,15 @@ function FeatureMomentD({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        backgroundColor: C.heroDeep,
+        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDeep} 100%)`,
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroDeep} />
+      <BottomBleed to={C.heroDeep} />
 
       <div
         className="feat-grid feat-grid-d"
@@ -937,46 +858,22 @@ function FeatureMomentD({
         }}
       >
         {/* Card LEFT */}
-        <motion.div
-          style={{
-            flex: "0 1 auto",
-            display: "flex",
-            justifyContent: "center",
-            y: reduced ? 0 : cardSpring,
-          }}
-        >
-          <SoulmateCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+          <DiscoverCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
 
         {/* Text RIGHT */}
-        <div
-          style={{
-            flex: "1 1 300px",
-            minWidth: 0,
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
+        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
           <motion.h2
             className={fredokaClass}
             initial={reduced ? false : { opacity: 0, x: 32 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(40px, 6vw, 84px)",
-              fontWeight: 600,
-              lineHeight: 0.92,
-              color: C.onHero,
-              margin: 0,
-              letterSpacing: "-0.02em",
-            }}
+            style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
           >
-            Find your
-            <br />
-            food
-            <br />
-            <span style={{ color: C.accent }}>soulmate.</span>
+            Discover
+            <br />your next
+            <br /><span style={{ color: C.accent }}>meal.</span>
           </motion.h2>
 
           <motion.p
@@ -984,14 +881,197 @@ function FeatureMomentD({
             initial={reduced ? false : { opacity: 0, x: 24 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              fontSize: "clamp(16px, 1.4vw, 18px)",
-              lineHeight: 1.65,
-              color: C.onHeroSoft,
-              maxWidth: 380,
-              margin: 0,
-              fontWeight: 400,
-            }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 380, margin: 0, fontWeight: 400 }}
+          >
+            A scroll feed of restaurant recommendations tuned to your actual taste. Matched by your history, not by a generic algorithm.
+          </motion.p>
+
+          <motion.div
+            initial={reduced ? false : { opacity: 0, x: 20 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ delay: 0.28, duration: 0.45 }}
+            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+          >
+            {["For You", "Taste Match", "Nearby"].map((tag) => (
+              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
+            ))}
+          </motion.div>
+        </div>
+      </div>
+
+      <style>{`@media (max-width: 768px) { .feat-grid-d { flex-direction: column !important; align-items: center !important; } }`}</style>
+    </section>
+  );
+}
+
+// ─── Feature E: "Discover your food personality" — text LEFT, chart RIGHT ─────
+function FeatureMomentE({
+  fredokaClass,
+  nunitoClass,
+  reduced,
+}: {
+  fredokaClass: string;
+  nunitoClass: string;
+  reduced: boolean | null;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
+  const chartY = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  const chartSpring = useSpring(chartY, { stiffness: 60, damping: 20 });
+
+  return (
+    <section
+      ref={sectionRef}
+      style={{
+        position: "relative",
+        minHeight: "100dvh",
+        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroPanel} />
+      <BottomBleed to={C.heroDark} />
+
+      <div
+        className="feat-grid feat-grid-e"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: 1280,
+          margin: "0 auto",
+          width: "100%",
+          padding: "clamp(72px, 10vh, 128px) clamp(16px, 4vw, 64px)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "clamp(48px, 6vw, 80px)",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Text LEFT */}
+        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+          <motion.h2
+            className={fredokaClass}
+            initial={reduced ? false : { opacity: 0, y: 32 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
+          >
+            Discover your
+            <br />food
+            <br /><span style={{ color: C.accent }}>personality.</span>
+          </motion.h2>
+
+          <motion.p
+            className={nunitoClass}
+            initial={reduced ? false : { opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 380, margin: 0, fontWeight: 400 }}
+          >
+            Creature of Habit, or The Explorer? Your cuisine mix tells the story. Crumbify gives it a name.
+          </motion.p>
+
+          <motion.div
+            initial={reduced ? false : { opacity: 0, y: 14 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.28, duration: 0.45 }}
+            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+          >
+            {["Personality Type", "Cuisine Analysis"].map((tag) => (
+              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Chart RIGHT */}
+        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : chartSpring }}>
+          <PersonalityChart fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+        </motion.div>
+      </div>
+
+      <style>{`@media (max-width: 768px) { .feat-grid-e { flex-direction: column !important; align-items: center !important; } }`}</style>
+    </section>
+  );
+}
+
+// ─── Feature F: "Find your food soulmate" — card LEFT, text RIGHT ─────────────
+function FeatureMomentF({
+  fredokaClass,
+  nunitoClass,
+  reduced,
+}: {
+  fredokaClass: string;
+  nunitoClass: string;
+  reduced: boolean | null;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
+  const cardY = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  const cardSpring = useSpring(cardY, { stiffness: 60, damping: 20 });
+
+  return (
+    <section
+      ref={sectionRef}
+      style={{
+        position: "relative",
+        minHeight: "100dvh",
+        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDeep} 100%)`,
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroDeep} />
+      <BottomBleed to={C.heroPanel} />
+
+      <div
+        className="feat-grid feat-grid-f"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: 1280,
+          margin: "0 auto",
+          width: "100%",
+          padding: "clamp(72px, 10vh, 128px) clamp(16px, 4vw, 64px)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "clamp(48px, 6vw, 80px)",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Card LEFT */}
+        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+          <SoulmateCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+        </motion.div>
+
+        {/* Text RIGHT */}
+        <div style={{ flex: "1 1 300px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
+          <motion.h2
+            className={fredokaClass}
+            initial={reduced ? false : { opacity: 0, x: 32 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
+          >
+            Find your
+            <br />food
+            <br /><span style={{ color: C.accent }}>soulmate.</span>
+          </motion.h2>
+
+          <motion.p
+            className={nunitoClass}
+            initial={reduced ? false : { opacity: 0, x: 24 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 380, margin: 0, fontWeight: 400 }}
           >
             Crumbify compares your order history with friends and scores your taste match. Find who eats just like you.
           </motion.p>
@@ -1009,16 +1089,12 @@ function FeatureMomentD({
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .feat-grid-d { flex-direction: column !important; align-items: center !important; }
-        }
-      `}</style>
+      <style>{`@media (max-width: 768px) { .feat-grid-f { flex-direction: column !important; align-items: center !important; } }`}</style>
     </section>
   );
 }
 
-// ─── Stats Band (dark) ────────────────────────────────────────────────────────
+// ─── Stats Band ───────────────────────────────────────────────────────────────
 interface StatItem {
   value: number;
   suffix: string;
@@ -1033,19 +1109,9 @@ const STATS_DATA: StatItem[] = [
 ];
 
 function StatCounter({
-  stat,
-  fredokaClass,
-  nunitoClass,
-  inView,
-  reduced,
-  index,
+  stat, fredokaClass, nunitoClass, inView, reduced, index,
 }: {
-  stat: StatItem;
-  fredokaClass: string;
-  nunitoClass: string;
-  inView: boolean;
-  reduced: boolean | null;
-  index: number;
+  stat: StatItem; fredokaClass: string; nunitoClass: string; inView: boolean; reduced: boolean | null; index: number;
 }) {
   const count = useCountUp(stat.value, inView, reduced);
 
@@ -1066,25 +1132,13 @@ function StatCounter({
     >
       <div
         className={fredokaClass}
-        style={{
-          fontSize: "clamp(52px, 7vw, 88px)",
-          fontWeight: 600,
-          color: C.onHero,
-          lineHeight: 1,
-          fontVariantNumeric: "tabular-nums",
-        }}
+        style={{ fontSize: "clamp(52px, 7vw, 88px)", fontWeight: 600, color: C.onHero, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}
       >
-        {count}
-        <span style={{ color: C.accent }}>{stat.suffix}</span>
+        {count}<span style={{ color: C.accent }}>{stat.suffix}</span>
       </div>
       <div
         className={nunitoClass}
-        style={{
-          fontSize: "clamp(14px, 1.2vw, 16px)",
-          color: C.mutedOnDark,
-          fontWeight: 600,
-          marginTop: 10,
-        }}
+        style={{ fontSize: "clamp(14px, 1.2vw, 16px)", color: C.mutedOnDark, fontWeight: 600, marginTop: 10 }}
       >
         {stat.label}
       </div>
@@ -1093,14 +1147,8 @@ function StatCounter({
 }
 
 function StatsBand({
-  fredokaClass,
-  nunitoClass,
-  reduced,
-}: {
-  fredokaClass: string;
-  nunitoClass: string;
-  reduced: boolean | null;
-}) {
+  fredokaClass, nunitoClass, reduced,
+}: { fredokaClass: string; nunitoClass: string; reduced: boolean | null }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -1109,12 +1157,14 @@ function StatsBand({
       ref={ref}
       style={{
         position: "relative",
-        backgroundColor: C.heroPanel,
-        borderTop: `1px solid rgba(230,195,155,0.08)`,
-        borderBottom: `1px solid rgba(230,195,155,0.08)`,
+        background: `linear-gradient(to bottom, ${C.heroPanel} 0%, ${C.heroDark} 100%)`,
+        borderTop: `1px solid rgba(230,195,155,0.07)`,
+        borderBottom: `1px solid rgba(230,195,155,0.07)`,
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroDeep} />
+      <BottomBleed to={C.heroDark} />
       <div
         className="stats-row"
         style={{
@@ -1150,16 +1200,10 @@ function StatsBand({
   );
 }
 
-// ─── Closing CTA (dark) ───────────────────────────────────────────────────────
+// ─── Closing CTA ──────────────────────────────────────────────────────────────
 function ClosingCTA({
-  fredokaClass,
-  nunitoClass,
-  reduced,
-}: {
-  fredokaClass: string;
-  nunitoClass: string;
-  reduced: boolean | null;
-}) {
+  fredokaClass, nunitoClass, reduced,
+}: { fredokaClass: string; nunitoClass: string; reduced: boolean | null }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
@@ -1170,7 +1214,7 @@ function ClosingCTA({
       style={{
         position: "relative",
         minHeight: "80dvh",
-        backgroundColor: C.heroDeep,
+        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 100%)`,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -1180,8 +1224,8 @@ function ClosingCTA({
       }}
     >
       <div aria-hidden style={DARK_GRAIN} />
+      <TopBleed from={C.heroDark} />
 
-      {/* Single subtle arc, top-right, opacity low */}
       <div
         aria-hidden
         style={{
@@ -1215,18 +1259,10 @@ function ClosingCTA({
           initial={reduced ? false : { opacity: 0, y: 32 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            fontSize: "clamp(52px, 9vw, 120px)",
-            fontWeight: 600,
-            lineHeight: 0.9,
-            color: C.onHero,
-            margin: 0,
-            letterSpacing: "-0.025em",
-          }}
+          style={{ fontSize: "clamp(52px, 9vw, 120px)", fontWeight: 600, lineHeight: 0.9, color: C.onHero, margin: 0, letterSpacing: "-0.025em" }}
         >
           Read your
-          <br />
-          <span style={{ color: C.accent }}>crumbs.</span>
+          <br /><span style={{ color: C.accent }}>crumbs.</span>
         </motion.h2>
 
         <motion.p
@@ -1234,14 +1270,7 @@ function ClosingCTA({
           initial={reduced ? false : { opacity: 0, y: 16 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.15, duration: 0.5 }}
-          style={{
-            fontSize: "clamp(16px, 1.4vw, 18px)",
-            color: C.onHeroSoft,
-            lineHeight: 1.65,
-            maxWidth: 460,
-            margin: 0,
-            fontWeight: 400,
-          }}
+          style={{ fontSize: "clamp(16px, 1.4vw, 18px)", color: C.onHeroSoft, lineHeight: 1.65, maxWidth: 460, margin: 0, fontWeight: 400 }}
         >
           Your stats are waiting. Screenshot your order history, let Crumbify do the reading.
         </motion.p>
@@ -1259,14 +1288,8 @@ function ClosingCTA({
   );
 }
 
-// ─── Footer (dark) ────────────────────────────────────────────────────────────
-function PreviewFooter({
-  fredokaClass,
-  nunitoClass,
-}: {
-  fredokaClass: string;
-  nunitoClass: string;
-}) {
+// ─── Footer ───────────────────────────────────────────────────────────────────
+function PreviewFooter({ fredokaClass, nunitoClass }: { fredokaClass: string; nunitoClass: string }) {
   const linkStyle: React.CSSProperties = {
     fontSize: 14,
     color: C.mutedOnDark,
@@ -1311,87 +1334,44 @@ function PreviewFooter({
           justifyContent: "space-between",
         }}
       >
-        {/* Brand */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: "1 1 200px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Image
-              src="/images/crumbify-logo.png"
-              alt="Crumbify"
-              width={32}
-              height={32}
-              style={{ borderRadius: 7 }}
-            />
+            <Image src="/images/crumbify-logo.png" alt="Crumbify" width={32} height={32} style={{ borderRadius: 7 }} />
             <span className={fredokaClass} style={{ fontSize: 17, fontWeight: 600, color: C.onHeroSoft }}>
               Crumbify
             </span>
           </div>
-          <p
-            className={nunitoClass}
-            style={{ fontSize: 14, color: C.mutedOnDark, fontWeight: 600, margin: 0, lineHeight: 1.5 }}
-          >
+          <p className={nunitoClass} style={{ fontSize: 14, color: C.mutedOnDark, fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
             Read the crumbs.
           </p>
-          <p
-            className={nunitoClass}
-            style={{ fontSize: 13, color: C.mutedOnDark, margin: 0, fontWeight: 400, lineHeight: 1.5 }}
-          >
+          <p className={nunitoClass} style={{ fontSize: 13, color: C.mutedOnDark, margin: 0, fontWeight: 400, lineHeight: 1.5 }}>
             @crumbifyco
           </p>
         </div>
 
-        {/* Product */}
         <div style={{ flex: "1 1 120px" }}>
-          <div className={nunitoClass} style={headingStyle}>
-            Product
-          </div>
-          <a href="#features" className={nunitoClass} style={linkStyle}>
-            Features
-          </a>
-          <a href="#" className={nunitoClass} style={linkStyle}>
-            How it works
-          </a>
+          <div className={nunitoClass} style={headingStyle}>Product</div>
+          <a href="#features" className={nunitoClass} style={linkStyle}>Features</a>
+          <a href="#founding" className={nunitoClass} style={linkStyle}>Founding member</a>
         </div>
 
-        {/* Legal */}
         <div style={{ flex: "1 1 120px" }}>
-          <div className={nunitoClass} style={headingStyle}>
-            Legal
-          </div>
-          <a href="/privacy" className={nunitoClass} style={linkStyle}>
-            Privacy
-          </a>
-          <a href="/terms" className={nunitoClass} style={linkStyle}>
-            Terms
-          </a>
-          <a href="/delete-account" className={nunitoClass} style={linkStyle}>
-            Delete account
-          </a>
-          <a href="/support" className={nunitoClass} style={linkStyle}>
-            Support
-          </a>
+          <div className={nunitoClass} style={headingStyle}>Legal</div>
+          <a href="/privacy" className={nunitoClass} style={linkStyle}>Privacy</a>
+          <a href="/terms" className={nunitoClass} style={linkStyle}>Terms</a>
+          <a href="/delete-account" className={nunitoClass} style={linkStyle}>Delete account</a>
+          <a href="/support" className={nunitoClass} style={linkStyle}>Support</a>
         </div>
 
-        {/* Contact */}
         <div style={{ flex: "1 1 160px" }}>
-          <div className={nunitoClass} style={headingStyle}>
-            Contact
-          </div>
-          <a href="mailto:contact@crumbify.co.uk" className={nunitoClass} style={linkStyle}>
-            contact@crumbify.co.uk
-          </a>
-          <a
-            href="https://x.com/crumbifyco"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={nunitoClass}
-            style={linkStyle}
-          >
+          <div className={nunitoClass} style={headingStyle}>Contact</div>
+          <a href="mailto:contact@crumbify.co.uk" className={nunitoClass} style={linkStyle}>contact@crumbify.co.uk</a>
+          <a href="https://x.com/crumbifyco" target="_blank" rel="noopener noreferrer" className={nunitoClass} style={linkStyle}>
             X @crumbifyco
           </a>
         </div>
       </div>
 
-      {/* Bottom line */}
       <div
         style={{
           position: "relative",
@@ -1414,9 +1394,7 @@ function PreviewFooter({
         </p>
       </div>
 
-      <style>{`
-        footer a:hover { color: ${C.accent} !important; }
-      `}</style>
+      <style>{`footer a:hover { color: ${C.accent} !important; }`}</style>
     </footer>
   );
 }
@@ -1424,6 +1402,30 @@ function PreviewFooter({
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function PreviewPage() {
   const reduced = useReducedMotion();
+
+  // Lenis smooth scroll — scoped to /preview, respects prefers-reduced-motion
+  useEffect(() => {
+    if (reduced) return; // skip for reduced-motion users
+
+    const lenis = new Lenis({
+      duration: 1.1,
+      smoothWheel: true,
+      touchMultiplier: 1.5,
+      wheelMultiplier: 1,
+    });
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, [reduced]);
 
   function scrollToCTA() {
     document.getElementById("cta")?.scrollIntoView({ behavior: "smooth" });
@@ -1447,58 +1449,31 @@ export default function PreviewPage() {
         onGetEarlyAccess={scrollToCTA}
       />
 
-      <HeroMoment
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 1. Hero */}
+      <HeroMoment fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <PlatformLine
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 2. Platform line */}
+      <PlatformLine fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <FeatureMomentA
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 3–8. Six feature moments */}
+      <FeatureMomentA fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
+      <FeatureMomentB fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
+      <FeatureMomentC fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
+      <FeatureMomentD fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
+      <FeatureMomentE fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
+      <FeatureMomentF fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <FeatureMomentB
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 9. Stats band */}
+      <StatsBand fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <FeatureMomentC
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 10. Founding member */}
+      <FoundingSection fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <FeatureMomentD
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
+      {/* 11. Closing CTA */}
+      <ClosingCTA fredokaClass={fredoka.className} nunitoClass={nunito.className} reduced={reduced} />
 
-      <StatsBand
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
-
-      <ClosingCTA
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-        reduced={reduced}
-      />
-
-      <PreviewFooter
-        fredokaClass={fredoka.className}
-        nunitoClass={nunito.className}
-      />
+      {/* 12. Footer */}
+      <PreviewFooter fredokaClass={fredoka.className} nunitoClass={nunito.className} />
     </div>
   );
 }

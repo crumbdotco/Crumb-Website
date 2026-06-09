@@ -1,6 +1,7 @@
 // src/components/ui/Preloader.tsx
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
@@ -43,24 +44,51 @@ export function Preloader() {
           key="preloader"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5, ease: [0.65, 0, 0.35, 1] } }}
-          className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#0E0805]"
+          className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#1A1208]"
         >
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="font-headline text-[14vw] md:text-[10vw] text-[#E6C39B] tracking-[0.05em] leading-none"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
           >
-            CRUMB
+            {/* Cookie-C logo mark */}
+            <Image
+              src="/images/crumbify-logo.png"
+              alt="Crumbify"
+              width={64}
+              height={64}
+              style={{ borderRadius: 16 }}
+              priority
+            />
+            {/* Wordmark — Fredoka via font-headline, no letter-spacing */}
+            <div
+              className="font-headline text-[#E6C39B]"
+              style={{
+                fontSize: "clamp(32px, 8vw, 52px)",
+                fontWeight: 600,
+                lineHeight: 1,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Crumbify
+            </div>
           </motion.div>
-          <div className="mt-12 w-[180px] h-px bg-white/10 overflow-hidden">
+
+          {/* Progress bar */}
+          <div className="mt-10 w-[160px] h-px bg-white/10 overflow-hidden">
             <motion.div
               className="h-full bg-[#E6C39B] origin-left"
               animate={{ scaleX: progress / 100 }}
               transition={{ ease: 'easeOut', duration: 0.4 }}
             />
           </div>
-          <div className="mt-3 font-mono text-[10px] tracking-[2px] text-[#E0D5C9]/35">
+
+          {/* Percent counter — no letter-spacing */}
+          <div
+            className="mt-3 font-mono text-[10px] text-[#E0D5C9]/35"
+            style={{ letterSpacing: 0 }}
+          >
             {String(Math.floor(progress)).padStart(3, '0')}%
           </div>
         </motion.div>

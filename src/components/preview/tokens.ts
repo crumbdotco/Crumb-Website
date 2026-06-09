@@ -51,3 +51,10 @@ export const PAPER_GRAIN_STYLE: CSSProperties = {
   backgroundRepeat: "repeat",
   backgroundSize: "200px 200px",
 };
+
+// Dark grain texture (shared across dark preview sections — matches DARK_GRAIN in page.tsx)
+export const DARK_GRAIN_STYLE: CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "repeat",
+  backgroundSize: "200px 200px",
+};
