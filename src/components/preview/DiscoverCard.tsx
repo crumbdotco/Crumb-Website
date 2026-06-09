@@ -37,42 +37,50 @@ const CARD_DATA = [
 export function DiscoverCard({ fredokaClass, nunitoClass, inView }: DiscoverCardProps) {
   const reduced = useReducedMotion();
 
-  const [main, behind] = CARD_DATA;
+  const [main] = CARD_DATA;
 
   return (
-    <div style={{ position: "relative", width: "min(300px, 88vw)", flexShrink: 0 }}>
-      {/* Card peeking behind */}
+    <div style={{ position: "relative", width: "min(300px, 88vw)", paddingTop: 30, flexShrink: 0 }}>
+      {/* Deepest card in the stack — smallest, faintest, furthest back. */}
       <motion.div
-        initial={reduced ? false : { opacity: 0, scale: 0.88 }}
-        animate={inView ? { opacity: 1, scale: 0.94 } : reduced ? {} : { opacity: 0, scale: 0.88 }}
-        transition={{ delay: 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        aria-hidden
+        initial={reduced ? false : { opacity: 0, y: 12, scale: 0.84 }}
+        animate={inView ? { opacity: 1, y: 0, scale: 0.9 } : reduced ? {} : { opacity: 0, y: 12, scale: 0.84 }}
+        transition={{ delay: 0.04, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         style={{
           position: "absolute",
-          bottom: -14,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "90%",
+          top: 0,
+          left: 0,
+          right: 0,
+          transformOrigin: "top center",
+          height: 96,
           borderRadius: 24,
-          background: `linear-gradient(145deg, rgba(46,30,20,0.9) 0%, rgba(36,23,18,0.95) 100%)`,
-          border: `1.5px solid rgba(230,195,155,0.09)`,
-          height: 72,
+          background: `linear-gradient(145deg, rgba(40,26,18,0.88) 0%, rgba(32,20,16,0.94) 100%)`,
+          border: `1.5px solid rgba(230,195,155,0.05)`,
           zIndex: 0,
-          display: "flex",
-          alignItems: "center",
-          paddingInline: 20,
-          gap: 12,
         }}
-      >
-        <span style={{ fontSize: 22, opacity: 0.7 }}>{behind.emoji}</span>
-        <div>
-          <div className={nunitoClass} style={{ fontSize: 12, fontWeight: 700, color: C.onHeroSoft, opacity: 0.7 }}>
-            {behind.name}
-          </div>
-          <div className={nunitoClass} style={{ fontSize: 10, color: C.mutedOnDark, fontWeight: 600, opacity: 0.6 }}>
-            {behind.tag}
-          </div>
-        </div>
-      </motion.div>
+      />
+
+      {/* Second card in the stack — nudged up and scaled down so it reads
+          as the next card in a swipe stack (not a stray tab). */}
+      <motion.div
+        aria-hidden
+        initial={reduced ? false : { opacity: 0, y: 9, scale: 0.9 }}
+        animate={inView ? { opacity: 1, y: 0, scale: 0.95 } : reduced ? {} : { opacity: 0, y: 9, scale: 0.9 }}
+        transition={{ delay: 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 0,
+          right: 0,
+          transformOrigin: "top center",
+          height: 96,
+          borderRadius: 24,
+          background: `linear-gradient(145deg, rgba(46,30,20,0.92) 0%, rgba(36,23,18,0.96) 100%)`,
+          border: `1.5px solid rgba(230,195,155,0.08)`,
+          zIndex: 0,
+        }}
+      />
 
       {/* Main card */}
       <motion.div
