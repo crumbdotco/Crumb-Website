@@ -40,22 +40,36 @@ Scripts: `npm run dev | build | lint | test | test:e2e`.
 
 ## Structure
 
-- `src/app/page.tsx` — single-page landing, composes the **v2** sections in order:
-  `Navbar → Hero → PlatformMarquee → FeatureScroll → StatsBand → BentoSection → WaitlistSection → Footer`
-- `src/components/sections/v2/` — all current landing sections (the live design).
-- `src/components/ui/` — primitives: PhoneShell, MagneticButton, SplitText, CustomCursor, Preloader, NoiseOverlay.
-- `src/hooks/` — useWaitlist, useWaitlistCount, useMagnetic, useMouseParallax, useCountUp, useLenisScroll, useTurnstile.
-- `src/app/globals.css` — global styles + `font-headline` + brand tokens.
-- Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/`, `invite/`.
+- `src/app/page.tsx` — single-page editorial scroll-story landing (the live design, shipped 2026-06-10). Sections in order:
+  `Navbar → Hero → PlatformLine → Stats → Global feed → Groups → Discover → Personality → Soulmate → StatsBand → FoundingSection → ClosingCTA → Footer`
+- `src/components/landing/` — all landing components + visuals: tokens, LedgeButton, CrumbParticles, PhoneFrame (real app screenshot), FeaturePhoneA, FeedPostCard, GroupCard, DiscoverCard, PersonalityChart, SoulmateCard, FoundingSection, EmailCapture.
+- `src/components/legal/` — LegalShell, BackLink, ContactLinks (shared dark legal-page chrome).
+- `src/components/ui/Preloader.tsx` — site-wide loader (Crumbify wordmark + cookie-C).
+- `src/components/providers/SmoothScroll.tsx` — single global Lenis instance.
+- `src/hooks/` — useWaitlist, useWaitlistCount, useTurnstile.
+- Fonts: **Fredoka** (display) + **Nunito** (body) via `next/font/google`, scoped in `page.tsx`.
+- Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/`, `invite/` — all dark-themed.
 - `src/app/admin/` — OTP-gated admin dashboard (RevenueCat / ASC / Sentry panels).
-- `src/app/api/` — `waitlist/`, `waitlist/count/`, `stripe/webhook/`, `admin/session/`.
+- `src/app/api/` — `waitlist/`, `waitlist/count/`, `waitlist/founding/` (first-100 counter), `stripe/webhook/`, `admin/session/`.
 
-## Brand / theme (current v2)
+## Brand / theme (current — dark cocoa "black and tan")
 
-- Dark warm palette: bg `#0E0805` / `#1A1208`, card `#2A2118`, text `#E0D5C9`, gold accent `#E6C39B` / `#C9A077`.
-- `font-headline` for display type.
-- Taglines: "Read the crumbs." / "Your Food Delivery Stats".
-- Same warm cream/brown family as the app.
+- Single continuous dark cocoa canvas: bg `#1A1208`, surfaces `#241712` / `#2E1E14`, text `#F4ECDF` / `#C4B09A`, single brand-gold accent `#E6C39B` / `#C9A077`. NO off-brand saturated yellow.
+- Tagline: "Read the crumbs." Sub: "Your food delivery stats".
+- Same warm cookie family as the app (the app is dark-themed too).
+
+## Email policy
+
+- User / account / legal / help issues → `support@crumbify.co.uk`.
+- Sponsor / partnership / everything else → `contact@crumbify.co.uk`.
+- `admin@crumbify.co.uk` is NOT used anywhere on the site.
+- Store review (app store only): `appreview@crumbify.co.uk`.
+
+## Known follow-ups
+
+- Wire `NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK` env in Vercel for the founding-member checkout button (falls back to `/founding-member` if unset).
+- Feature visuals are real design artifacts with `SWAP-SLOT` comments — drop real app screenshots into `public/images/` and swap when ready.
+- Wrapped is intentionally NOT featured (not shipping for a long time).
 
 ## HARD design rules (from ~/.claude/rules frontend-design + app-wide)
 
