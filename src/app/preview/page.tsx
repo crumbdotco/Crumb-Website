@@ -65,52 +65,7 @@ function useCountUp(target: number, inView: boolean, reduced: boolean | null, du
   return reduced ? target : count;
 }
 
-// ─── Shared dark grain overlay ────────────────────────────────────────────────
-const DARK_GRAIN = {
-  position: "absolute" as const,
-  inset: 0,
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "repeat" as const,
-  backgroundSize: "200px 200px",
-  pointerEvents: "none" as const,
-};
-
-// Gradient bleed helpers for section transitions
-function TopBleed({ from }: { from: string }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 160,
-        background: `linear-gradient(to bottom, ${from}, transparent)`,
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    />
-  );
-}
-
-function BottomBleed({ to }: { to: string }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 160,
-        background: `linear-gradient(to top, ${to}, transparent)`,
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    />
-  );
-}
+// ─── Shared dark grain overlay (kept for reference; grain is now on page wrapper) ─
 
 // ─── Feature tag pill ─────────────────────────────────────────────────────────
 function TagPill({ label, nunitoClass }: { label: string; nunitoClass: string }) {
@@ -315,8 +270,6 @@ function HeroMoment({
         }}
       />
 
-      {/* Bottom bleed into PlatformLine */}
-      <BottomBleed to={C.heroDark} />
 
       <div
         className="hero-grid"
@@ -459,15 +412,13 @@ function PlatformLine({
       ref={ref}
       style={{
         position: "relative",
-        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 100%)`,
+        background: "transparent",
         borderTop: `1px solid rgba(230,195,155,0.06)`,
         borderBottom: `1px solid rgba(230,195,155,0.06)`,
         padding: "clamp(48px, 7vw, 88px) clamp(16px, 4vw, 64px)",
         overflow: "hidden",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <BottomBleed to={C.heroDeep} />
 
       <motion.div
         initial={reduced ? false : { opacity: 0, y: 20 }}
@@ -554,15 +505,12 @@ function FeatureMomentA({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroPanel} />
-      <BottomBleed to={C.heroDark} />
 
       <div
         className="feat-grid feat-grid-a"
@@ -646,15 +594,12 @@ function FeatureMomentB({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDark} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroDeep} />
-      <BottomBleed to={C.heroDeep} />
 
       <div
         className="feat-grid feat-grid-b"
@@ -741,16 +686,13 @@ function FeatureMomentC({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroPanel} />
-      <BottomBleed to={C.heroDark} />
 
       <div
         style={{
@@ -831,15 +773,12 @@ function FeatureMomentD({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDeep} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroDeep} />
-      <BottomBleed to={C.heroDeep} />
 
       <div
         className="feat-grid feat-grid-d"
@@ -926,15 +865,12 @@ function FeatureMomentE({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 85%, ${C.heroDark} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroPanel} />
-      <BottomBleed to={C.heroDark} />
 
       <div
         className="feat-grid feat-grid-e"
@@ -1021,15 +957,12 @@ function FeatureMomentF({
       style={{
         position: "relative",
         minHeight: "100dvh",
-        background: `linear-gradient(to bottom, ${C.heroDark} 0%, ${C.heroPanel} 50%, ${C.heroDeep} 100%)`,
+        background: "transparent",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroDeep} />
-      <BottomBleed to={C.heroPanel} />
 
       <div
         className="feat-grid feat-grid-f"
@@ -1157,14 +1090,11 @@ function StatsBand({
       ref={ref}
       style={{
         position: "relative",
-        background: `linear-gradient(to bottom, ${C.heroPanel} 0%, ${C.heroDark} 100%)`,
+        background: "transparent",
         borderTop: `1px solid rgba(230,195,155,0.07)`,
         borderBottom: `1px solid rgba(230,195,155,0.07)`,
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroDeep} />
-      <BottomBleed to={C.heroDark} />
       <div
         className="stats-row"
         style={{
@@ -1214,7 +1144,7 @@ function ClosingCTA({
       style={{
         position: "relative",
         minHeight: "80dvh",
-        background: `linear-gradient(to bottom, ${C.heroDeep} 0%, ${C.heroDeep} 100%)`,
+        background: "transparent",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -1223,8 +1153,6 @@ function ClosingCTA({
         overflow: "hidden",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
-      <TopBleed from={C.heroDark} />
 
       <div
         aria-hidden
@@ -1315,12 +1243,11 @@ function PreviewFooter({ fredokaClass, nunitoClass }: { fredokaClass: string; nu
     <footer
       style={{
         position: "relative",
-        backgroundColor: C.heroDark,
+        background: "transparent",
         borderTop: `1px solid rgba(230,195,155,0.10)`,
         padding: "56px clamp(16px, 4vw, 64px) 40px",
       }}
     >
-      <div aria-hidden style={DARK_GRAIN} />
 
       <div
         style={{
@@ -1437,12 +1364,74 @@ export default function PreviewPage() {
     <div
       className={wrapperClass}
       style={{
+        position: "relative",
         minHeight: "100dvh",
         backgroundColor: C.heroDeep,
         color: C.onHero,
         overflowX: "hidden",
       }}
     >
+      {/* ── Single page-level grain overlay ───────────────────────────────── */}
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "200px 200px",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      {/* ── Page-level soft radial glows (depth, no section seams) ────────── */}
+      {/* Glow 1: top-right warm bloom — sits around 25–35% page height */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: "18%",
+          right: "-10%",
+          width: 1100,
+          height: 1100,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(46,30,20,0.48) 0%, transparent 65%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      {/* Glow 2: mid-left warm bloom — sits around 55% page height */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "-12%",
+          width: 1300,
+          height: 1300,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(46,30,20,0.40) 0%, transparent 62%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      {/* Glow 3: lower-right bloom — sits near founding/CTA sections */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: "78%",
+          right: "-8%",
+          width: 1000,
+          height: 1000,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(46,30,20,0.44) 0%, transparent 64%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
       <PreviewNavbar
         fredokaClass={fredoka.className}
         nunitoClass={nunito.className}

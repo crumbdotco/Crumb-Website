@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { Medal, Lock, Lightning } from "@phosphor-icons/react";
 import { LedgeButton } from "./LedgeButton";
-import { C, warmShadowDeep, DARK_GRAIN_STYLE } from "./tokens";
+import { C, warmShadowDeep } from "./tokens";
 
 interface FoundingSectionProps {
   fredokaClass: string;
@@ -75,43 +75,11 @@ export function FoundingSection({ fredokaClass, nunitoClass, reduced }: Founding
       ref={ref}
       style={{
         position: "relative",
-        backgroundColor: C.heroDark,
+        background: "transparent",
         overflow: "hidden",
         padding: "clamp(80px, 12vh, 140px) clamp(16px, 4vw, 64px)",
       }}
     >
-      {/* Grain */}
-      <div aria-hidden style={{ position: "absolute", inset: 0, ...DARK_GRAIN_STYLE, pointerEvents: "none" }} />
-
-      {/* Subtle top gradient bleed from previous section */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 120,
-          background: `linear-gradient(to bottom, ${C.heroPanel}, transparent)`,
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-
-      {/* Subtle bottom gradient bleed into next section */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 120,
-          background: `linear-gradient(to top, ${C.heroDeep}, transparent)`,
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
 
       {/* Faint arc watermark */}
       <div
