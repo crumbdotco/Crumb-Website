@@ -80,8 +80,8 @@ export default function DeleteAccountPage() {
         <h2 style={headingStyle}>Option 2 - By email</h2>
         <p style={bodyStyle}>
           If you no longer have the app installed, email{" "}
-          <a href="mailto:admin@crumbify.co.uk" style={linkStyle}>
-            admin@crumbify.co.uk
+          <a href="mailto:support@crumbify.co.uk" style={linkStyle}>
+            support@crumbify.co.uk
           </a>{" "}
           from the address on your account and ask us to delete it. We action requests
           within 30 days.
