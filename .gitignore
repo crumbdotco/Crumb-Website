@@ -45,3 +45,6 @@ playwright-report/
 test-results/
 
 .env*.local
+
+# Design review artifacts
+.shots/
