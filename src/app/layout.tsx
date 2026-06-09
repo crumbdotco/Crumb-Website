@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
-import { CustomCursor } from "@/components/ui/CustomCursor";
 import { Preloader } from "@/components/ui/Preloader";
 import "./globals.css";
 
@@ -49,7 +48,6 @@ export default function RootLayout({
       <body className="antialiased">
         <Preloader />
         <SmoothScroll>
-          <CustomCursor />
           {children}
         </SmoothScroll>
         <SpeedInsights />

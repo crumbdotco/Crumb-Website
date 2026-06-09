@@ -62,19 +62,29 @@ Optional single dark moment (Wrapped section) may use `cocoa`/`ink` background w
 - Regenerate `public/images/og-image.png` (1200x630) — cream bg, cookie-C, "Read the crumbs." (deleted in git; needed for SEO/social). If image generation isn't available, leave a tracked TODO + placeholder and flag to user.
 - iPhone frame: may reuse `iPhone17ProMax_FRAME4.png`, or build a CSS device frame (preferred for crispness/responsiveness).
 
-## Section-by-section spec
+## Structure (UPDATED 2026-06-09 after preview review)
 
-All sections live under `src/components/sections/v3/` (new), composed by `src/app/page.tsx`. Old `v2/` removed once `v3` lands. Shared primitives in `src/components/ui/` reused/restyled (PhoneShell, MagneticButton→LedgeButton, SplitText, Preloader, NoiseOverlay→optional, CustomCursor kept).
+**Goal/CTA pivot:** NOT a waitlist/coming-soon site. No "coming soon" pill, no countdown, no scarcity. Primary action is a **soft email capture** framed as "get early access" / "be first in" — confident and product-first, not a gimmick. Reuse the existing `useWaitlist` + `/api/waitlist` + Turnstile infra under the hood, just reframe all copy. No founding-member scarcity push on the landing (Stripe path can stay reachable but is not the hero).
 
-1. **Navbar** — cream, slight blur-free solid on scroll. Cookie-C logo + "Crumbify" wordmark (system). Links: How it works, Features, Waitlist. Primary `LedgeButton` "Join waitlist".
-2. **Hero** — left: status pill (NO spaced caps — e.g. plain "Coming soon, join the waitlist" pill), headline "Read the crumbs." (Fredoka, gold full-stop), accurate sub-copy, `LedgeButton` CTA + "See how it works" link, live waitlist count + 3 avatar chips + crumb particles. Right: device frame with faithful **Your Stats** recreation (total orders, top cuisine, top restaurants) — real app light styling.
-3. **Platform strip** — marquee/inline: "Reads screenshots from Uber Eats, Just Eat, Deliveroo, and any restaurant you log." Brand dots OK but NO `·` ornaments between words.
-4. **How it works** — 3 numbered steps with mini-illustrations: (1) Screenshot your orders, (2) Crumbify reads them, (3) Your stats appear. Accurate to OCR flow.
-5. **Feature showcase** — scroll-pinned device; copy panels cycle through: See where you really eat / Your annual Wrapped / Food personality / Food soulmate / Food map. Each with a faithful recreated screen.
-6. **Stats band** — count-up row: orders this year, unique restaurants, soulmate match %, top cuisine share, friends connected. Counts/percent only.
-7. **Bento grid** — cream `paper` cards: Wrapped (wide), Personality (donut), Soulmates (match card), Food Map (faux map pins). Restyled from v2 BentoSection to light palette.
-8. **Founding member + Waitlist** — scarcity framing, live count, referral mention, the existing Turnstile-protected form (`useWaitlist`). Keep founding-member Stripe entry where present. `LedgeButton` submit.
-9. **Footer** — cookie-C, tagline, columns (Product / Legal / Contact), socials (`@crumbifyco`), legal links to `/privacy` `/terms` `/support` `/delete-account`.
+**Format: editorial scroll-story.** Full-bleed, cinematic, scroll-driven. Each major feature gets its own near-full-screen "moment" with giant Fredoka type + a large app screen that animates with scroll progress (pin / parallax / scrub). Premium, immersive, magazine-like — not a stack of generic SaaS cards. Built on the existing Lenis smooth-scroll + framer `useScroll`/`useTransform`.
+
+All sections live under `src/components/sections/v3/` (new), composed by `src/app/page.tsx`. Old `v2/` removed once `v3` lands. Shared primitives in `src/components/ui/` reused/restyled (device frame, LedgeButton, SplitText, Preloader). CustomCursor removed site-wide. Fredoka display + Nunito body (self-hosted via next/font).
+
+Scroll-story beats (top → bottom):
+
+1. **Navbar** — cream, solid on scroll. Cookie-C logo + "Crumbify" wordmark. Minimal links (Features, About). Primary `LedgeButton` "Get early access" (scrolls to email).
+2. **Hero moment** — full-bleed cream. Giant "Read the crumbs." Fredoka headline (gold full stop), confident sub-copy, soft email field + `LedgeButton` ("Get early access"), subtle crumb specks. Large app screen anchored, animating in. No status/coming-soon pill. Quiet social proof line only if it reads confident (e.g. "Be first in" not "X on the waitlist").
+3. **Transition / platform line** — full-width statement: "Screenshot your orders from Uber Eats, Just Eat, Deliveroo, or log any restaurant by hand." Accurate OCR framing, no `·` ornaments.
+4. **Feature moment — See where you really eat** — full-screen; big type left/over, app "Top restaurants / cuisines" screen scrubbing with scroll.
+5. **Feature moment — Your year, Wrapped** — full-screen; the one permitted dark/cocoa contrast moment; Wrapped card reveal on scroll.
+6. **Feature moment — Your food personality** — full-screen; personality donut + type label animating on scroll.
+7. **Feature moment — Find your food soulmate** — full-screen; match % + shared favourites reveal.
+8. **Feature moment — Your food map** — full-screen; pins dropping on a warm map as you scroll.
+9. **Stats band** — count-up numbers (counts/percent only, no money) as a rhythmic breather between moments or before the close.
+10. **Closing CTA** — full-bleed warm panel: restate value, soft email capture (Turnstile), `LedgeButton`. Calm and confident.
+11. **Footer** — cookie-C, "Read the crumbs." tagline, columns (Product / Legal / Contact), socials (`@crumbifyco`), legal links `/privacy` `/terms` `/support` `/delete-account`.
+
+Each feature moment is its own component with a prop-driven app-screen slot (faithful recreation now, real screenshot swap later).
 
 ## Existing infra to preserve (do not break)
 
