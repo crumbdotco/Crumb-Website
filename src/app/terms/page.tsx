@@ -222,10 +222,10 @@ export default function TermsPage() {
         <p style={bodyStyle}>
           For questions about these Terms, contact us at{" "}
           <a
-            href="mailto:contact@crumbify.co.uk"
+            href="mailto:support@crumbify.co.uk"
             style={linkStyle}
           >
-            contact@crumbify.co.uk
+            support@crumbify.co.uk
           </a>
           .
         </p>
