@@ -294,10 +294,10 @@ export default function PrivacyPage() {
         <p style={bodyStyle}>
           If you have questions about this Privacy Policy, contact us at{" "}
           <a
-            href="mailto:contact@crumbify.co.uk"
+            href="mailto:support@crumbify.co.uk"
             style={linkStyle}
           >
-            contact@crumbify.co.uk
+            support@crumbify.co.uk
           </a>
           .
         </p>
