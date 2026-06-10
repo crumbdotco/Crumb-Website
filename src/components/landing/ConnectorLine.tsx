@@ -28,13 +28,15 @@ interface Anchor {
   cy: number;
 }
 
-/** Build the cubic-bezier path string from measured anchors. */
-function buildPath(anchors: Anchor[], docW: number): string {
+/**
+ * Build the cubic-bezier path string for DESKTOP (> 768px).
+ * Routes through the real element centers, weaving left/right with decorative loops.
+ */
+function buildPathDesktop(anchors: Anchor[], docW: number): string {
   if (anchors.length < 2) return "";
 
   const parts: string[] = [];
 
-  // Start slightly above the first anchor
   const first = anchors[0];
   parts.push(`M ${first.cx.toFixed(1)},${(first.cy - 60).toFixed(1)}`);
 
@@ -43,43 +45,30 @@ function buildPath(anchors: Anchor[], docW: number): string {
     const b = anchors[i + 1];
     const dy = b.cy - a.cy;
 
-    // Control point y: 1/3 and 2/3 down the segment
     const cp1y = a.cy + dy * 0.33;
     const cp2y = a.cy + dy * 0.67;
 
-    // Swing control points LEFT or RIGHT alternately so the path bows wide
-    // and visibly reaches toward each screenshot. Even i → bow right (toward
-    // right side of page), odd i → bow left.
-    const swing = docW * 0.18; // 18% of page width — wide enough to be visible
+    const swing = docW * 0.18;
     const cp1x = i % 2 === 0 ? a.cx + swing : a.cx - swing;
     const cp2x = i % 2 === 0 ? b.cx + swing : b.cx - swing;
 
-    // Insert a decorative loop on every 3rd gap (between segments 2-3, 5-6, etc.)
     if (i > 0 && i % 3 === 2) {
-      // Loop: a small curl that overshoots by ~36px and comes back.
-      // Implemented as an extra tight cubic that circles ~36px to the
-      // opposite side before the main cubic continues.
       const midX = (a.cx + b.cx) / 2;
       const midY = a.cy + dy * 0.45;
       const loopR = 36;
-      const loopDir = i % 2 === 0 ? 1 : -1; // direction of the loop curl
+      const loopDir = i % 2 === 0 ? 1 : -1;
 
-      // Approach the loop entry point
       const loopEntryX = midX;
       const loopEntryY = midY - loopR;
 
-      // Cubic to loop entry
       parts.push(
         `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
           `${(loopEntryX + loopDir * loopR * 0.6).toFixed(1)},${(loopEntryY - loopR * 0.4).toFixed(1)} ` +
           `${loopEntryX.toFixed(1)},${loopEntryY.toFixed(1)}`
       );
 
-      // The curl: go around in a small circle using two cubics
-      // Top of loop
       const loopTopX = midX + loopDir * loopR;
       const loopTopY = midY - loopR * 1.2;
-      // Exit point (back near entry but below)
       const loopExitX = midX;
       const loopExitY = midY + loopR * 0.1;
 
@@ -95,14 +84,12 @@ function buildPath(anchors: Anchor[], docW: number): string {
           `${loopExitX.toFixed(1)},${loopExitY.toFixed(1)}`
       );
 
-      // Continue from loop exit to destination anchor
       parts.push(
         `C ${(loopExitX + (i % 2 === 0 ? swing * 0.5 : -swing * 0.5)).toFixed(1)},${(loopExitY + dy * 0.2).toFixed(1)} ` +
           `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
           `${b.cx.toFixed(1)},${b.cy.toFixed(1)}`
       );
     } else {
-      // Normal cubic bezier arc between two anchors
       parts.push(
         `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
           `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
@@ -111,11 +98,109 @@ function buildPath(anchors: Anchor[], docW: number): string {
     }
   }
 
-  // Tail: continue a short distance past the last anchor
   const last = anchors[anchors.length - 1];
   parts.push(`S ${last.cx.toFixed(1)},${(last.cy + 80).toFixed(1)} ${last.cx.toFixed(1)},${(last.cy + 120).toFixed(1)}`);
 
   return parts.join(" ");
+}
+
+/**
+ * Build the cubic-bezier path string for MOBILE (<= 768px).
+ * Routes down the LEFT margin area (x oscillating ~16-64px from left edge),
+ * using the REAL measured cy values so it still "reaches" each anchor's height.
+ * Small decorative loops every 3rd segment. Never crosses centered content.
+ */
+function buildPathMobile(anchors: Anchor[]): string {
+  if (anchors.length < 2) return "";
+
+  // Left-edge x positions: alternate between near-edge and slightly inward
+  const xNear = 20;  // closest to left edge (px)
+  const xFar = 56;   // furthest inward (px)
+
+  const parts: string[] = [];
+
+  // Start above the first anchor's y, at the near-edge x
+  const first = anchors[0];
+  parts.push(`M ${xNear.toFixed(1)},${(first.cy - 60).toFixed(1)}`);
+
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const a = anchors[i];
+    const b = anchors[i + 1];
+    const dy = b.cy - a.cy;
+
+    // Alternate x positions along the left edge
+    const ax = i % 2 === 0 ? xNear : xFar;
+    const bx = i % 2 === 0 ? xFar : xNear;
+
+    const cp1y = a.cy + dy * 0.33;
+    const cp2y = a.cy + dy * 0.67;
+
+    // Control points swing gently between the two edge x values
+    const cp1x = i % 2 === 0 ? xFar + 16 : xNear;
+    const cp2x = i % 2 === 0 ? xFar : xNear;
+
+    if (i > 0 && i % 3 === 2) {
+      // Decorative loop along the left edge — small curl toward the right
+      const midY = a.cy + dy * 0.45;
+      const loopR = 20; // smaller loop than desktop since we're near the edge
+      const loopEntryX = ax;
+      const loopEntryY = midY - loopR;
+
+      parts.push(
+        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
+          `${(loopEntryX + loopR * 0.8).toFixed(1)},${(loopEntryY - loopR * 0.4).toFixed(1)} ` +
+          `${loopEntryX.toFixed(1)},${loopEntryY.toFixed(1)}`
+      );
+
+      const loopTopX = ax + loopR * 1.2;
+      const loopTopY = midY - loopR;
+      const loopExitX = ax;
+      const loopExitY = midY + loopR * 0.2;
+
+      parts.push(
+        `C ${(loopEntryX + loopR * 1.6).toFixed(1)},${(loopEntryY - loopR * 0.2).toFixed(1)} ` +
+          `${(loopTopX + loopR * 0.3).toFixed(1)},${(loopTopY + loopR * 0.8).toFixed(1)} ` +
+          `${loopTopX.toFixed(1)},${(loopTopY + loopR).toFixed(1)}`
+      );
+
+      parts.push(
+        `C ${(loopTopX - loopR * 0.3).toFixed(1)},${(loopTopY + loopR * 1.6).toFixed(1)} ` +
+          `${(loopExitX + loopR * 0.5).toFixed(1)},${(loopExitY - loopR * 0.1).toFixed(1)} ` +
+          `${loopExitX.toFixed(1)},${loopExitY.toFixed(1)}`
+      );
+
+      parts.push(
+        `C ${cp2x.toFixed(1)},${(loopExitY + dy * 0.2).toFixed(1)} ` +
+          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
+          `${bx.toFixed(1)},${b.cy.toFixed(1)}`
+      );
+    } else {
+      parts.push(
+        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
+          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
+          `${bx.toFixed(1)},${b.cy.toFixed(1)}`
+      );
+    }
+  }
+
+  const last = anchors[anchors.length - 1];
+  const lastX = (anchors.length - 1) % 2 === 0 ? xFar : xNear;
+  parts.push(`S ${lastX.toFixed(1)},${(last.cy + 80).toFixed(1)} ${lastX.toFixed(1)},${(last.cy + 120).toFixed(1)}`);
+
+  return parts.join(" ");
+}
+
+/** Build the correct path based on viewport width. */
+function buildPath(anchors: Anchor[], docW: number): string {
+  if (typeof window !== "undefined" && window.innerWidth <= 768) {
+    return buildPathMobile(anchors);
+  }
+  return buildPathDesktop(anchors, docW);
+}
+
+/** Returns true when the viewport is in mobile width (<= 768px). */
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined" && window.innerWidth <= 768;
 }
 
 /** Measure all [data-connect] elements, returning page-pixel centers. */
@@ -180,6 +265,7 @@ export function ConnectorLine() {
   const [anchors, setAnchors] = useState<Anchor[]>([]);
   const [docSize, setDocSize] = useState({ w: 1440, h: 9000 });
   const [pathD, setPathD] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ref to the animated path element for getTotalLength / getPointAtLength
@@ -194,6 +280,8 @@ export function ConnectorLine() {
   });
 
   const remeasure = useCallback(() => {
+    const mobile = isMobileViewport();
+    setIsMobile(mobile);
     const { anchors: a, docW, docH } = measureAnchors();
     setAnchors(a);
     setDocSize({ w: docW, h: docH });
@@ -268,6 +356,8 @@ export function ConnectorLine() {
     overflow: "visible",
   };
 
+  const strokeW = isMobile ? 3 : 4;
+
   if (reduced) {
     // Reduced motion: full static path, no animation
     return (
@@ -282,7 +372,7 @@ export function ConnectorLine() {
           d={pathD}
           fill="none"
           stroke="rgba(244,236,223,0.70)"
-          strokeWidth={4}
+          strokeWidth={strokeW}
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
@@ -304,7 +394,7 @@ export function ConnectorLine() {
         d={pathD}
         fill="none"
         stroke="rgba(244,236,223,0.70)"
-        strokeWidth={4}
+        strokeWidth={strokeW}
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"

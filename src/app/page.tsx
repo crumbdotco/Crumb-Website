@@ -178,9 +178,16 @@ function LandingNavbar({
         >
           Founding member
         </button>
-        <LedgeButton ledgeOffset={4} fontClassName={nunitoClass} variant="accent" onClick={onGetEarlyAccess}>
-          <span style={{ fontSize: 14 }}>Get early access</span>
-        </LedgeButton>
+        <span id="nav-cta-desktop">
+          <LedgeButton ledgeOffset={4} fontClassName={nunitoClass} variant="accent" onClick={onGetEarlyAccess}>
+            <span style={{ fontSize: 14 }}>Get early access</span>
+          </LedgeButton>
+        </span>
+        <span id="nav-cta-mobile">
+          <LedgeButton ledgeOffset={3} fontClassName={nunitoClass} variant="accent" onClick={onGetEarlyAccess}>
+            <span style={{ fontSize: 12 }}>Early access</span>
+          </LedgeButton>
+        </span>
       </div>
 
       <style>{`
@@ -189,6 +196,11 @@ function LandingNavbar({
           #nav-founding-link { display: block !important; }
         }
         nav button:hover { color: ${C.accent} !important; }
+        #nav-cta-mobile { display: none; }
+        @media (max-width: 639px) {
+          #nav-cta-desktop { display: none !important; }
+          #nav-cta-mobile { display: inline !important; }
+        }
       `}</style>
     </nav>
   );
@@ -462,7 +474,8 @@ function PlatformLine({
           OCR screenshot reading and manual entry. No account connection, no logins, no data shared with delivery apps.
         </p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "clamp(24px, 4vw, 44px)", flexWrap: "wrap" }}>
+        {/* Desktop: silhouette logo icons */}
+        <div id="platform-logo-row" style={{ display: "flex", alignItems: "center", gap: "clamp(24px, 4vw, 44px)", flexWrap: "wrap" }}>
           {platforms.map((p, i) => (
             <motion.div
               key={p.name}
@@ -476,6 +489,43 @@ function PlatformLine({
             </motion.div>
           ))}
         </div>
+
+        {/* Mobile: text name pills (logos are unrecognizable gold blobs at 32px on dark bg) */}
+        <div id="platform-pill-row" style={{ display: "none", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          {platforms.map((p, i) => (
+            <motion.div
+              key={p.name + "-pill"}
+              initial={reduced ? false : { opacity: 0, y: 8 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.2 + i * 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span
+                className={nunitoClass}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  borderRadius: 999,
+                  border: `1px solid rgba(230,195,155,0.22)`,
+                  backgroundColor: "rgba(230,195,155,0.07)",
+                  paddingInline: 14,
+                  paddingBlock: 7,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: C.onHeroSoft,
+                }}
+              >
+                {p.name}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            #platform-logo-row { display: none !important; }
+            #platform-pill-row { display: flex !important; }
+          }
+        `}</style>
       </motion.div>
     </section>
   );
@@ -1251,7 +1301,7 @@ function StatsBand({
           height: 100%;
         }
         /* Header: full row on mobile */
-        @media (max-width: 767px) {
+        @media (max-width: 479px) {
           .statsband-header {
             flex-direction: column !important;
             align-items: flex-start !important;
@@ -1260,18 +1310,26 @@ function StatsBand({
             text-align: left !important;
             max-width: 100% !important;
           }
+          /* Mobile <=479px: 2x2 compact grid — hero takes full top row, then 3 smaller in 2-col */
           .statsband-bento {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: 1fr 1fr !important;
             grid-template-rows: auto !important;
             grid-template-areas:
-              "hero"
-              "s1"
-              "s2"
-              "s3" !important;
+              "hero hero"
+              "s1 s2"
+              "s3 s3" !important;
           }
         }
-        /* Tablet: 2-col, hero top-left spanning 2 */
+        /* Tablet 480-767: 2-col, hero spans top, 2 smaller side by side, last full width */
         @media (min-width: 480px) and (max-width: 767px) {
+          .statsband-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .statsband-header p {
+            text-align: left !important;
+            max-width: 100% !important;
+          }
           .statsband-bento {
             grid-template-columns: 1fr 1fr !important;
             grid-template-areas:
@@ -1602,6 +1660,65 @@ export default function HomePage() {
 
       {/* 12. Footer */}
       <LandingFooter fredokaClass={fredoka.className} nunitoClass={nunito.className} />
+
+      {/* ── Global mobile polish — MOBILE ONLY (max-width:768px) ─────────────
+          Fix: awkward gaps, card edge bleed, hero headline size, tag pill
+          overflow, feature section vertical rhythm. Desktop untouched. */}
+      <style>{`
+        @media (max-width: 768px) {
+          /* Clamp hero h1 so it doesn't overflow at 390px.
+             clamp(52px, 13vw, 68px) — at 390px: 13vw=50.7 → clamps to 52px. */
+          .hero-left-col h1 {
+            font-size: clamp(52px, 13vw, 68px) !important;
+          }
+          /* Hero subtitle tighter on mobile */
+          .hero-left-col p {
+            font-size: 15px !important;
+            max-width: 100% !important;
+          }
+          /* Feature section headings: rein in the large desktop clamp on mobile */
+          .feat-grid h2 {
+            font-size: clamp(36px, 10vw, 56px) !important;
+          }
+          /* Feature section body copy: comfortable at 390px */
+          .feat-grid p {
+            font-size: 15px !important;
+            max-width: 100% !important;
+          }
+          /* Feature grids: ensure consistent horizontal padding at 390px */
+          .feat-grid {
+            padding-left: 20px !important;
+            padding-right: 20px !important;
+          }
+          /* TagPills: don't overflow narrow screens */
+          .feat-grid > div > div {
+            max-width: 100%;
+          }
+          /* Platform section: reduce vertical padding on mobile */
+          #platform-logo-row,
+          #platform-pill-row {
+            margin-top: 0;
+          }
+          /* ClosingCTA headline: tighten on mobile */
+          #cta h2 {
+            font-size: clamp(44px, 12vw, 72px) !important;
+          }
+          /* Footer: ensure email links don't overflow their column */
+          footer a {
+            word-break: break-all;
+            font-size: 13px !important;
+          }
+          /* Stat cards in 2x2 grid: ensure text doesn't overflow at 390px */
+          .statsband-bento > div > div {
+            min-height: 120px !important;
+            padding: 16px !important;
+          }
+          /* Stats bento: hero card in 2x2 mode should be a bit taller */
+          .statsband-bento > div:first-child > div {
+            min-height: 160px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
