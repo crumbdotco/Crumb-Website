@@ -23,6 +23,8 @@ import { SoulmateCard } from "@/components/landing/SoulmateCard";
 import { FoundingSection } from "@/components/landing/FoundingSection";
 import { EmailCapture } from "@/components/landing/EmailCapture";
 import { C } from "@/components/landing/tokens";
+import { ConnectorLine } from "@/components/landing/ConnectorLine";
+import { ForkKnife, Storefront, Heart, ChartPieSlice } from "@phosphor-icons/react";
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
 const fredoka = Fredoka({
@@ -368,7 +370,7 @@ function HeroMoment({
             paddingTop: "clamp(80px, 10vh, 120px)",
           }}
         >
-          <motion.div style={{ y: reduced ? 0 : phoneSpring, rotate: -1.5 }}>
+          <motion.div data-connect="1" style={{ y: reduced ? 0 : phoneSpring, rotate: -1.5 }}>
             <PhoneFrame />
           </motion.div>
         </div>
@@ -524,7 +526,7 @@ function FeatureMomentA({
           alignItems: "center",
         }}
       >
-        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : phoneSpring }}>
+        <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : phoneSpring }}>
           <FeaturePhoneA fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
 
@@ -651,7 +653,7 @@ function FeatureMomentB({
         </div>
 
         {/* Card RIGHT */}
-        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+        <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
           <FeedPostCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
       </div>
@@ -740,7 +742,7 @@ function FeatureMomentC({
           </motion.div>
         </div>
 
-        <motion.div style={{ display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+        <motion.div data-connect="1" style={{ display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
           <GroupCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
       </div>
@@ -794,7 +796,7 @@ function FeatureMomentD({
         }}
       >
         {/* Card LEFT */}
-        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+        <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
           <DiscoverCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
 
@@ -922,7 +924,7 @@ function FeatureMomentE({
         </div>
 
         {/* Chart RIGHT */}
-        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : chartSpring }}>
+        <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : chartSpring }}>
           <PersonalityChart fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
       </div>
@@ -978,7 +980,7 @@ function FeatureMomentF({
         }}
       >
         {/* Card LEFT */}
-        <motion.div style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
+        <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
           <SoulmateCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
 
@@ -1029,14 +1031,29 @@ interface StatItem {
   value: number;
   suffix: string;
   label: string;
+  sublabel: string;
+  Icon: React.ComponentType<{ size?: number; weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; color?: string }>;
+  hero?: boolean;
 }
 
 const STATS_DATA: StatItem[] = [
-  { value: 147, suffix: "", label: "orders this year" },
-  { value: 38, suffix: "", label: "unique restaurants" },
-  { value: 92, suffix: "%", label: "soulmate match" },
-  { value: 34, suffix: "%", label: "top cuisine share" },
+  { value: 147, suffix: "", label: "orders", sublabel: "in a single year", Icon: ForkKnife, hero: true },
+  { value: 38, suffix: "", label: "restaurants tried", sublabel: "across the city", Icon: Storefront },
+  { value: 92, suffix: "%", label: "soulmate match", sublabel: "closest taste match", Icon: Heart },
+  { value: 34, suffix: "%", label: "top cuisine", sublabel: "Thai, every time", Icon: ChartPieSlice },
 ];
+
+// Card surface shared style
+const CARD_BASE: React.CSSProperties = {
+  backgroundColor: C.heroDark,
+  border: `1px solid rgba(230,195,155,0.12)`,
+  borderRadius: 22,
+  boxShadow: "0 2px 8px rgba(26,18,8,0.28), 0 8px 24px rgba(26,18,8,0.20)",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+  position: "relative",
+};
 
 function StatCounter({
   stat, fredokaClass, nunitoClass, inView, reduced, index,
@@ -1044,33 +1061,78 @@ function StatCounter({
   stat: StatItem; fredokaClass: string; nunitoClass: string; inView: boolean; reduced: boolean | null; index: number;
 }) {
   const count = useCountUp(stat.value, inView, reduced);
+  const isHero = stat.hero ?? false;
 
   return (
     <motion.div
-      initial={reduced ? false : { opacity: 0, y: 24 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.12, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      initial={reduced ? false : { opacity: 0, y: 28, scale: 0.97 }}
+      animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       style={{
-        flex: "1 1 180px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        textAlign: "center",
-        padding: "clamp(28px, 4vw, 48px) 16px",
-        borderRight: index < STATS_DATA.length - 1 ? `1px solid rgba(230,195,155,0.08)` : "none",
+        ...CARD_BASE,
+        padding: isHero ? "clamp(28px, 3.5vw, 44px)" : "clamp(20px, 2.5vw, 32px)",
+        justifyContent: "space-between",
+        minHeight: isHero ? "clamp(200px, 22vw, 280px)" : "clamp(120px, 14vw, 168px)",
       }}
     >
+      {/* Icon badge */}
       <div
-        className={fredokaClass}
-        style={{ fontSize: "clamp(52px, 7vw, 88px)", fontWeight: 600, color: C.onHero, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}
+        aria-hidden
+        style={{
+          width: isHero ? 48 : 38,
+          height: isHero ? 48 : 38,
+          borderRadius: 12,
+          backgroundColor: "rgba(230,195,155,0.10)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
       >
-        {count}<span style={{ color: C.accent }}>{stat.suffix}</span>
+        <stat.Icon
+          size={isHero ? 24 : 20}
+          weight="regular"
+          color={C.accent}
+        />
       </div>
-      <div
-        className={nunitoClass}
-        style={{ fontSize: "clamp(14px, 1.2vw, 16px)", color: C.mutedOnDark, fontWeight: 600, marginTop: 10 }}
-      >
-        {stat.label}
+
+      {/* Number + labels */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: isHero ? 20 : 14 }}>
+        <div
+          className={fredokaClass}
+          style={{
+            fontSize: isHero ? "clamp(56px, 7vw, 96px)" : "clamp(36px, 4vw, 56px)",
+            fontWeight: 600,
+            color: C.onHero,
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {count}<span style={{ color: C.accent }}>{stat.suffix}</span>
+        </div>
+        <div
+          className={nunitoClass}
+          style={{
+            fontSize: isHero ? "clamp(15px, 1.3vw, 17px)" : "clamp(13px, 1.1vw, 15px)",
+            fontWeight: 700,
+            color: C.onHeroSoft,
+            marginTop: 6,
+            lineHeight: 1.3,
+          }}
+        >
+          {stat.label}
+        </div>
+        <div
+          className={nunitoClass}
+          style={{
+            fontSize: isHero ? "clamp(13px, 1vw, 14px)" : "clamp(11px, 0.9vw, 13px)",
+            fontWeight: 400,
+            color: C.mutedOnDark,
+            lineHeight: 1.4,
+          }}
+        >
+          {stat.sublabel}
+        </div>
       </div>
     </motion.div>
   );
@@ -1082,45 +1144,141 @@ function StatsBand({
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
+  const [hero, ...rest] = STATS_DATA;
+
   return (
     <section
       ref={ref}
       style={{
         position: "relative",
         background: "transparent",
-        borderTop: `1px solid rgba(230,195,155,0.07)`,
-        borderBottom: `1px solid rgba(230,195,155,0.07)`,
+        padding: "clamp(72px, 10vw, 120px) clamp(16px, 4vw, 40px)",
       }}
     >
       <div
-        className="stats-row"
         style={{
           position: "relative",
           zIndex: 1,
           maxWidth: 1100,
           margin: "0 auto",
           display: "flex",
-          flexWrap: "wrap",
-          padding: "0 clamp(16px, 4vw, 40px)",
+          flexDirection: "column",
+          gap: "clamp(32px, 4vw, 52px)",
         }}
       >
-        {STATS_DATA.map((stat, i) => (
-          <StatCounter
-            key={stat.label}
-            stat={stat}
-            fredokaClass={fredokaClass}
-            nunitoClass={nunitoClass}
-            inView={inView}
-            reduced={reduced}
-            index={i}
-          />
-        ))}
+        {/* Editorial header */}
+        <div className="statsband-header" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24 }}>
+          <motion.h2
+            className={fredokaClass}
+            initial={reduced ? false : { opacity: 0, y: 20 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontSize: "clamp(32px, 4.5vw, 56px)",
+              fontWeight: 600,
+              color: C.onHero,
+              margin: 0,
+              lineHeight: 1.1,
+              maxWidth: 520,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            A year of you,{" "}
+            <span style={{ color: C.accent }}>in food.</span>
+          </motion.h2>
+
+          <motion.p
+            className={nunitoClass}
+            initial={reduced ? false : { opacity: 0, y: 12 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              fontSize: "clamp(13px, 1.05vw, 14px)",
+              color: C.mutedOnDark,
+              fontWeight: 400,
+              lineHeight: 1.55,
+              margin: 0,
+              maxWidth: 220,
+              textAlign: "right",
+              flexShrink: 0,
+            }}
+          >
+            Sample stats from a typical year of ordering. Your crumbs will look different.
+          </motion.p>
+        </div>
+
+        {/* Bento grid: hero left (spans 2 rows), 3 smaller right */}
+        <div className="statsband-bento" style={{ display: "grid", gap: 14 }}>
+          {/* Hero card */}
+          <div style={{ gridArea: "hero" }}>
+            <StatCounter
+              stat={hero}
+              fredokaClass={fredokaClass}
+              nunitoClass={nunitoClass}
+              inView={inView}
+              reduced={reduced}
+              index={0}
+            />
+          </div>
+
+          {/* Three smaller cards */}
+          {rest.map((stat, i) => (
+            <div key={stat.label} style={{ gridArea: `s${i + 1}` }}>
+              <StatCounter
+                stat={stat}
+                fredokaClass={fredokaClass}
+                nunitoClass={nunitoClass}
+                inView={inView}
+                reduced={reduced}
+                index={i + 1}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>{`
-        @media (max-width: 640px) {
-          .stats-row > div { border-right: none !important; border-bottom: 1px solid rgba(230,195,155,0.08); }
-          .stats-row > div:last-child { border-bottom: none !important; }
+        /* Desktop: hero left spanning 2 rows, 3 cards stacked right in 2-col cluster */
+        .statsband-bento {
+          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-rows: auto auto;
+          grid-template-areas:
+            "hero s1 s2"
+            "hero s3 s3";
+        }
+        /* s3 stretches across the bottom two right cells */
+        .statsband-bento > div:last-child > div {
+          height: 100%;
+        }
+        /* Header: full row on mobile */
+        @media (max-width: 767px) {
+          .statsband-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .statsband-header p {
+            text-align: left !important;
+            max-width: 100% !important;
+          }
+          .statsband-bento {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto !important;
+            grid-template-areas:
+              "hero"
+              "s1"
+              "s2"
+              "s3" !important;
+          }
+        }
+        /* Tablet: 2-col, hero top-left spanning 2 */
+        @media (min-width: 480px) and (max-width: 767px) {
+          .statsband-bento {
+            grid-template-columns: 1fr 1fr !important;
+            grid-template-areas:
+              "hero hero"
+              "s1 s2"
+              "s3 s3" !important;
+          }
         }
       `}</style>
     </section>
@@ -1408,6 +1566,10 @@ export default function HomePage() {
           zIndex: 0,
         }}
       />
+
+      {/* Scroll-drawn connector line — sits above glows (zIndex 0, later in DOM),
+          behind section content (sections use zIndex 1 on their inner wrappers) */}
+      <ConnectorLine />
 
       <LandingNavbar
         fredokaClass={fredoka.className}
