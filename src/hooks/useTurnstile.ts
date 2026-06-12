@@ -17,6 +17,7 @@ const isBrowser = typeof window !== "undefined";
 
 export function useTurnstile(theme: "light" | "dark" = "dark") {
   const [token, setToken] = useState<string | null>(null);
+  const [errored, setErrored] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const hasTurnstile = !!TURNSTILE_SITE_KEY;
@@ -28,11 +29,16 @@ export function useTurnstile(theme: "light" | "dark" = "dark") {
       sitekey: TURNSTILE_SITE_KEY,
       theme,
       size: "flexible",
+      appearance: "interaction-only",
       callback: (t: string) => setToken(t),
       "expired-callback": () => setToken(null),
       "error-callback": () => {
         setToken(null);
+        setErrored(true);
         widgetIdRef.current = null;
+        if (containerRef.current) {
+          containerRef.current.style.display = "none";
+        }
       },
     });
   }, [theme]);
@@ -67,5 +73,5 @@ export function useTurnstile(theme: "light" | "dark" = "dark") {
     }
   }, []);
 
-  return { token, containerRef, hasTurnstile, reset };
+  return { token, containerRef, hasTurnstile, reset, errored };
 }

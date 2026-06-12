@@ -66,30 +66,6 @@ function useCountUp(target: number, inView: boolean, reduced: boolean | null, du
   return reduced ? target : count;
 }
 
-// ─── Feature tag pill ─────────────────────────────────────────────────────────
-function TagPill({ label, nunitoClass }: { label: string; nunitoClass: string }) {
-  return (
-    <div
-      className={nunitoClass}
-      style={{
-        backgroundColor: "rgba(230,195,155,0.08)",
-        border: `1px solid rgba(230,195,155,0.18)`,
-        borderRadius: 999,
-        paddingInline: 14,
-        paddingBlock: 7,
-        fontSize: 13,
-        fontWeight: 700,
-        color: C.onHeroSoft,
-        minHeight: 34,
-        display: "flex",
-        alignItems: "center",
-      }}
-    >
-      {label}
-    </div>
-  );
-}
-
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function LandingNavbar({
   fredokaClass,
@@ -413,9 +389,9 @@ function PlatformLine({
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   const platforms = [
-    { name: "Uber Eats", logo: "https://cdn.simpleicons.org/ubereats/E6C39B", alt: "Uber Eats" },
-    { name: "Just Eat", logo: "https://cdn.simpleicons.org/justeat/E6C39B", alt: "Just Eat" },
-    { name: "Deliveroo", logo: "https://cdn.simpleicons.org/deliveroo/E6C39B", alt: "Deliveroo" },
+    { name: "Uber Eats" },
+    { name: "Just Eat" },
+    { name: "Deliveroo" },
   ];
 
   return (
@@ -474,24 +450,8 @@ function PlatformLine({
           OCR screenshot reading and manual entry. No account connection, no logins, no data shared with delivery apps.
         </p>
 
-        {/* Desktop: silhouette logo icons */}
-        <div id="platform-logo-row" style={{ display: "flex", alignItems: "center", gap: "clamp(24px, 4vw, 44px)", flexWrap: "wrap" }}>
-          {platforms.map((p, i) => (
-            <motion.div
-              key={p.name}
-              initial={reduced ? false : { opacity: 0, y: 8 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.2 + i * 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              style={{ display: "flex", alignItems: "center" }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.logo} alt={p.alt} width={32} height={32} style={{ opacity: 0.7, display: "block" }} />
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Mobile: text name pills (logos are unrecognizable gold blobs at 32px on dark bg) */}
-        <div id="platform-pill-row" style={{ display: "none", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        {/* Platform name pills — shown on all viewports */}
+        <div id="platform-pill-row" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {platforms.map((p, i) => (
             <motion.div
               key={p.name + "-pill"}
@@ -519,13 +479,6 @@ function PlatformLine({
             </motion.div>
           ))}
         </div>
-
-        <style>{`
-          @media (max-width: 768px) {
-            #platform-logo-row { display: none !important; }
-            #platform-pill-row { display: flex !important; }
-          }
-        `}</style>
       </motion.div>
     </section>
   );
@@ -553,7 +506,7 @@ function FeatureMomentA({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -602,17 +555,6 @@ function FeatureMomentA({
           >
             Top restaurants ranked by visits, cuisine breakdown at a glance. Patterns you never noticed, surfaced automatically.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, x: 20 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.25, duration: 0.5 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["Top Restaurants", "Cuisine Breakdown", "Visit Counts"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
       </div>
 
@@ -642,7 +584,7 @@ function FeatureMomentB({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -689,17 +631,6 @@ function FeatureMomentB({
           >
             Post a photo from your order, write a note, like and comment on your friends. The food social feed that actually makes sense.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, y: 14 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.28, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["Photo Posts", "Likes", "Comments"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
 
         {/* Card RIGHT */}
@@ -734,7 +665,7 @@ function FeatureMomentC({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -779,17 +710,6 @@ function FeatureMomentC({
           >
             Share restaurants with your group, build a shared Want-to-Try list, and rate places together. Food decisions, finally collaborative.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, y: 12 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.3, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}
-          >
-            {["Shared Lists", "Group Ratings", "Photos"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
 
         <motion.div data-connect="1" style={{ display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
@@ -821,7 +741,7 @@ function FeatureMomentD({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -873,17 +793,6 @@ function FeatureMomentD({
           >
             A scroll feed of restaurant recommendations tuned to your actual taste. Matched by your history, not by a generic algorithm.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, x: 20 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.28, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["For You", "Taste Match", "Nearby"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
       </div>
 
@@ -913,7 +822,7 @@ function FeatureMomentE({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -960,17 +869,6 @@ function FeatureMomentE({
           >
             Creature of Habit, or The Explorer? Your cuisine mix tells the story. Crumbify gives it a name.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, y: 14 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.28, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["Personality Type", "Cuisine Analysis"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
 
         {/* Chart RIGHT */}
@@ -1005,7 +903,7 @@ function FeatureMomentF({
       ref={sectionRef}
       style={{
         position: "relative",
-        minHeight: "100dvh",
+        minHeight: "78dvh",
         background: "transparent",
         overflow: "hidden",
         display: "flex",
@@ -1057,17 +955,6 @@ function FeatureMomentF({
           >
             Crumbify compares your order history with friends and scores your taste match. Find who eats just like you.
           </motion.p>
-
-          <motion.div
-            initial={reduced ? false : { opacity: 0, x: 20 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.28, duration: 0.45 }}
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            {["Taste Match", "Shared Favourites", "Friend Feed"].map((tag) => (
-              <TagPill key={tag} label={tag} nunitoClass={nunitoClass} />
-            ))}
-          </motion.div>
         </div>
       </div>
 

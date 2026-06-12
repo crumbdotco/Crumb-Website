@@ -18,7 +18,7 @@ export function EmailCapture({ nunitoClass, surface = "dark", honeypotId = "crum
   const isDark = surface === "dark";
 
   // Turnstile (invisible if no site key is configured)
-  const { token: turnstileToken, containerRef: turnstileRef, hasTurnstile } = useTurnstile(isDark ? "dark" : "light");
+  const { token: turnstileToken, containerRef: turnstileRef, hasTurnstile, errored: turnstileErrored } = useTurnstile(isDark ? "dark" : "light");
 
   const { email, setEmail, status, alreadyExists, submit } = useWaitlist({
     turnstileToken,
@@ -28,7 +28,7 @@ export function EmailCapture({ nunitoClass, surface = "dark", honeypotId = "crum
   const isLoading = status === "loading";
   const isSuccess = status === "success";
   const isError = status === "error";
-  const buttonDisabled = isLoading || (hasTurnstile && !turnstileToken);
+  const buttonDisabled = isLoading || (hasTurnstile && !turnstileErrored && !turnstileToken);
 
   // ── Success states ─────────────────────────────────────────────────────────
   if (isSuccess) {

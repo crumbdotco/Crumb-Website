@@ -15,8 +15,8 @@ const shots = [
 const browser = await chromium.launch();
 for (const s of shots) {
   const page = await browser.newPage({ viewport: { width: s.width, height: s.height }, deviceScaleFactor: 2 });
-  await page.goto(base + route, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.waitForTimeout(2500); // let entrance animations settle
+  await page.goto(base + route, { waitUntil: 'load', timeout: 60000 });
+  await page.waitForTimeout(4000); // let preloader + entrance animations settle
   // viewport (above the fold)
   await page.screenshot({ path: `${outDir}/${s.name}-fold.png` });
   // full page

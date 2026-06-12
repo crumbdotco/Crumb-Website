@@ -29,77 +29,123 @@ interface Anchor {
 }
 
 /**
+ * Catmull-Rom to cubic Bezier conversion.
+ * Given 4 points p0..p3 (the segment is p1->p2), returns the two cubic control
+ * points [cp1, cp2] that approximate the Catmull-Rom spline with the given tension.
+ * Control point Y values are clamped between p1.y and p2.y so the path stays
+ * monotonically descending and the fractionAtY binary search remains valid.
+ */
+function catmullToBezier(
+  p0: Anchor, p1: Anchor, p2: Anchor, p3: Anchor, tension: number
+): { cp1: Anchor; cp2: Anchor } {
+  const t = tension;
+  const cp1x = p1.cx + (p2.cx - p0.cx) / (6 * t);
+  const cp1y = p1.cy + (p2.cy - p0.cy) / (6 * t);
+  const cp2x = p2.cx - (p3.cx - p1.cx) / (6 * t);
+  const cp2y = p2.cy - (p3.cy - p1.cy) / (6 * t);
+
+  // Clamp Y between the two anchor Y values to prevent local reversals
+  const minY = Math.min(p1.cy, p2.cy);
+  const maxY = Math.max(p1.cy, p2.cy);
+  return {
+    cp1: { cx: cp1x, cy: Math.max(minY, Math.min(maxY, cp1y)) },
+    cp2: { cx: cp2x, cy: Math.max(minY, Math.min(maxY, cp2y)) },
+  };
+}
+
+/**
  * Build the cubic-bezier path string for DESKTOP (> 768px).
- * Routes through the real element centers, weaving left/right with decorative loops.
+ * Inserts 2 intermediate waypoints per anchor-pair, alternating left/right of
+ * the straight line, then runs a Catmull-Rom-to-cubic-Bezier pass over the full
+ * point list so the whole path is continuously wavy with no straight runs.
+ * Waypoints only offset X — Y is strictly monotone. No random values.
  */
 function buildPathDesktop(anchors: Anchor[], docW: number): string {
   if (anchors.length < 2) return "";
 
-  const parts: string[] = [];
-
-  const first = anchors[0];
-  parts.push(`M ${first.cx.toFixed(1)},${(first.cy - 60).toFixed(1)}`);
+  // Build an expanded list of points: anchors + 2 waypoints between each pair
+  const pts: Anchor[] = [];
+  pts.push({ cx: anchors[0].cx, cy: anchors[0].cy - 60 });
 
   for (let i = 0; i < anchors.length - 1; i++) {
     const a = anchors[i];
     const b = anchors[i + 1];
     const dy = b.cy - a.cy;
 
-    const cp1y = a.cy + dy * 0.33;
-    const cp2y = a.cy + dy * 0.67;
+    // Horizontal swing offset magnitude — deterministic, based on segment index
+    const swingA = docW * (i % 2 === 0 ? 0.12 : 0.10);
+    const swingB = docW * (i % 2 === 0 ? 0.14 : 0.16);
 
-    const swing = docW * 0.18;
-    const cp1x = i % 2 === 0 ? a.cx + swing : a.cx - swing;
-    const cp2x = i % 2 === 0 ? b.cx + swing : b.cx - swing;
+    // Direction: alternates per segment so the path weaves left/right
+    const dirA = i % 2 === 0 ? 1 : -1;
+    const dirB = -dirA;
 
-    if (i > 0 && i % 3 === 2) {
-      const midX = (a.cx + b.cx) / 2;
-      const midY = a.cy + dy * 0.45;
-      const loopR = 36;
-      const loopDir = i % 2 === 0 ? 1 : -1;
+    // Midpoint X — lerp between anchor centres
+    const midCx = (a.cx + b.cx) / 2;
 
-      const loopEntryX = midX;
-      const loopEntryY = midY - loopR;
+    // Waypoint 1: 33% of the way down, offset in dirA
+    const rawWp1x = midCx + dirA * swingA;
+    const rawWp2x = midCx + dirB * swingB;
 
-      parts.push(
-        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
-          `${(loopEntryX + loopDir * loopR * 0.6).toFixed(1)},${(loopEntryY - loopR * 0.4).toFixed(1)} ` +
-          `${loopEntryX.toFixed(1)},${loopEntryY.toFixed(1)}`
-      );
+    // Central band — most headlines live here; push waypoints outside it
+    const bandLeft = docW * 0.30;
+    const bandRight = docW * 0.62;
+    const pushExtra = docW * 0.08; // extra outward nudge once snapped to band edge
 
-      const loopTopX = midX + loopDir * loopR;
-      const loopTopY = midY - loopR * 1.2;
-      const loopExitX = midX;
-      const loopExitY = midY + loopR * 0.1;
+    function pushOutOfBand(x: number, parity: number): number {
+      if (x >= bandLeft && x <= bandRight) {
+        // Snap to nearest band edge, then push further outward
+        const distLeft = x - bandLeft;
+        const distRight = bandRight - x;
+        if (distLeft <= distRight || parity % 2 === 0) {
+          return bandLeft - pushExtra; // push left
+        } else {
+          return bandRight + pushExtra; // push right
+        }
+      }
+      return x;
+    }
 
-      parts.push(
-        `C ${(loopEntryX + loopDir * loopR * 1.4).toFixed(1)},${(loopEntryY - loopR * 0.4).toFixed(1)} ` +
-          `${(loopTopX + loopDir * loopR * 0.4).toFixed(1)},${(loopTopY + loopR * 0.6).toFixed(1)} ` +
-          `${loopTopX.toFixed(1)},${(loopTopY + loopR * 0.9).toFixed(1)}`
-      );
+    const wp1: Anchor = {
+      cx: pushOutOfBand(rawWp1x, i * 2),
+      cy: a.cy + dy * 0.33,
+    };
+    // Waypoint 2: 67% of the way down, offset in dirB
+    const wp2: Anchor = {
+      cx: pushOutOfBand(rawWp2x, i * 2 + 1),
+      cy: a.cy + dy * 0.67,
+    };
 
-      parts.push(
-        `C ${(loopTopX - loopDir * loopR * 0.2).toFixed(1)},${(loopTopY + loopR * 1.4).toFixed(1)} ` +
-          `${(loopExitX + loopDir * loopR * 0.6).toFixed(1)},${(loopExitY - loopR * 0.1).toFixed(1)} ` +
-          `${loopExitX.toFixed(1)},${loopExitY.toFixed(1)}`
-      );
+    pts.push(wp1, wp2);
 
-      parts.push(
-        `C ${(loopExitX + (i % 2 === 0 ? swing * 0.5 : -swing * 0.5)).toFixed(1)},${(loopExitY + dy * 0.2).toFixed(1)} ` +
-          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
-          `${b.cx.toFixed(1)},${b.cy.toFixed(1)}`
-      );
-    } else {
-      parts.push(
-        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
-          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
-          `${b.cx.toFixed(1)},${b.cy.toFixed(1)}`
-      );
+    // Push the destination anchor (except the last one, added after the loop)
+    if (i < anchors.length - 2) {
+      pts.push({ cx: anchors[i + 1].cx, cy: anchors[i + 1].cy });
     }
   }
 
+  // Add final anchor and a short tail below it
   const last = anchors[anchors.length - 1];
-  parts.push(`S ${last.cx.toFixed(1)},${(last.cy + 80).toFixed(1)} ${last.cx.toFixed(1)},${(last.cy + 120).toFixed(1)}`);
+  pts.push({ cx: last.cx, cy: last.cy });
+  pts.push({ cx: last.cx, cy: last.cy + 120 });
+
+  // Now emit SVG path using Catmull-Rom -> cubic Bezier (tension 0.9)
+  const tension = 0.9;
+  const parts: string[] = [];
+  parts.push(`M ${pts[0].cx.toFixed(1)},${pts[0].cy.toFixed(1)}`);
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const { cp1, cp2 } = catmullToBezier(p0, p1, p2, p3, tension);
+    parts.push(
+      `C ${cp1.cx.toFixed(1)},${cp1.cy.toFixed(1)} ` +
+        `${cp2.cx.toFixed(1)},${cp2.cy.toFixed(1)} ` +
+        `${p2.cx.toFixed(1)},${p2.cy.toFixed(1)}`
+    );
+  }
 
   return parts.join(" ");
 }
@@ -113,9 +159,11 @@ function buildPathDesktop(anchors: Anchor[], docW: number): string {
 function buildPathMobile(anchors: Anchor[]): string {
   if (anchors.length < 2) return "";
 
-  // Left-edge x positions: alternate between near-edge and slightly inward
-  const xNear = 20;  // closest to left edge (px)
-  const xFar = 56;   // furthest inward (px)
+  // Left-edge x positions: hug the true screen gutter (leftmost ~14px).
+  // Mobile sections have 16px left padding, so the line must stay below 14px
+  // to avoid entering the text area.
+  const xNear = 5;  // closest to left edge (px)
+  const xFar = 12;  // furthest inward (px) — still well inside the 16px text padding
 
   const parts: string[] = [];
 
@@ -128,59 +176,23 @@ function buildPathMobile(anchors: Anchor[]): string {
     const b = anchors[i + 1];
     const dy = b.cy - a.cy;
 
-    // Alternate x positions along the left edge
+    // Alternate x positions along the left gutter
     const ax = i % 2 === 0 ? xNear : xFar;
     const bx = i % 2 === 0 ? xFar : xNear;
 
     const cp1y = a.cy + dy * 0.33;
     const cp2y = a.cy + dy * 0.67;
 
-    // Control points swing gently between the two edge x values
-    const cp1x = i % 2 === 0 ? xFar + 16 : xNear;
-    const cp2x = i % 2 === 0 ? xFar : xNear;
+    // Control points oscillate gently within the same narrow gutter range
+    const cp1x = i % 2 === 0 ? xFar : xNear;
+    const cp2x = i % 2 === 0 ? xNear : xFar;
 
-    if (i > 0 && i % 3 === 2) {
-      // Decorative loop along the left edge — small curl toward the right
-      const midY = a.cy + dy * 0.45;
-      const loopR = 20; // smaller loop than desktop since we're near the edge
-      const loopEntryX = ax;
-      const loopEntryY = midY - loopR;
-
-      parts.push(
-        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
-          `${(loopEntryX + loopR * 0.8).toFixed(1)},${(loopEntryY - loopR * 0.4).toFixed(1)} ` +
-          `${loopEntryX.toFixed(1)},${loopEntryY.toFixed(1)}`
-      );
-
-      const loopTopX = ax + loopR * 1.2;
-      const loopTopY = midY - loopR;
-      const loopExitX = ax;
-      const loopExitY = midY + loopR * 0.2;
-
-      parts.push(
-        `C ${(loopEntryX + loopR * 1.6).toFixed(1)},${(loopEntryY - loopR * 0.2).toFixed(1)} ` +
-          `${(loopTopX + loopR * 0.3).toFixed(1)},${(loopTopY + loopR * 0.8).toFixed(1)} ` +
-          `${loopTopX.toFixed(1)},${(loopTopY + loopR).toFixed(1)}`
-      );
-
-      parts.push(
-        `C ${(loopTopX - loopR * 0.3).toFixed(1)},${(loopTopY + loopR * 1.6).toFixed(1)} ` +
-          `${(loopExitX + loopR * 0.5).toFixed(1)},${(loopExitY - loopR * 0.1).toFixed(1)} ` +
-          `${loopExitX.toFixed(1)},${loopExitY.toFixed(1)}`
-      );
-
-      parts.push(
-        `C ${cp2x.toFixed(1)},${(loopExitY + dy * 0.2).toFixed(1)} ` +
-          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
-          `${bx.toFixed(1)},${b.cy.toFixed(1)}`
-      );
-    } else {
-      parts.push(
-        `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
-          `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
-          `${bx.toFixed(1)},${b.cy.toFixed(1)}`
-      );
-    }
+    // No decorative loops on mobile — any loop would push into the text area
+    parts.push(
+      `C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ` +
+        `${cp2x.toFixed(1)},${cp2y.toFixed(1)} ` +
+        `${bx.toFixed(1)},${b.cy.toFixed(1)}`
+    );
   }
 
   const last = anchors[anchors.length - 1];
@@ -371,7 +383,7 @@ export function ConnectorLine() {
         <path
           d={pathD}
           fill="none"
-          stroke="rgba(244,236,223,0.70)"
+          stroke="rgba(244,236,223,0.45)"
           strokeWidth={strokeW}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -393,7 +405,7 @@ export function ConnectorLine() {
         ref={pathRef}
         d={pathD}
         fill="none"
-        stroke="rgba(244,236,223,0.70)"
+        stroke="rgba(244,236,223,0.45)"
         strokeWidth={strokeW}
         strokeLinecap="round"
         strokeLinejoin="round"
