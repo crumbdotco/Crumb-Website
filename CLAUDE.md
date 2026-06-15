@@ -55,7 +55,7 @@ Scripts: `npm run dev | build | lint | test | test:e2e`.
 ## Brand / theme (current — dark cocoa "black and tan")
 
 - Single continuous dark cocoa canvas: bg `#1A1208`, surfaces `#241712` / `#2E1E14`, text `#F4ECDF` / `#C4B09A`, single brand-gold accent `#E6C39B` / `#C9A077`. NO off-brand saturated yellow.
-- Tagline: "Read the crumbs." Sub: "Your food delivery stats".
+- Tagline: "Every bite tells a story." Sub: "Your food delivery stats".
 - Same warm cookie family as the app (the app is dark-themed too).
 
 ## Email policy

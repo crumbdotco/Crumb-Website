@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Crumbify - Your Food Delivery Stats",
-    description: "Read the crumbs.",
+    description: "Every bite tells a story.",
     url: "https://crumbify.co.uk",
     siteName: "Crumbify",
     images: [{ url: "/images/og-image.png", width: 1200, height: 630 }],
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Crumbify - Your Food Delivery Stats",
-    description: "Read the crumbs.",
+    description: "Every bite tells a story.",
     images: ["/images/og-image.png"],
   },
 };

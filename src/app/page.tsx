@@ -203,9 +203,9 @@ function HeroMoment({
   const phoneSpring = useSpring(phoneY, { stiffness: 70, damping: 22 });
 
   const words = [
-    { text: "Read", delay: 0 },
-    { text: "the", delay: 0.12 },
-    { text: "crumbs", delay: 0.24, hasAccentDot: true },
+    { text: "Every", delay: 0 },
+    { text: "bite tells", delay: 0.12 },
+    { text: "a story", delay: 0.24, hasAccentDot: true },
   ];
 
   return (
@@ -1369,7 +1369,7 @@ function LandingFooter({ fredokaClass, nunitoClass }: { fredokaClass: string; nu
             </span>
           </div>
           <p className={nunitoClass} style={{ fontSize: 14, color: C.mutedOnDark, fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
-            Read the crumbs.
+            Every bite tells a story.
           </p>
           <p className={nunitoClass} style={{ fontSize: 13, color: C.mutedOnDark, margin: 0, fontWeight: 400, lineHeight: 1.5 }}>
             @crumbifyco
