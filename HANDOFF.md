@@ -128,6 +128,40 @@ Add an RPC `founding_spots_remaining()` / `founding_open()` returning `100 - cou
 
 ---
 
+## ▶ TASK 5 — Name Crumbify LTD as legal entity / data controller (legal pages + footer)
+
+**Context:** The business is now incorporated as **Crumbify LTD** (UK Ltd). The legal pages currently read as an individual operator. They must now identify **Crumbify LTD** as the company behind the app and the **data controller**. This is a legal requirement (UK GDPR controller identity) AND is reviewed by Apple/Google. Do this BEFORE the org-account transition completes so store-listing legal links are consistent with the new entity.
+
+**Inputs needed (fill in — do NOT guess):**
+- `COMPANY_NUMBER` = `17288992` (Companies House registration number for Crumbify LTD)
+- `REGISTERED_OFFICE` = `60 Millmead Business Centre, Millmead Road, London, United Kingdom, N17 9QU`
+
+### 5a. Privacy policy (`src/app/privacy/page.tsx`)
+- Add / update the **data controller** identity near the top:
+  > "Crumbify is operated by Crumbify LTD, a company registered in England and Wales (company number `COMPANY_NUMBER`), registered office `REGISTERED_OFFICE`. Crumbify LTD is the data controller for personal data processed through the Crumbify app and this website."
+- Ensure the contact line points to `support@crumbify.co.uk` (per email policy) for data/privacy requests.
+- (UK GDPR note: ICO data-protection registration is a separate owner admin action, not a page change.)
+
+### 5b. Terms of service (`src/app/terms/page.tsx`)
+- Replace any individual-operator phrasing with **Crumbify LTD**.
+- Add a company-identity clause: legal name **Crumbify LTD**, company number `COMPANY_NUMBER`, registered office `REGISTERED_OFFICE`, governing law England and Wales.
+- "These terms are between you and Crumbify LTD."
+
+### 5c. Footer (`src/components/landing/` footer + `src/components/legal/` shells)
+- Add a small copyright line naming the entity: `© <year> Crumbify LTD`. (Plain hyphen / no em dash, no spaced caps — honour the HARD design rules.)
+- Sweep `delete-account/` + `support/` for any "operated by" / individual phrasing and align to Crumbify LTD.
+
+### Design + content rules (apply here too)
+- No money/£/spend language; no em/en dashes (plain hyphens); no letter-spacing > 0 / spaced caps.
+- Do NOT change locked external strings (emails, delete URL, X handle) — Task 5 is entity identity only.
+
+### After fixing
+- `npm run build` to confirm no errors, then deploy `main` to Vercel.
+- Confirm `/privacy` + `/terms` render the Crumbify LTD identity correctly.
+
+---
+
 ## Notes
 - Same warm cream/brown palette as the app (`crumb-cream`, `crumb-brown`, `crumb-dark`, `crumb-card`, `crumb-line`, `crumb-muted` Tailwind tokens).
 - Other legal pages (`privacy`, `terms`, `delete-account`) may also still say "Crumb" instead of "Crumbify" — worth a sweep while you're in here, but the Support page is the blocker for the store submission.
+- **Org transition (2026-06-20):** Individual→Organization migration underway for Apple Dev + Google Play under **Crumbify LTD**; DUNS requested, awaiting issuance. Task 5 (entity identity on legal pages) should ship alongside so store legal links match the new org seller name.
