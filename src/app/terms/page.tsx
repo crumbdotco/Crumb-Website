@@ -61,7 +61,17 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>2. Description of Service</h2>
+        <h2 style={headingStyle}>2. Company Information</h2>
+        <p style={bodyStyle}>
+          Crumbify is operated by Crumbify LTD, a company registered in England and Wales
+          under company number 17288992, with registered office at 60 Millmead Business
+          Centre, Millmead Road, London, United Kingdom, N17 9QU. These terms are an
+          agreement between you and Crumbify LTD.
+        </p>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>3. Description of Service</h2>
         <p style={bodyStyle}>
           Crumbify is a mobile application that reads your food delivery order history
           from screenshots you import (using OCR) and from orders you log manually.
@@ -73,7 +83,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>3. Account Registration</h2>
+        <h2 style={headingStyle}>4. Account Registration</h2>
         <ul style={listStyle}>
           <li>You must provide accurate and complete information when creating an account.</li>
           <li>You can sign up via Apple Sign In, Google Sign In, or email OTP (one-time passcode).</li>
@@ -84,7 +94,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>4. Importing Order Data</h2>
+        <h2 style={headingStyle}>5. Importing Order Data</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
           Crumbify reads order history from screenshots you choose to share with the App.
         </p>
@@ -97,7 +107,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>5. Premium Subscription</h2>
+        <h2 style={headingStyle}>6. Premium Subscription</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
           Crumbify Premium unlocks additional features including unlimited screenshot imports,
           your full stats history, unlimited want-to-try saved spots, photo reviews,
@@ -111,7 +121,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>6. Founding Member</h2>
+        <h2 style={headingStyle}>7. Founding Member</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
           Founding Member is a <span style={strongStyle}>pre-launch only</span> offer:
           a one-time payment (processed by Stripe) that grants
@@ -127,7 +137,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>7. Social Features and Groups</h2>
+        <h2 style={headingStyle}>8. Social Features and Groups</h2>
         <ul style={listStyle}>
           <li>You can add friends, create or join groups, and share stats with other users.</li>
           <li>Group feeds allow members to post restaurant recommendations, vote on suggestions, and share experiences.</li>
@@ -139,7 +149,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>8. User Content and Moderation</h2>
+        <h2 style={headingStyle}>9. User Content and Moderation</h2>
         <ul style={listStyle}>
           <li>You retain ownership of content you create (reviews, photos, group posts, feed posts).</li>
           <li>By posting content, you grant Crumbify a non-exclusive licence to display it within the App for its intended purpose.</li>
@@ -151,7 +161,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>9. Acceptable Use</h2>
+        <h2 style={headingStyle}>10. Acceptable Use</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>You agree not to:</p>
         <ul style={listStyle}>
           <li>Use the App for any unlawful purpose.</li>
@@ -167,7 +177,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>10. Intellectual Property</h2>
+        <h2 style={headingStyle}>11. Intellectual Property</h2>
         <p style={bodyStyle}>
           All content, features, branding, and functionality of the App and Site
           (including the Crumbify name, logo, and food personality
@@ -178,7 +188,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>11. Limitation of Liability</h2>
+        <h2 style={headingStyle}>12. Limitation of Liability</h2>
         <ul style={listStyle}>
           <li>Crumbify is provided &quot;as is&quot; without warranties of any kind, express or implied.</li>
           <li>We are not responsible for the accuracy of data extracted from imported screenshots.</li>
@@ -189,7 +199,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>12. Termination</h2>
+        <h2 style={headingStyle}>13. Termination</h2>
         <ul style={listStyle}>
           <li>We may suspend or terminate your account if you violate these Terms.</li>
           <li>You may delete your account at any time from the App settings.</li>
@@ -200,7 +210,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>13. Governing Law</h2>
+        <h2 style={headingStyle}>14. Governing Law</h2>
         <p style={bodyStyle}>
           These Terms are governed by the laws of England and Wales. Any disputes
           arising from these Terms or your use of the App shall be subject to the
@@ -209,7 +219,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>14. Changes to These Terms</h2>
+        <h2 style={headingStyle}>15. Changes to These Terms</h2>
         <p style={bodyStyle}>
           We may update these Terms from time to time. We will notify you of
           material changes via in-app notification or email. Your continued use
@@ -218,7 +228,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>15. Contact</h2>
+        <h2 style={headingStyle}>16. Contact</h2>
         <p style={bodyStyle}>
           For questions about these Terms, contact us at{" "}
           <a

@@ -1415,7 +1415,7 @@ function LandingFooter({ fredokaClass, nunitoClass }: { fredokaClass: string; nu
         }}
       >
         <p className={nunitoClass} style={{ fontSize: 13, color: C.mutedOnDark, margin: 0, fontWeight: 400 }}>
-          {new Date().getFullYear()} Crumbify. All rights reserved.
+          © {new Date().getFullYear()} Crumbify LTD. All rights reserved.
         </p>
         <p className={nunitoClass} style={{ fontSize: 13, color: C.mutedOnDark, margin: 0, fontWeight: 400 }}>
           Made with care in the UK.
