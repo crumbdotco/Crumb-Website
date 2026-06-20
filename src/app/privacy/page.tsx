@@ -56,8 +56,11 @@ export default function PrivacyPage() {
           Crumbify (&quot;we&quot;, &quot;our&quot;, &quot;us&quot;) is committed to protecting your privacy.
           This Privacy Policy explains how we collect, use, and safeguard your
           information when you use our mobile application (&quot;the App&quot;) and website
-          at crumbify.co.uk (&quot;the Site&quot;). Crumbify is operated by Ali Bars, based in
-          London, United Kingdom.
+          at crumbify.co.uk (&quot;the Site&quot;). Crumbify is operated by Crumbify LTD, a
+          company registered in England and Wales (company number 17288992), registered
+          office 60 Millmead Business Centre, Millmead Road, London, United Kingdom,
+          N17 9QU. Crumbify LTD is the data controller for personal data processed
+          through the Crumbify app and this website.
         </p>
       </section>
 

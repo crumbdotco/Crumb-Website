@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
+const FOUNDING_CAP = 100;
+
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
@@ -78,6 +80,22 @@ export async function POST(request: Request) {
         console.error('Supabase upsert error in webhook:', error.message);
         // Return 200 to Stripe to avoid retries for DB errors;
         // log and monitor via Supabase dashboard instead.
+      }
+
+      // Belt-and-suspenders: deactivate the payment link once the cap is reached.
+      // Primary cutoff is the Stripe Payment Link's built-in completed-sessions limit.
+      try {
+        const { count } = await getSupabase()
+          .from('waitlist')
+          .select('*', { count: 'exact', head: true })
+          .eq('tier', 'founding_member');
+
+        const linkId = process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
+        if ((count ?? 0) >= FOUNDING_CAP && linkId) {
+          await getStripe().paymentLinks.update(linkId, { active: false });
+        }
+      } catch (capErr) {
+        console.error('Founding cap check failed:', capErr);
       }
     }
   }

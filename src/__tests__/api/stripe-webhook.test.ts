@@ -7,7 +7,9 @@
 
 // --- Supabase mock ---
 const mockUpsert = jest.fn();
-const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+const mockEq = jest.fn().mockResolvedValue({ count: 0 });
+const mockSelect = jest.fn(() => ({ eq: mockEq }));
+const mockFrom = jest.fn(() => ({ upsert: mockUpsert, select: mockSelect }));
 
 jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({ from: mockFrom })),
@@ -18,10 +20,12 @@ const mockCreateClient = createClient as jest.Mock;
 
 // --- Stripe mock ---
 const mockConstructEvent = jest.fn();
+const mockPaymentLinksUpdate = jest.fn().mockResolvedValue({});
 
 jest.mock("stripe", () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: { constructEvent: mockConstructEvent },
+    paymentLinks: { update: mockPaymentLinksUpdate },
   }));
 });
 
@@ -54,13 +58,17 @@ function buildRequest(body: string, signature: string): Request {
 describe("POST /api/stripe/webhook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFrom.mockReturnValue({ upsert: mockUpsert });
+    mockEq.mockResolvedValue({ count: 0 });
+    mockSelect.mockReturnValue({ eq: mockEq });
+    mockFrom.mockReturnValue({ upsert: mockUpsert, select: mockSelect });
     mockCreateClient.mockReturnValue({ from: mockFrom });
     mockUpsert.mockResolvedValue({ error: null });
+    mockPaymentLinksUpdate.mockResolvedValue({});
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    delete process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
   });
 
   afterEach(() => {
@@ -68,6 +76,7 @@ describe("POST /api/stripe/webhook", () => {
     delete process.env.STRIPE_WEBHOOK_SECRET;
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
   });
 
   describe("Signature verification", () => {
