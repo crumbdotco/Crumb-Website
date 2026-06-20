@@ -11,7 +11,9 @@
 
 // --- Supabase mock ---
 const mockUpsert = jest.fn();
-const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+const mockEq = jest.fn().mockResolvedValue({ count: 0 });
+const mockSelect = jest.fn(() => ({ eq: mockEq }));
+const mockFrom = jest.fn(() => ({ upsert: mockUpsert, select: mockSelect }));
 
 jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({ from: mockFrom })),
@@ -22,10 +24,12 @@ const mockCreateClient = createClient as jest.Mock;
 
 // --- Stripe mock ---
 const mockConstructEvent = jest.fn();
+const mockPaymentLinksUpdate = jest.fn().mockResolvedValue({});
 
 jest.mock("stripe", () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: { constructEvent: mockConstructEvent },
+    paymentLinks: { update: mockPaymentLinksUpdate },
   }));
 });
 
@@ -64,13 +68,17 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    mockFrom.mockReturnValue({ upsert: mockUpsert });
+    mockEq.mockResolvedValue({ count: 0 });
+    mockSelect.mockReturnValue({ eq: mockEq });
+    mockFrom.mockReturnValue({ upsert: mockUpsert, select: mockSelect });
     mockCreateClient.mockReturnValue({ from: mockFrom });
     mockUpsert.mockResolvedValue({ error: null });
+    mockPaymentLinksUpdate.mockResolvedValue({});
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
+    delete process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
   });
 
   afterEach(() => {
@@ -79,6 +87,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
     delete process.env.STRIPE_WEBHOOK_SECRET;
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
   });
 
   // ---------------------------------------------------------------------------
@@ -306,6 +315,76 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
         expect.objectContaining({ stripe_payment_id: "cs_session_123" }),
         { onConflict: "email" },
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Founding cap: STRIPE_FOUNDING_PAYMENT_LINK_ID deactivation logic
+  // ---------------------------------------------------------------------------
+
+  describe("Founding cap deactivation (FOUNDING_CAP = 100)", () => {
+    function makeCheckoutEvent(email: string) {
+      return {
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            customer_details: { email },
+            payment_intent: "pi_cap_test",
+          },
+        },
+      };
+    }
+
+    it("does NOT call paymentLinks.update when count is below cap (50)", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockResolvedValue({ count: 50 });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("calls paymentLinks.update({ active: false }) when count >= cap and env var is set", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockResolvedValue({ count: 100 });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).toHaveBeenCalledTimes(1);
+      expect(mockPaymentLinksUpdate).toHaveBeenCalledWith("plink_test_123", { active: false });
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("does NOT call paymentLinks.update and still returns 200 when count >= cap but env var is unset", async () => {
+      delete process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
+      mockEq.mockResolvedValue({ count: 150 });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("returns 200 and logs error when cap check throws (cap check never breaks webhook)", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockRejectedValue(new Error("DB timeout"));
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Founding cap check failed:",
+        expect.any(Error),
+      );
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
     });
   });
 
