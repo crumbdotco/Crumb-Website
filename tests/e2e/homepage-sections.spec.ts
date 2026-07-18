@@ -1,205 +1,158 @@
 /**
- * E2E tests: Homepage sections load correctly
+ * E2E tests: Homepage sections load correctly (SITE_HANDOFF cream design)
  *
- * Verifies that every named section is present and rendered with
- * its primary heading/content text so a user reading the page
- * gets the full marketing experience.
+ * Verifies every section from the ported design is present, in order,
+ * with its key copy/markup. Selectors and copy are sourced from
+ * SITE_HANDOFF/site/Crumbify.html + 02-SECTIONS.md.
  */
 import { test, expect } from "@playwright/test";
 import { HomePage } from "./pages/HomePage";
 
 test.describe("Homepage sections", () => {
-  test("page title is correct", async ({ page }) => {
+  test("header nav renders brand and anchor links", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await expect(page).toHaveTitle(/crumb/i);
+    await expect(home.header).toBeVisible();
+    await expect(home.navBrand).toContainText("Crumbify");
+    await expect(home.navLinks).toHaveText([
+      "How it works",
+      "The feed",
+      "Discover",
+      "Groups",
+    ]);
+    await expect(home.navGetAppButton).toHaveText(/get the app/i);
   });
 
-  test("Navbar renders brand name and waitlist CTA", async ({ page }) => {
-    const home = new HomePage(page);
-    await home.goto();
-
-    await expect(home.navBrand).toBeVisible();
-    await expect(home.navJoinWaitlist).toBeVisible();
-  });
-
-  test("Hero section renders headline and subheading", async ({ page }) => {
+  test("hero renders headline and store badges", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
     await expect(home.heroHeading).toBeVisible();
-    await expect(home.heroSubheading).toBeVisible();
+    await expect(home.heroHeading).toContainText("Your city, scored");
+    await expect(home.heroHeading.locator("em.s")).toContainText("you trust");
   });
 
-  test("Hero section contains CTA link to waitlist", async ({ page }) => {
+  test("manifesto section renders", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    const heroCTA = page.getByRole("link", { name: /join the waitlist.*free/i }).first();
-    await expect(heroCTA).toBeVisible();
-    await expect(heroCTA).toHaveAttribute("href", "#waitlist");
+    await home.manifesto.scrollIntoViewIfNeeded();
+    await expect(home.manifesto).toContainText(
+      /friend who always knows/i
+    );
   });
 
-  test("WhatYoullDiscover section renders heading and discovery cards", async ({
+  test("how it works section lists 5 steps", async ({ page }) => {
+    const home = new HomePage(page);
+    await home.goto();
+
+    await home.howSection.scrollIntoViewIfNeeded();
+    await expect(home.howSection).toBeVisible();
+    await expect(home.howListItems).toHaveCount(5);
+
+    const titles = ["Post it", "Friends see it", "Discover", "Save it", "Go eat"];
+    for (const title of titles) {
+      await expect(
+        home.howSection.getByRole("heading", { name: title })
+      ).toBeVisible();
+    }
+  });
+
+  test("feed section has two marquee rows with feed cards", async ({
     page,
   }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.whatYoullDiscoverHeading.scrollIntoViewIfNeeded();
-    await expect(home.whatYoullDiscoverHeading).toBeVisible();
+    await home.feedSection.scrollIntoViewIfNeeded();
+    await expect(home.feedSection).toBeVisible();
+    await expect(home.rowA).toBeVisible();
+    await expect(home.rowB).toBeVisible();
 
-    // Verify the section label
-    await expect(page.getByText(/what you'll discover/i).first()).toBeVisible();
-
-    // The grid should have 6 discovery cards; spot-check a couple
-    await expect(page.getByText("147").first()).toBeVisible();
-    await expect(page.getByText(/nando/i).first()).toBeVisible();
+    const cardCount = await home.feedCards.count();
+    expect(cardCount).toBeGreaterThan(0);
+    await expect(home.feedCards.first()).toHaveClass(/fcard/);
   });
 
-  test("HowItWorks section renders heading and three steps", async ({
+  test("band caption renders 'Every bite tells a story.'", async ({
     page,
   }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.howItWorksHeading.scrollIntoViewIfNeeded();
-    await expect(home.howItWorksHeading).toBeVisible();
-
-    // Three step titles
-    await expect(
-      page.getByRole("heading", { name: /connect your accounts/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /we crunch the numbers/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /see your stats and share them/i })
-    ).toBeVisible();
+    await home.bandCaption.scrollIntoViewIfNeeded();
+    await expect(home.bandCaption).toHaveText("Every bite tells a story.");
   });
 
-  test("WrappedPreview section renders heading and carousel", async ({
+  test("discover / taste match section renders match card with 87%", async ({
     page,
   }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.wrappedPreviewHeading.scrollIntoViewIfNeeded();
-    await expect(home.wrappedPreviewHeading).toBeVisible();
-
-    // The first carousel card should show a stat
-    await expect(page.getByText("You ordered").first()).toBeVisible();
+    await home.discoverSection.scrollIntoViewIfNeeded();
+    await expect(home.discoverSection).toBeVisible();
+    await expect(home.matchCard).toContainText("87%");
+    await expect(home.matchCard).toContainText("You and Zayn, matched");
   });
 
-  test("FeaturesGrid section renders heading and four feature cards", async ({
+  test("groups section renders group card with Friday dinner", async ({
     page,
   }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.featuresGridHeading.scrollIntoViewIfNeeded();
-    await expect(home.featuresGridHeading).toBeVisible();
-
-    await expect(
-      page.getByRole("heading", { name: /deep stats/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /crumb wrapped/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /discover new food/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /food soulmate/i })
-    ).toBeVisible();
+    await home.groupsSection.scrollIntoViewIfNeeded();
+    await expect(home.groupsSection).toBeVisible();
+    await expect(home.groupCard).toContainText("Friday dinner");
+    await expect(home.groupCard).toContainText("4 friends deciding");
   });
 
-  test("FeaturesGrid renders pricing section with Free and Premium tiers", async ({
-    page,
-  }) => {
+  test("founding section renders", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await page.getByText(/simple and fair/i).scrollIntoViewIfNeeded();
-    await expect(page.getByText(/simple and fair/i)).toBeVisible();
-
-    // Pricing tier headings (text-node uppercase labels in pricing cards)
-    await expect(page.getByText("Free").first()).toBeVisible();
-    await expect(page.getByText("Premium").first()).toBeVisible();
-
-    // Prices
-    await expect(page.getByText("£0").first()).toBeVisible();
-    await expect(page.getByText(/£1\.99/i).first()).toBeVisible();
+    await home.foundingSection.scrollIntoViewIfNeeded();
+    await expect(home.foundingSection).toBeVisible();
   });
 
-  test("SocialProof section renders CTA", async ({ page }) => {
+  test("cta section renders 'one tap away'", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.socialProofHeading.scrollIntoViewIfNeeded();
-    await expect(home.socialProofHeading).toBeVisible();
-
-    // CTA link inside the section
-    const ctaLinks = page.getByRole("link", { name: /join the waitlist.*free/i });
-    await expect(ctaLinks.last()).toBeVisible();
+    await home.ctaIn.scrollIntoViewIfNeeded();
+    await expect(home.ctaIn).toContainText("one tap away");
   });
 
-  test("WaitlistSection renders heading, email input, and submit button", async ({
-    page,
-  }) => {
-    const home = new HomePage(page);
-    await home.goto();
-
-    await home.scrollToWaitlist();
-    await expect(home.waitlistHeading).toBeVisible();
-    await expect(home.waitlistEmailInput).toBeVisible();
-    await expect(home.waitlistSubmitButton).toBeVisible();
-    await expect(home.waitlistSubmitButton).toHaveText(/join free/i);
-  });
-
-  test("WaitlistSection renders Founding Member card", async ({ page }) => {
-    const home = new HomePage(page);
-    await home.goto();
-
-    await home.scrollToWaitlist();
-    await expect(home.foundingMemberCard).toBeVisible();
-    await expect(page.getByText(/pay once\. get premium forever/i)).toBeVisible();
-    await expect(page.getByText(/£4\.99/i).first()).toBeVisible();
-  });
-
-  test("Footer renders logo, legal links and social icons", async ({
-    page,
-  }) => {
+  test("footer renders with CARTO attribution", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
     await home.footer.scrollIntoViewIfNeeded();
     await expect(home.footer).toBeVisible();
+    await expect(home.footer).toContainText(
+      /Map data.*OpenStreetMap contributors, tiles.*CARTO/
+    );
+    await expect(home.footer).toContainText("Crumbify LTD");
+  });
 
-    // Brand
-    await expect(
-      home.footer.getByText(/crumb/i).first()
-    ).toBeVisible();
+  test("sections render in the expected top-to-bottom order", async ({
+    page,
+  }) => {
+    const home = new HomePage(page);
+    await home.goto();
 
-    // Legal links
-    await expect(home.footerPrivacyLink).toBeVisible();
-    await expect(home.footerTermsLink).toBeVisible();
-    await expect(home.footerContactLink).toBeVisible();
+    const ids = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("section[id], header#hdr, footer"))
+        .map((el) => el.id || el.tagName.toLowerCase())
+    );
 
-    // Social links
-    await expect(
-      home.footer.getByRole("link", { name: /instagram/i })
-    ).toBeVisible();
-    await expect(
-      home.footer.getByRole("link", { name: /x \/ twitter/i })
-    ).toBeVisible();
-    await expect(
-      home.footer.getByRole("link", { name: /tiktok/i })
-    ).toBeVisible();
-
-    // Copyright year
-    const year = new Date().getFullYear().toString();
-    await expect(home.footer.getByText(new RegExp(year))).toBeVisible();
+    const expectedOrder = ["hdr", "how", "feed", "discover", "groups", "footer"];
+    for (let i = 0; i < expectedOrder.length - 1; i++) {
+      expect(ids.indexOf(expectedOrder[i])).toBeLessThan(
+        ids.indexOf(expectedOrder[i + 1])
+      );
+    }
   });
 });
