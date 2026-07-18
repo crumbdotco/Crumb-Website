@@ -19,11 +19,26 @@ function parseList(env: string | undefined): string[] {
     .filter(Boolean);
 }
 
+const DEFAULT_ADMIN_EMAILS = ['admin@crumbify.co.uk', 'ali@crumbify.co.uk'];
+
+export function getAdminEmailAllowlist(): string[] {
+  const configured = parseList(process.env.ADMIN_EMAILS);
+  const list = configured.length > 0 ? configured : DEFAULT_ADMIN_EMAILS;
+  return list.map((email) => email.toLowerCase().trim());
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const normalized = email.toLowerCase().trim();
+  return getAdminEmailAllowlist().includes(normalized);
+}
+
 /**
  * Admin gate. Two paths:
  *   1. ADMIN_IPS allowlist — request IP match grants access without a session
  *      (operator convenience for the single human admin from a known IP).
- *   2. Cookie session — Supabase access token cookie + user id in ADMIN_USER_IDS.
+ *   2. Cookie session — Supabase access token cookie + user email in ADMIN_EMAILS
+ *      (falls back to a built-in default allowlist when the env var is unset).
  * Returns a truthy id on success, `null` when not authorised.
  */
 export async function requireAdmin(): Promise<string | null> {
@@ -48,10 +63,7 @@ export async function requireAdmin(): Promise<string | null> {
     auth: { persistSession: false },
   });
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return null;
-
-  const allowlist = parseList(process.env.ADMIN_USER_IDS);
-  if (!allowlist.includes(data.user.id)) return null;
+  if (error || !data.user || !isAdminEmail(data.user.email)) return null;
 
   return data.user.id;
 }

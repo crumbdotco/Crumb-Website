@@ -47,7 +47,7 @@ The landing is a 1:1 Next.js port of the approved design in `C:\Users\aliba\Down
 - `src/app/landing.css` — the handoff CSS ported verbatim, scoped under `.landing`. Do NOT rewrite to Tailwind. `--ser` is intentionally the Helvetica stack (Instrument Serif deliberately unused).
 - `src/components/landing/` — `data.ts` (posts/spots/scoreColor/store SVGs), atoms (CookieMark, ScorePuck, StoreBadges), client islands: `Header` (solid-on-scroll + two-step burger drawer), `HeroMap` (Leaflet, locked, CARTO Voyager tiles), `ScrollFX` (Lenis lerp .09 + reveals + parallax), `FoundingSection` (Stripe founding flow, first-100 counter).
 - `src/app/referral/route.ts` — `GET /referral?code=X`: logs {code, platform, ua} to Supabase `referral_clicks` then 302s to the store by user agent (envs `NEXT_PUBLIC_APP_STORE_URL` / `NEXT_PUBLIC_PLAY_STORE_URL`, fallback `/`). UGC-influencer tracking links.
-- `src/app/admin/referrals/` — clicks-per-code dashboard behind the existing magic-link admin gate (`requireAdmin`, `ADMIN_USER_IDS`).
+- `src/app/admin/referrals/` — clicks-per-code dashboard behind the existing magic-link admin gate (`requireAdmin`, `ADMIN_EMAILS`).
 - `src/components/legal/` — LegalShell, BackLink, ContactLinks (shared dark legal-page chrome).
 - Fonts: **Bricolage Grotesque** (display) + **Hanken Grotesk** (body) via `next/font/google` in `layout.tsx`.
 - Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/` — dark-themed.

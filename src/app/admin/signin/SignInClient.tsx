@@ -94,15 +94,15 @@ export default function SignInClient({
         <div>
           <h1 className="text-2xl font-bold text-[#E6C39B]">Admin sign-in</h1>
           <p className="mt-1 text-sm opacity-70">
-            OTP via Supabase. Only allow-listed user IDs reach /admin.
+            OTP via Supabase. Only allow-listed emails reach /admin.
           </p>
         </div>
 
         {unauthorised && (
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-            <strong>OTP verified but access denied.</strong> Your user ID isn&apos;t in{' '}
-            <code className="font-mono">ADMIN_USER_IDS</code>. Update that Vercel env var with your
-            current Supabase UUID and redeploy.
+            <strong>OTP verified but access denied.</strong> Your email isn&apos;t in{' '}
+            <code className="font-mono">ADMIN_EMAILS</code>. Update that Vercel env var with your
+            email and redeploy.
           </div>
         )}
 
