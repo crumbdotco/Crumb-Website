@@ -56,6 +56,7 @@ test.describe("Mobile responsive layout", () => {
       "The feed",
       "Discover",
       "Groups",
+      "Get the app",
     ]);
     await expect(home.mobileNav.locator(".btn")).toHaveText(/get the app/i);
   });
