@@ -11,17 +11,14 @@ function getSupabase() {
 }
 
 export default function SignInClient({
-  callerIp,
   unauthorised = false,
 }: {
-  callerIp: string | null;
   unauthorised?: boolean;
 }) {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -75,17 +72,6 @@ export default function SignInClient({
     });
 
     window.location.href = '/admin';
-  }
-
-  async function copyIp() {
-    if (!callerIp) return;
-    try {
-      await navigator.clipboard.writeText(callerIp);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard write can fail under restrictive permissions — ignore silently
-    }
   }
 
   return (
@@ -160,27 +146,6 @@ export default function SignInClient({
             </button>
           </form>
         )}
-
-        <div className="space-y-2 border-t border-white/10 pt-4">
-          <p className="text-xs uppercase tracking-wider opacity-50">Auto-login bypass</p>
-          {callerIp ? (
-            <>
-              <button
-                type="button"
-                onClick={copyIp}
-                className="block w-full rounded-lg border border-white/10 bg-black/40 p-2 text-left font-mono text-xs hover:border-[#E6C39B]/40"
-                title="Copy IP"
-              >
-                {callerIp} {copied && <span className="opacity-60">· copied</span>}
-              </button>
-              <p className="text-xs opacity-50">
-                Add to Vercel env <code className="font-mono">ADMIN_IPS</code> (comma-sep) → redeploy → auto-signed in from this IP.
-              </p>
-            </>
-          ) : (
-            <p className="text-xs opacity-50">IP unavailable in this environment.</p>
-          )}
-        </div>
       </div>
     </main>
   );
