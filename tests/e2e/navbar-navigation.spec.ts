@@ -52,7 +52,7 @@ test.describe("Navbar navigation", () => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.navLinks.filter({ hasText: "How it works" }).click();
+    await home.clickNavLink("How it works");
     await expect(home.howSection).toBeInViewport({ ratio: 0.1 });
   });
 
@@ -60,7 +60,7 @@ test.describe("Navbar navigation", () => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.navLinks.filter({ hasText: "The feed" }).click();
+    await home.clickNavLink("The feed");
     await expect(home.feedSection).toBeInViewport({ ratio: 0.1 });
   });
 
@@ -70,7 +70,7 @@ test.describe("Navbar navigation", () => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.navLinks.filter({ hasText: "Discover" }).click();
+    await home.clickNavLink("Discover");
     await expect(home.discoverSection).toBeInViewport({ ratio: 0.1 });
   });
 
@@ -78,7 +78,7 @@ test.describe("Navbar navigation", () => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.navLinks.filter({ hasText: "Groups" }).click();
+    await home.clickNavLink("Groups");
     await expect(home.groupsSection).toBeInViewport({ ratio: 0.1 });
   });
 });
