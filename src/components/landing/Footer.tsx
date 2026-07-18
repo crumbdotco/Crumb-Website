@@ -7,7 +7,7 @@ export function Footer() {
         <div className="fgrid">
           <div className="footer-brand">
             <div className="brand" style={{ display: "flex", alignItems: "center", gap: 11, fontFamily: "var(--disp)", fontWeight: 700 }}>
-              <CookieMark bite="#1A1208" />
+              <CookieMark />
               Crumbify
             </div>
             <p>Every bite tells a story.</p>
