@@ -85,8 +85,8 @@ export class HomePage {
 
     // Feed
     this.feedSection = page.locator("section#feed");
-    this.rowA = page.locator("#rowA");
-    this.rowB = page.locator("#rowB");
+    this.rowA = page.locator(".mtrack.a");
+    this.rowB = page.locator(".mtrack.b");
     this.feedCards = page.locator(".fcard");
 
     // Band
@@ -94,7 +94,7 @@ export class HomePage {
 
     // Taste match / Discover
     this.discoverSection = page.locator("section#discover");
-    this.matchCard = page.locator(".match-card");
+    this.matchCard = this.discoverSection.locator(".match-card");
 
     // Groups
     this.groupsSection = page.locator("section#groups");
@@ -127,5 +127,18 @@ export class HomePage {
   async openMobileMenu() {
     await this.burger.click();
     await expect(this.mobileNav).toHaveClass(/open/);
+  }
+
+  /**
+   * Clicks a nav link by label, working on both desktop (visible
+   * .nav-links) and mobile (burger-gated .mnav drawer, see Header.tsx).
+   */
+  async clickNavLink(label: string) {
+    if (await this.burger.isVisible()) {
+      await this.openMobileMenu();
+      await this.mobileNav.getByRole("link", { name: label }).click();
+    } else {
+      await this.navLinks.filter({ hasText: label }).click();
+    }
   }
 }

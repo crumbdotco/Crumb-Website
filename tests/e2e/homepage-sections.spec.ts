@@ -54,7 +54,7 @@ test.describe("Homepage sections", () => {
     const titles = ["Post it", "Friends see it", "Discover", "Save it", "Go eat"];
     for (const title of titles) {
       await expect(
-        home.howSection.getByRole("heading", { name: title })
+        home.howSection.getByRole("heading", { name: title, exact: true })
       ).toBeVisible();
     }
   });
