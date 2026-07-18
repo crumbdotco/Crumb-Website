@@ -18,7 +18,7 @@ Cross-platform **food delivery stats + social app** — "Stats.fm for food deliv
 - **Food personality** type (Creature of Habit / The Explorer, etc.)
 - **Food Soulmate** — taste-match % with friends + stranger opener messaging
 - **Food Map** — every restaurant plotted
-- Social: friend feed, posts (photo + note), reactions, comments, groups, leaderboards
+- Social: add friends, compare tastes, direct messaging, groups, leaderboards. Reviews: rate places + keep private notes. (No public post feed — that feature was removed.)
 - Premium ("Crumbify Premium", RC products `crumbify_premium_monthly/annual`): extra stats, deeper friend comparisons, ad-free. Mirror real list from app `components/premium/comparison-features.ts`. NO money/spend language.
 
 ## Website tech stack
@@ -41,8 +41,8 @@ Scripts: `npm run dev | build | lint | test | test:e2e`.
 ## Structure
 
 - `src/app/page.tsx` — single-page editorial scroll-story landing (the live design, shipped 2026-06-10). Sections in order:
-  `Navbar → Hero → PlatformLine → Stats → Global feed → Groups → Discover → Personality → Soulmate → StatsBand → FoundingSection → ClosingCTA → Footer`
-- `src/components/landing/` — all landing components + visuals: tokens, LedgeButton, CrumbParticles, PhoneFrame (real app screenshot), FeaturePhoneA, FeedPostCard, GroupCard, DiscoverCard, PersonalityChart, SoulmateCard, FoundingSection, EmailCapture.
+  `Navbar → Hero → PlatformLine → Restaurants → Reviews → Groups → Discover → Personality → Soulmate → StatsBand → FoundingSection → ClosingCTA → Footer`
+- `src/components/landing/` — all landing components + visuals: tokens, LedgeButton, CrumbParticles, PhoneFrame (real app screenshot), FeaturePhoneA, ReviewCard, GroupCard, DiscoverCard, PersonalityChart, SoulmateCard, FoundingSection, EmailCapture.
 - `src/components/legal/` — LegalShell, BackLink, ContactLinks (shared dark legal-page chrome).
 - `src/components/ui/Preloader.tsx` — site-wide loader (Crumbify wordmark + cookie-C).
 - `src/components/providers/SmoothScroll.tsx` — single global Lenis instance.
@@ -94,6 +94,7 @@ Locked external strings: contact `contact@crumbify.co.uk`, store review `apprevi
 
 ## Conventions
 
+- **FIND YOUR UNKNOWNS FIRST (PARAMOUNT).** Before any non-trivial feature or design change, follow `~/.claude/rules/common/finding-unknowns.md`: blind-spot pass on unfamiliar areas, brainstorm/prototype multiple directions for anything visual or subjective before real implementation, interview the user (AskUserQuestion) on architecture-changing ambiguities, prefer source-code references over descriptions, and lead implementation plans with data models / interfaces / user-facing flows. Discovery is cheap; re-implementation is not.
 - Orchestrator does NOT hand-author `.ts/.tsx` (impl or tests) — delegate to `tdd-guide @ sonnet`. Markdown/config/memory the orchestrator edits directly.
 - Run `npm run build` + tests before declaring done / deploying.
 - Conventional commits. Attribution disabled globally.

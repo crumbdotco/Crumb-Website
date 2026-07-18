@@ -15,7 +15,7 @@ import { LedgeButton } from "@/components/landing/LedgeButton";
 import { CrumbParticles } from "@/components/landing/CrumbParticles";
 import { PhoneFrame } from "@/components/landing/PhoneFrame";
 import { FeaturePhoneA } from "@/components/landing/FeaturePhoneA";
-import { FeedPostCard } from "@/components/landing/FeedPostCard";
+import { ReviewCard } from "@/components/landing/ReviewCard";
 import { GroupCard } from "@/components/landing/GroupCard";
 import { DiscoverCard } from "@/components/landing/DiscoverCard";
 import { PersonalityChart } from "@/components/landing/PersonalityChart";
@@ -563,7 +563,7 @@ function FeatureMomentA({
   );
 }
 
-// ─── Feature B: "Share what you eat" — Global Feed — text LEFT, card RIGHT ────
+// ─── Feature B: Rate every place - Reviews - text LEFT, card RIGHT ────
 function FeatureMomentB({
   fredokaClass,
   nunitoClass,
@@ -617,9 +617,8 @@ function FeatureMomentB({
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             style={{ fontSize: "clamp(40px, 6vw, 84px)", fontWeight: 600, lineHeight: 0.92, color: C.onHero, margin: 0, letterSpacing: "-0.02em" }}
           >
-            Share what
-            <br />you
-            <br /><span style={{ color: C.accent }}>eat.</span>
+            Rate every
+            <br /><span style={{ color: C.accent }}>place.</span>
           </motion.h2>
 
           <motion.p
@@ -629,13 +628,13 @@ function FeatureMomentB({
             transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             style={{ fontSize: "clamp(16px, 1.4vw, 18px)", lineHeight: 1.65, color: C.onHeroSoft, maxWidth: 380, margin: 0, fontWeight: 400 }}
           >
-            Post a photo from your order, write a note, like and comment on your friends. The food social feed that actually makes sense.
+            Score every restaurant you have been, keep your honest takes in one place. The best meals never get forgotten, the misses never get repeated.
           </motion.p>
         </div>
 
         {/* Card RIGHT */}
         <motion.div data-connect="1" style={{ flex: "0 1 auto", display: "flex", justifyContent: "center", y: reduced ? 0 : cardSpring }}>
-          <FeedPostCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
+          <ReviewCard fredokaClass={fredokaClass} nunitoClass={nunitoClass} inView={inView} />
         </motion.div>
       </div>
 
