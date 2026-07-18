@@ -1,29 +1,38 @@
 import { type Page } from "@playwright/test";
 
 /**
- * Intercept the waitlist API with a successful mock response.
- * This prevents Supabase calls during tests and makes the submission
- * flow deterministic.
+ * Intercept the founding-member counter API with an "open" response
+ * (spots remaining, not yet closed).
  */
-export async function mockWaitlistSuccess(page: Page) {
-  await page.route("**/api/waitlist", (route) => {
+export async function mockFoundingOpen(
+  page: Page,
+  overrides: Partial<{ count: number; remaining: number; closed: boolean }> = {}
+) {
+  const body = {
+    count: 42,
+    remaining: 58,
+    closed: false,
+    ...overrides,
+  };
+  await page.route("**/api/waitlist/founding", (route) => {
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ success: true }),
+      body: JSON.stringify(body),
     });
   });
 }
 
 /**
- * Intercept the waitlist API with an error mock response.
+ * Intercept the founding-member counter API with a "closed" response
+ * (all 100 founding spots claimed).
  */
-export async function mockWaitlistError(page: Page) {
-  await page.route("**/api/waitlist", (route) => {
+export async function mockFoundingClosed(page: Page) {
+  await page.route("**/api/waitlist/founding", (route) => {
     return route.fulfill({
-      status: 500,
+      status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ error: "Server error" }),
+      body: JSON.stringify({ count: 100, remaining: 0, closed: true }),
     });
   });
 }
