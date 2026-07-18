@@ -6,8 +6,8 @@ import "./globals.css";
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-disp",
+  weight: "variable",
   axes: ["opsz"],
-  weight: ["400", "500", "600", "700", "800"],
 });
 
 const hanken = Hanken_Grotesk({

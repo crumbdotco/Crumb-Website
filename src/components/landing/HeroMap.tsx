@@ -28,7 +28,9 @@ export function HeroMap() {
           boxZoom: false,
           keyboard: false,
           touchZoom: false,
-          tap: false,
+          // `tap` is a valid Leaflet.Map option (mobile tap-delay workaround)
+          // but missing from @types/leaflet's MapOptions.
+          ...({ tap: false } as object),
         }).setView(MAP_CENTER, MAP_ZOOM);
 
         L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
