@@ -3,7 +3,9 @@
 ## What this repo is
 Marketing + legal site for the Crumbify app. **Next.js 16, app-router**, pages live in `src/app/`. Deployed on **Vercel**, repo `crumdotco/Crumb-Website` (verify exact remote), live at **https://crumbify.co.uk** on `main`.
 
-Existing pages (`src/app/`): `page.tsx` (home), `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/`, `invite/`, `admin/`, plus `api/`.
+Existing pages (`src/app/`): `page.tsx` (home), `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/`, `admin/` (+ `admin/referrals/`), `referral/` (redirect route), plus `api/`.
+
+> **2026-07-18 REBUILD (branch `feat/site-handoff-rebuild`):** the landing was rebuilt 1:1 from the approved design package `C:\Users\aliba\Downloads\SITE_HANDOFF` (cream editorial, live Leaflet hero map, marquee feed, parallax bands, redesigned #founding section). Deleted: old landing components, waitlist signup (hooks + POST/count APIs; the `waitlist` table + founding counter + Stripe webhook REMAIN), `/ref`, `/invite` (both 301 → `/`), Preloader, SmoothScroll provider, rate-limit lib. Added: `/referral?code=X` store-redirect with Supabase `referral_clicks` logging (table already applied to prod) + magic-link-gated `/admin/referrals` dashboard. Owner still to set in Vercel: `NEXT_PUBLIC_APP_STORE_URL`, `NEXT_PUBLIC_PLAY_STORE_URL`. See CLAUDE.md Structure + implementation-notes.md.
 
 These URLs are used by the **app store listings** as legal/support links:
 - Privacy: `https://crumbify.co.uk/privacy` (live) — NEEDS v0.8.14(2) deltas, see Task 1
