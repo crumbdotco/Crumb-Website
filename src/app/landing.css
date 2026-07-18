@@ -35,9 +35,7 @@
 .landing .store .tx b{display:block;font-size:18px;font-weight:600;line-height:1.2;font-family:var(--body)}
 
 /* atoms */
-.landing .cookie{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 34% 32%,#7a5230,#4f3417 70%);position:relative;box-shadow:inset -3px -4px 6px rgba(0,0,0,.35);flex:none}
-.landing .cookie::before{content:"";position:absolute;right:-3px;top:5px;width:13px;height:13px;border-radius:50%;background:var(--bite,var(--cream));box-shadow:0 0 0 3px var(--bite,var(--cream))}
-.landing .cookie i{position:absolute;width:4px;height:4px;border-radius:50%;background:#2c1c0c}
+.landing .cookie{width:32px;height:32px;border-radius:50%;flex:none;object-fit:contain}
 .landing .puck{border-radius:50%;background:var(--ink);color:var(--cream);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:800;line-height:1;flex:none;width:46px;height:46px;font-size:18px}
 .landing .puck.hi{background:var(--hi);color:#fff}
 .landing .av{border-radius:50%;flex:none;border:2px solid var(--card);background:var(--gold-2)}
