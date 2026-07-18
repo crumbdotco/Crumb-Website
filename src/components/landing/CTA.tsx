@@ -2,7 +2,7 @@ import { StoreBadges } from "./StoreBadges";
 
 export function CTA() {
   return (
-    <section className="cta">
+    <section className="cta" id="get-the-app">
       <div className="cta-media par" data-speed="0.2">
         <img src="/media/food/cta-dark.jpg" alt="" />
       </div>

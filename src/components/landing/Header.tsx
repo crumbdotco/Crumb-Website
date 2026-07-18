@@ -56,7 +56,9 @@ export function Header() {
             ))}
           </div>
           <div className="nav-cta">
-            <button className="btn ink">Get the app</button>
+            <a className="btn ink" href="#get-the-app">
+              Get the app
+            </a>
           </div>
           <button
             className={`burger${open ? " open" : ""}`}
@@ -76,7 +78,9 @@ export function Header() {
             {link.label}
           </a>
         ))}
-        <button className="btn ink">Get the app</button>
+        <a className="btn ink" href="#get-the-app" onClick={closeMenu}>
+          Get the app
+        </a>
       </div>
     </>
   );
