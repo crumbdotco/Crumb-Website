@@ -18,7 +18,7 @@ Cross-platform **food delivery stats + social app** — "Stats.fm for food deliv
 - **Food personality** type (Creature of Habit / The Explorer, etc.)
 - **Food Soulmate** — taste-match % with friends + stranger opener messaging
 - **Food Map** — every restaurant plotted
-- Social: friend feed, posts (photo + note), reactions, comments, groups, leaderboards
+- Social: add friends, compare tastes, direct messaging, groups, leaderboards. Reviews: rate places + keep private notes. (No public post feed — that feature was removed.)
 - Premium ("Crumbify Premium", RC products `crumbify_premium_monthly/annual`): extra stats, deeper friend comparisons, ad-free. Mirror real list from app `components/premium/comparison-features.ts`. NO money/spend language.
 
 ## Website tech stack
@@ -38,25 +38,27 @@ Cross-platform **food delivery stats + social app** — "Stats.fm for food deliv
 
 Scripts: `npm run dev | build | lint | test | test:e2e`.
 
-## Structure
+## Structure (rebuilt 2026-07-18 from SITE_HANDOFF)
 
-- `src/app/page.tsx` — single-page editorial scroll-story landing (the live design, shipped 2026-06-10). Sections in order:
-  `Navbar → Hero → PlatformLine → Stats → Global feed → Groups → Discover → Personality → Soulmate → StatsBand → FoundingSection → ClosingCTA → Footer`
-- `src/components/landing/` — all landing components + visuals: tokens, LedgeButton, CrumbParticles, PhoneFrame (real app screenshot), FeaturePhoneA, FeedPostCard, GroupCard, DiscoverCard, PersonalityChart, SoulmateCard, FoundingSection, EmailCapture.
+The landing is a 1:1 Next.js port of the approved design in `C:\Users\aliba\Downloads\SITE_HANDOFF` (canonical: `site/Crumbify.html` - when in doubt, that file is the visual source of truth).
+
+- `src/app/page.tsx` — server component composing the landing. Sections in order:
+  `Header → Hero (live Leaflet map) → Manifesto → HowItWorks (#how) → FeedMarquee (#feed) → Band → TasteMatch (#discover) → Groups (#groups) → FoundingSection (#founding) → CTA → Footer`, plus the `ScrollFX` client island.
+- `src/app/landing.css` — the handoff CSS ported verbatim, scoped under `.landing`. Do NOT rewrite to Tailwind. `--ser` is intentionally the Helvetica stack (Instrument Serif deliberately unused).
+- `src/components/landing/` — `data.ts` (posts/spots/scoreColor/store SVGs), atoms (CookieMark, ScorePuck, StoreBadges), client islands: `Header` (solid-on-scroll + two-step burger drawer), `HeroMap` (Leaflet, locked, CARTO Voyager tiles), `ScrollFX` (Lenis lerp .09 + reveals + parallax), `FoundingSection` (Stripe founding flow, first-100 counter).
+- `src/app/referral/route.ts` — `GET /referral?code=X`: logs {code, platform, ua} to Supabase `referral_clicks` then 302s to the store by user agent (envs `NEXT_PUBLIC_APP_STORE_URL` / `NEXT_PUBLIC_PLAY_STORE_URL`, fallback `/`). UGC-influencer tracking links.
+- `src/app/admin/referrals/` — clicks-per-code dashboard behind the existing magic-link admin gate (`requireAdmin`, `ADMIN_USER_IDS`).
 - `src/components/legal/` — LegalShell, BackLink, ContactLinks (shared dark legal-page chrome).
-- `src/components/ui/Preloader.tsx` — site-wide loader (Crumbify wordmark + cookie-C).
-- `src/components/providers/SmoothScroll.tsx` — single global Lenis instance.
-- `src/hooks/` — useWaitlist, useWaitlistCount, useTurnstile.
-- Fonts: **Fredoka** (display) + **Nunito** (body) via `next/font/google`, scoped in `page.tsx`.
-- Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/`, `invite/` — all dark-themed.
-- `src/app/admin/` — OTP-gated admin dashboard (RevenueCat / ASC / Sentry panels).
-- `src/app/api/` — `waitlist/`, `waitlist/count/`, `waitlist/founding/` (first-100 counter), `stripe/webhook/`, `admin/session/`.
+- Fonts: **Bricolage Grotesque** (display) + **Hanken Grotesk** (body) via `next/font/google` in `layout.tsx`.
+- Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/` — dark-themed.
+- `src/app/admin/` — magic-link-gated admin dashboard (RevenueCat / ASC / Sentry panels; mostly stale except `referrals/`).
+- `src/app/api/` — `waitlist/founding/` (first-100 counter), `stripe/webhook/`, `admin/session/`. (Waitlist signup, `/ref`, `/invite` were deleted 2026-07-18; `/ref` + `/invite` 301 to `/` via `next.config.ts`.)
 
-## Brand / theme (current — dark cocoa "black and tan")
+## Brand / theme (current — cream editorial, SITE_HANDOFF)
 
-- Single continuous dark cocoa canvas: bg `#1A1208`, surfaces `#241712` / `#2E1E14`, text `#F4ECDF` / `#C4B09A`, single brand-gold accent `#E6C39B` / `#C9A077`. NO off-brand saturated yellow.
-- Tagline: "Every bite tells a story." Sub: "Your food delivery stats".
-- Same warm cookie family as the app (the app is dark-themed too).
+- Cream canvas: bg `#F4ECE1`, alt `#EFE5D8`, card `#FFFDF9`, ink `#1A1208`, gold `#E6C39B`/`#C9A077`, terracotta accent `#D8663F` (eyebrows only). Dark ink surfaces for footer/CTA.
+- Tagline: "Every bite tells a story."
+- Gold is never standalone body-text colour. Score pucks use the red→yellow→green `scoreColor()` ramp.
 
 ## Email policy
 
@@ -68,7 +70,9 @@ Scripts: `npm run dev | build | lint | test | test:e2e`.
 ## Known follow-ups
 
 - Wire `NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK` env in Vercel for the founding-member checkout button (falls back to `/founding-member` if unset).
-- Feature visuals are real design artifacts with `SWAP-SLOT` comments — drop real app screenshots into `public/images/` and swap when ready.
+- Wire `NEXT_PUBLIC_APP_STORE_URL` + `NEXT_PUBLIC_PLAY_STORE_URL` in Vercel once the store listings exist (store badges fall back to `#`, referral redirect to `/`).
+- OG share image (1200x630) + favicon set still to be produced (see SITE_HANDOFF/05-ASSETS-SEO.md).
+- Self-host fonts as woff2 if Lighthouse flags the Google Fonts request.
 - Wrapped is intentionally NOT featured (not shipping for a long time).
 
 ## HARD design rules (from ~/.claude/rules frontend-design + app-wide)
@@ -81,8 +85,6 @@ Apply to ALL copy + UI on this site:
 - No decorative notches/tabs on cards (flat edges). Exception: pressable button ledge (Duolingo sink).
 - No spotlight / radial-sweep / torch animations. No glow rings on static elements. Allowed: fade, scale, translate, opacity, spring, color, particle float, crossfade.
 
-> NOTE: the current v2 sections currently VIOLATE several of these (spaced-caps badge, `uppercase tracking-[Npx]` labels, em dashes in copy, `·` dots). Fix on touch.
-
 ## Pending store-compliance tasks (see HANDOFF.md)
 
 Blockers before app build 2 → Apple/Google submission. Source of truth: app repo `app/docs/v0814-2-compliance-and-deploys.md` + `app/docs/website-handoff-delete-account.md`.
@@ -94,6 +96,7 @@ Locked external strings: contact `contact@crumbify.co.uk`, store review `apprevi
 
 ## Conventions
 
+- **FIND YOUR UNKNOWNS FIRST (PARAMOUNT).** Before any non-trivial feature or design change, follow `~/.claude/rules/common/finding-unknowns.md`: blind-spot pass on unfamiliar areas, brainstorm/prototype multiple directions for anything visual or subjective before real implementation, interview the user (AskUserQuestion) on architecture-changing ambiguities, prefer source-code references over descriptions, and lead implementation plans with data models / interfaces / user-facing flows. Discovery is cheap; re-implementation is not.
 - Orchestrator does NOT hand-author `.ts/.tsx` (impl or tests) — delegate to `tdd-guide @ sonnet`. Markdown/config/memory the orchestrator edits directly.
 - Run `npm run build` + tests before declaring done / deploying.
 - Conventional commits. Attribution disabled globally.
