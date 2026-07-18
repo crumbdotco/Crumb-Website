@@ -1,7 +1,6 @@
 import { appleSvg, gplaySvg } from "./data";
 
 const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || "#";
-const PLAY_STORE_URL = process.env.NEXT_PUBLIC_PLAY_STORE_URL || "#";
 
 export function StoreBadges() {
   return (
@@ -13,13 +12,13 @@ export function StoreBadges() {
           <b>App Store</b>
         </span>
       </a>
-      <a className="store" href={PLAY_STORE_URL} aria-label="Get it on Google Play">
+      <span className="store disabled" aria-disabled="true">
         <span className="g" dangerouslySetInnerHTML={{ __html: gplaySvg }} />
         <span className="tx">
-          <small>Get it on</small>
+          <small>Coming soon</small>
           <b>Google Play</b>
         </span>
-      </a>
+      </span>
     </div>
   );
 }
