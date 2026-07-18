@@ -1,147 +1,105 @@
 /**
- * E2E tests: Mobile responsive layout
+ * E2E tests: Mobile responsive layout (SITE_HANDOFF cream design)
  *
- * Run against the "Mobile Chrome" project (Pixel 5 viewport: 393x851).
- * Verifies that all key sections render, the navbar adapts, and the
- * waitlist form is usable on small screens.
+ * Run at 390x844 (iPhone 12/13 viewport, matches 02-SECTIONS.md's
+ * <=560px breakpoint). Verifies the burger menu, two-step drawer
+ * open, hero pin labels hidden, and stacked store badges.
  */
 import { test, expect } from "@playwright/test";
 import { HomePage } from "./pages/HomePage";
-import { mockWaitlistSuccess } from "./fixtures/api-mocks";
 
-// These tests only make sense for mobile viewport
-test.use({ viewport: { width: 393, height: 851 } });
+test.use({ viewport: { width: 390, height: 844 } });
 
 test.describe("Mobile responsive layout", () => {
   test("page loads without horizontal overflow", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    // Scrollable width should not exceed viewport width
     const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
-    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5); // allow 5px tolerance
+    const clientWidth = await page.evaluate(
+      () => document.documentElement.clientWidth
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 5);
   });
 
-  test("navbar is visible on mobile", async ({ page }) => {
+  test("burger is visible and nav links are hidden", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await expect(page.locator("nav")).toBeVisible();
-    await expect(home.navBrand).toBeVisible();
-    await expect(home.navJoinWaitlist).toBeVisible();
+    await expect(home.burger).toBeVisible();
+    await expect(home.navLinks.first()).toBeHidden();
   });
 
-  test("hero heading is readable on mobile", async ({ page }) => {
+  test("burger opens the two-step mobile drawer", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await expect(home.heroHeading).toBeVisible();
-    const box = await home.heroHeading.boundingBox();
-    expect(box).not.toBeNull();
-    // Heading should take reasonable width on mobile
-    expect(box!.width).toBeGreaterThan(200);
+    // Step 1: .show is applied so the drawer becomes flex/displayed.
+    // Step 2 (next frame): .open animates it into view.
+    await home.burger.click();
+    await expect(home.mobileNav).toHaveClass(/show/);
+    await expect(home.mobileNav).toHaveClass(/open/);
+    await expect(home.burger).toHaveClass(/open/);
   });
 
-  test("WhatYoullDiscover cards stack on mobile (single column)", async ({
+  test("mobile drawer lists all four nav links plus get-app button", async ({
     page,
   }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.whatYoullDiscoverHeading.scrollIntoViewIfNeeded();
-    await expect(home.whatYoullDiscoverHeading).toBeVisible();
+    await home.openMobileMenu();
 
-    // On mobile, cards should be full width (single column)
-    const firstCard = page.locator(".grid > div").first();
-    await firstCard.scrollIntoViewIfNeeded();
-    const cardBox = await firstCard.boundingBox();
-    const viewportWidth = page.viewportSize()!.width;
+    const links = home.mobileNav.locator("a");
+    await expect(links).toHaveText([
+      "How it works",
+      "The feed",
+      "Discover",
+      "Groups",
+    ]);
+    await expect(home.mobileNav.locator(".btn")).toHaveText(/get the app/i);
+  });
 
-    // Single column card should be at least 80% of viewport width
-    if (cardBox) {
-      expect(cardBox.width).toBeGreaterThan(viewportWidth * 0.7);
+  test("clicking a drawer link closes the menu", async ({ page }) => {
+    const home = new HomePage(page);
+    await home.goto();
+
+    await home.openMobileMenu();
+    await home.mobileNav.locator("a").filter({ hasText: "How it works" }).click();
+
+    await expect(home.mobileNav).not.toHaveClass(/open/);
+  });
+
+  test("hero pin labels are hidden on mobile", async ({ page }) => {
+    const home = new HomePage(page);
+    await home.goto();
+
+    // .pinwrap .lab is set to display:none at <=560px (02-SECTIONS.md).
+    const labels = page.locator(".pinwrap .lab");
+    const count = await labels.count();
+    for (let i = 0; i < count; i++) {
+      await expect(labels.nth(i)).toBeHidden();
     }
   });
 
-  test("HowItWorks steps are visible on mobile", async ({ page }) => {
+  test("store badges stack full-width on mobile", async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
 
-    await home.howItWorksHeading.scrollIntoViewIfNeeded();
-    await expect(home.howItWorksHeading).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: /connect your accounts/i })
-    ).toBeVisible();
-  });
+    await home.ctaIn.scrollIntoViewIfNeeded();
+    const badges = home.ctaIn.locator(".store");
+    const count = await badges.count();
+    expect(count).toBeGreaterThan(0);
 
-  test("waitlist form stacks vertically on mobile", async ({ page }) => {
-    await mockWaitlistSuccess(page);
-    const home = new HomePage(page);
-    await home.goto();
-    await home.scrollToWaitlist();
-
-    await expect(home.waitlistEmailInput).toBeVisible();
-    await expect(home.waitlistSubmitButton).toBeVisible();
-
-    const inputBox = await home.waitlistEmailInput.boundingBox();
-    const buttonBox = await home.waitlistSubmitButton.boundingBox();
-
-    expect(inputBox).not.toBeNull();
-    expect(buttonBox).not.toBeNull();
-
-    // On mobile (flex-col), button should be below the input
-    // Allow for cases where flex-row kicks in on wider mobile screens
-    // We just verify both are visible and usable
-    const bothVisible =
-      inputBox!.width > 0 && buttonBox!.width > 0;
-    expect(bothVisible).toBe(true);
-  });
-
-  test("waitlist form submission works on mobile", async ({ page }) => {
-    await mockWaitlistSuccess(page);
-    const home = new HomePage(page);
-    await home.goto();
-
-    await home.submitWaitlistEmail("mobile@example.com");
-    await expect(home.waitlistSuccessMessage).toBeVisible({ timeout: 8000 });
-  });
-
-  test("Founding Member card is visible on mobile", async ({ page }) => {
-    const home = new HomePage(page);
-    await home.goto();
-    await home.scrollToWaitlist();
-
-    await home.foundingMemberCard.scrollIntoViewIfNeeded();
-    await expect(home.foundingMemberCard).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /become a founding member.*£4\.99/i })
-    ).toBeVisible();
-  });
-
-  test("Footer links are visible and tappable on mobile", async ({ page }) => {
-    const home = new HomePage(page);
-    await home.goto();
-
-    await home.footer.scrollIntoViewIfNeeded();
-    await expect(home.footerPrivacyLink).toBeVisible();
-    await expect(home.footerTermsLink).toBeVisible();
-    await expect(home.footerContactLink).toBeVisible();
-
-    // Links should have a reasonable tap target size
-    const privacyBox = await home.footerPrivacyLink.boundingBox();
-    expect(privacyBox).not.toBeNull();
-    expect(privacyBox!.height).toBeGreaterThanOrEqual(16);
-  });
-
-  test("WrappedPreview carousel is visible on mobile", async ({ page }) => {
-    const home = new HomePage(page);
-    await home.goto();
-
-    await home.wrappedPreviewHeading.scrollIntoViewIfNeeded();
-    await expect(home.wrappedPreviewHeading).toBeVisible();
-
-    // The carousel card should be visible
-    await expect(page.getByText("You ordered").first()).toBeVisible();
+    if (count >= 2) {
+      const firstBox = await badges.nth(0).boundingBox();
+      const secondBox = await badges.nth(1).boundingBox();
+      expect(firstBox).not.toBeNull();
+      expect(secondBox).not.toBeNull();
+      // Stacked (or wrapped full-width): each badge should be a
+      // meaningful fraction of the 390px viewport, not tiny inline chips.
+      expect(firstBox!.width).toBeGreaterThan(120);
+      expect(secondBox!.width).toBeGreaterThan(120);
+    }
   });
 });

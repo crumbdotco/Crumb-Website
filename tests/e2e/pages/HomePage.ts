@@ -1,130 +1,131 @@
 import { type Page, type Locator, expect } from "@playwright/test";
 
 /**
- * Page Object Model for the Crumb marketing homepage.
- * Encapsulates selectors and actions so tests stay readable and resilient.
+ * Page Object Model for the Crumbify marketing homepage (SITE_HANDOFF
+ * cream editorial design). Encapsulates selectors and actions so tests
+ * stay readable and resilient. Class names/ids are ported verbatim from
+ * SITE_HANDOFF/site/Crumbify.html — see docs/DESIGN-BRIEF.md.
  */
 export class HomePage {
   readonly page: Page;
 
-  // Navbar
+  // Header / nav
+  readonly header: Locator;
   readonly navBrand: Locator;
-  readonly navJoinWaitlist: Locator;
+  readonly navLinks: Locator;
+  readonly navGetAppButton: Locator;
+  readonly burger: Locator;
+  readonly mobileNav: Locator;
 
-  // Hero section
+  // Hero
   readonly heroHeading: Locator;
-  readonly heroSubheading: Locator;
-  readonly heroCTA: Locator;
+  readonly heroMap: Locator;
+  readonly heroStores: Locator;
 
-  // Section headings (used to verify section presence)
-  readonly whatYoullDiscoverHeading: Locator;
-  readonly howItWorksHeading: Locator;
-  readonly wrappedPreviewHeading: Locator;
-  readonly featuresGridHeading: Locator;
-  readonly socialProofHeading: Locator;
+  // Manifesto
+  readonly manifesto: Locator;
 
-  // Waitlist section
-  readonly waitlistSection: Locator;
-  readonly waitlistHeading: Locator;
-  readonly waitlistEmailInput: Locator;
-  readonly waitlistSubmitButton: Locator;
-  readonly waitlistSuccessMessage: Locator;
-  readonly waitlistErrorMessage: Locator;
+  // How it works
+  readonly howSection: Locator;
+  readonly howListItems: Locator;
 
-  // Founding member
-  readonly foundingMemberCard: Locator;
-  readonly foundingMemberLink: Locator;
+  // Feed
+  readonly feedSection: Locator;
+  readonly rowA: Locator;
+  readonly rowB: Locator;
+  readonly feedCards: Locator;
+
+  // Band
+  readonly bandCaption: Locator;
+
+  // Taste match / Discover
+  readonly discoverSection: Locator;
+  readonly matchCard: Locator;
+
+  // Groups
+  readonly groupsSection: Locator;
+  readonly groupCard: Locator;
+
+  // Founding
+  readonly foundingSection: Locator;
+
+  // CTA
+  readonly ctaSection: Locator;
+  readonly ctaIn: Locator;
 
   // Footer
   readonly footer: Locator;
   readonly footerPrivacyLink: Locator;
   readonly footerTermsLink: Locator;
   readonly footerContactLink: Locator;
+  readonly footerDeleteAccountLink: Locator;
 
   constructor(page: Page) {
     this.page = page;
 
-    // Navbar
-    this.navBrand = page.locator("nav").getByText("crumb").first();
-    this.navJoinWaitlist = page.locator("nav").getByRole("link", {
-      name: "Join the waitlist",
-    });
+    // Header / nav
+    this.header = page.locator("header#hdr");
+    this.navBrand = this.header.locator(".brand");
+    this.navLinks = this.header.locator(".nav-links a");
+    this.navGetAppButton = this.header.locator(".nav-cta .btn");
+    this.burger = page.locator(".burger#burger");
+    this.mobileNav = page.locator(".mnav#mnav");
 
     // Hero
-    this.heroHeading = page.getByRole("heading", {
-      name: /see exactly how.*you really eat/i,
-      level: 1,
-    });
-    this.heroSubheading = page.getByText(
-      /Connect your Uber Eats and Just Eat accounts/i
-    );
-    this.heroCTA = page
-      .locator("section")
-      .first()
-      .getByRole("link", { name: /join the waitlist/i });
+    this.heroHeading = page.locator(".hero-c h1");
+    this.heroMap = page.locator("#lmap");
+    this.heroStores = page.locator(".hero .stores");
 
-    // Section headings
-    this.whatYoullDiscoverHeading = page.getByRole("heading", {
-      name: /your food life, finally in numbers/i,
-    });
-    this.howItWorksHeading = page.getByRole("heading", {
-      name: /three steps to your stats/i,
-    });
-    this.wrappedPreviewHeading = page.getByRole("heading", {
-      name: /your year in food delivery/i,
-    });
-    this.featuresGridHeading = page.getByRole("heading", {
-      name: /everything you need/i,
-    });
-    this.socialProofHeading = page.getByText(/ready to see yours\?/i).first();
+    // Manifesto
+    this.manifesto = page.locator("section.manifesto");
 
-    // Waitlist section
-    this.waitlistSection = page.locator("#waitlist");
-    this.waitlistHeading = page.getByRole("heading", {
-      name: /ready to see your food story/i,
-    });
-    this.waitlistEmailInput = page.locator("#waitlist input[type='email']");
-    this.waitlistSubmitButton = page.locator("#waitlist button[type='submit']");
-    this.waitlistSuccessMessage = page.getByText(/you're on the list/i);
-    this.waitlistErrorMessage = page.getByText(
-      /something went wrong/i
-    );
+    // How it works
+    this.howSection = page.locator("section#how");
+    this.howListItems = page.locator(".how-list li");
 
-    // Founding member
-    this.foundingMemberCard = page.getByRole("heading", {
-      name: /become a founding member/i,
-    });
-    this.foundingMemberLink = page.getByRole("link", {
-      name: /become a founding member.*£4\.99/i,
-    });
+    // Feed
+    this.feedSection = page.locator("section#feed");
+    this.rowA = page.locator("#rowA");
+    this.rowB = page.locator("#rowB");
+    this.feedCards = page.locator(".fcard");
+
+    // Band
+    this.bandCaption = page.locator(".band-cap p");
+
+    // Taste match / Discover
+    this.discoverSection = page.locator("section#discover");
+    this.matchCard = page.locator(".match-card");
+
+    // Groups
+    this.groupsSection = page.locator("section#groups");
+    this.groupCard = page.locator(".gcard");
+
+    // Founding
+    this.foundingSection = page.locator("#founding");
+
+    // CTA
+    this.ctaSection = page.locator("section.cta");
+    this.ctaIn = page.locator(".cta-in");
 
     // Footer
     this.footer = page.locator("footer");
-    this.footerPrivacyLink = page.locator("footer").getByRole("link", {
-      name: "Privacy Policy",
+    this.footerPrivacyLink = this.footer.getByRole("link", { name: "Privacy" });
+    this.footerTermsLink = this.footer.getByRole("link", { name: "Terms" });
+    this.footerContactLink = this.footer.getByRole("link", {
+      name: /contact@crumbify\.co\.uk/i,
     });
-    this.footerTermsLink = page.locator("footer").getByRole("link", {
-      name: "Terms of Service",
-    });
-    this.footerContactLink = page.locator("footer").getByRole("link", {
-      name: "Contact",
+    this.footerDeleteAccountLink = this.footer.getByRole("link", {
+      name: "Delete account",
     });
   }
 
   async goto() {
     await this.page.goto("/");
-    // Wait for at least the hero heading to be visible before proceeding
     await this.heroHeading.waitFor({ state: "visible", timeout: 15000 });
   }
 
-  async scrollToWaitlist() {
-    await this.waitlistSection.scrollIntoViewIfNeeded();
-    await this.page.waitForTimeout(400);
-  }
-
-  async submitWaitlistEmail(email: string) {
-    await this.scrollToWaitlist();
-    await this.waitlistEmailInput.fill(email);
-    await this.waitlistSubmitButton.click();
+  async openMobileMenu() {
+    await this.burger.click();
+    await expect(this.mobileNav).toHaveClass(/open/);
   }
 }
