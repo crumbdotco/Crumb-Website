@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { isValidReferralCode } from "@/lib/referral-code";
 
 export const dynamic = "force-dynamic";
-
-const CODE_PATTERN = /^[A-Za-z0-9_-]{2,64}$/;
 
 type Platform = "ios" | "android" | "other";
 
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
 
-  if (!code || !CODE_PATTERN.test(code)) {
+  if (!code || !isValidReferralCode(code)) {
     return NextResponse.redirect(new URL("/", request.url), 302);
   }
 
