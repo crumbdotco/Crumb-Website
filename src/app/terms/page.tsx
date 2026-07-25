@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" updated="June 2026">
+    <LegalShell title="Terms of Service" updated="18 July 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Acceptance of Terms</h2>
         <p style={bodyStyle}>
@@ -73,12 +73,14 @@ export default function TermsPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>3. Description of Service</h2>
         <p style={bodyStyle}>
-          Crumbify is a mobile application that reads your food delivery order history
-          from screenshots you import (using OCR) and from orders you log manually.
-          It uses this data to provide personalised statistics, insights, restaurant
-          reviews, food maps, a global feed, social features (friends, groups, food
-          soulmate matching), a discover feed, and achievements.
-          Crumbify does not connect to delivery platform accounts via their APIs.
+          Crumbify is a social food app built around a feed of the places your friends
+          eat at. You add places by sharing a TikTok or Instagram post into the App,
+          pasting in a Google Maps list link, or searching manually, then post about
+          them, rate and note them, and save ones you want to try. Crumbify uses this
+          to power a home feed, a Discover map, reviews, want-to-try lists, groups,
+          friends, direct messages, a profile wall with achievements, and a monthly
+          Challenge. Crumbify does not connect to delivery-platform accounts via their
+          APIs, and it does not read order history from screenshots.
         </p>
       </section>
 
@@ -94,24 +96,25 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>5. Importing Order Data</h2>
+        <h2 style={headingStyle}>5. Adding Places</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
-          Crumbify reads order history from screenshots you choose to share with the App.
+          You add places to Crumbify yourself, there is no automatic import from any
+          delivery platform or account.
         </p>
         <ul style={listStyle}>
-          <li>You stay in control of what you import - nothing is pulled automatically.</li>
-          <li>We support screenshots from Uber Eats, Just Eat, and Deliveroo, plus manual entry for any restaurant.</li>
-          <li>Crumbify is not affiliated with, endorsed by, or sponsored by Uber Eats, Just Eat, Deliveroo, or any other delivery platform.</li>
-          <li>Data accuracy depends on screenshot quality and OCR parsing. We are not responsible for inaccurate or missing data.</li>
+          <li>You can share a TikTok or Instagram post or video into Crumbify via the share sheet.</li>
+          <li>You can paste in a Google Maps list link.</li>
+          <li>You can search for and add any restaurant manually via Google Places.</li>
+          <li>Crumbify is not affiliated with, endorsed by, or sponsored by TikTok, Instagram, Google, or any delivery platform.</li>
+          <li>Data accuracy depends on the source you add from. We are not responsible for inaccurate or missing data.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
         <h2 style={headingStyle}>6. Premium Subscription</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
-          Crumbify Premium unlocks additional features including unlimited screenshot imports,
-          your full stats history, unlimited want-to-try saved spots, photo reviews,
-          friend recommendations, larger groups, and an ad-free experience.
+          Crumbify Premium unlocks additional features including deeper stats, deeper
+          friend comparisons, unlimited want-to-try saved spots, and an ad-free experience.
         </p>
         <ul style={listStyle}>
           <li>Subscriptions are managed through Apple App Store or Google Play Store.</li>
@@ -139,10 +142,10 @@ export default function TermsPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>8. Social Features and Groups</h2>
         <ul style={listStyle}>
-          <li>You can add friends, create or join groups, and share stats with other users.</li>
-          <li>Group feeds allow members to post restaurant recommendations, vote on suggestions, and share experiences.</li>
+          <li>You can add friends, create or join groups, and post to the home feed and your profile wall.</li>
+          <li>Groups let members share lists of places and share photos with each other.</li>
           <li>Group admins can manage members, change group settings, and customise group appearance.</li>
-          <li>You can set your profile to private to hide your stats from non-friends.</li>
+          <li>You can set your profile to private to hide your posts and reviews from non-friends.</li>
           <li>You can block or report users for inappropriate behaviour.</li>
           <li>We reserve the right to remove content or suspend accounts that violate community guidelines.</li>
         </ul>
@@ -151,9 +154,9 @@ export default function TermsPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>9. User Content and Moderation</h2>
         <ul style={listStyle}>
-          <li>You retain ownership of content you create (reviews, photos, group posts, feed posts).</li>
+          <li>You retain ownership of content you create (reviews, photos, posts, comments).</li>
           <li>By posting content, you grant Crumbify a non-exclusive licence to display it within the App for its intended purpose.</li>
-          <li>Profile photos and feed post photos are automatically scanned for inappropriate content using Google Vision SafeSearch.</li>
+          <li>Profile photos and post photos are automatically scanned for inappropriate content using Google Vision SafeSearch.</li>
           <li>Content flagged as adult, violent, or racy will be rejected.</li>
           <li>You can report users or content. Reports are reviewed and actioned by our team.</li>
           <li>We may remove content that violates these Terms without prior notice.</li>
@@ -180,10 +183,10 @@ export default function TermsPage() {
         <h2 style={headingStyle}>11. Intellectual Property</h2>
         <p style={bodyStyle}>
           All content, features, branding, and functionality of the App and Site
-          (including the Crumbify name, logo, and food personality
-          system) are owned by Crumbify and are protected by copyright, trademark,
-          and other intellectual property laws. You may not reproduce,
-          distribute, or create derivative works without our written consent.
+          (including the Crumbify name and logo) are owned by Crumbify and are
+          protected by copyright, trademark, and other intellectual property laws.
+          You may not reproduce, distribute, or create derivative works without our
+          written consent.
         </p>
       </section>
 
@@ -191,10 +194,10 @@ export default function TermsPage() {
         <h2 style={headingStyle}>12. Limitation of Liability</h2>
         <ul style={listStyle}>
           <li>Crumbify is provided &quot;as is&quot; without warranties of any kind, express or implied.</li>
-          <li>We are not responsible for the accuracy of data extracted from imported screenshots.</li>
-          <li>We are not liable for any loss of data stored on your device.</li>
+          <li>We are not responsible for the accuracy of restaurant data sourced from Google Places or from content you add yourself.</li>
+          <li>We are not liable for any loss of data caused by factors outside our control.</li>
           <li>Our total liability shall not exceed the amount you paid for the App in the 12 months preceding any claim.</li>
-          <li>We are not responsible for third-party services (Stripe, AdMob) - their own terms apply.</li>
+          <li>We are not responsible for third-party services (Stripe, AdMob, Google Places) - their own terms apply.</li>
         </ul>
       </section>
 
@@ -203,8 +206,7 @@ export default function TermsPage() {
         <ul style={listStyle}>
           <li>We may suspend or terminate your account if you violate these Terms.</li>
           <li>You may delete your account at any time from the App settings.</li>
-          <li>Account deletion removes all your data from our cloud systems immediately.</li>
-          <li>On-device data is removed when you uninstall the App.</li>
+          <li>Account deletion removes your data from our cloud systems as described on our delete-account page.</li>
           <li>If you are a Founding Member and your account is terminated for violating these Terms, no refund will be issued.</li>
         </ul>
       </section>
