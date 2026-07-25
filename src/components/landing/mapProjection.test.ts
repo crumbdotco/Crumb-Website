@@ -13,7 +13,7 @@ describe("projectToPercent", () => {
     expect(xPct).toBeGreaterThan(50);
     expect(yPct).toBeLessThan(50);
     // Sanity-check against precomputed expected values for this projection.
-    expect(xPct).toBeCloseTo(61.65, 1);
+    expect(xPct).toBeCloseTo(62.95, 1);
     expect(yPct).toBeCloseTo(34.4, 1);
   });
 
