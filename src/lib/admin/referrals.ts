@@ -14,11 +14,21 @@ function adminClient() {
 
 export interface ReferralCodeStats {
   code: string;
+  /** Unique visitors (one row per code+ip_hash after dedupe). */
   total: number;
   ios: number;
   android: number;
   other: number;
   last7d: number;
+  firstClickAt: string;
+  lastClickAt: string;
+}
+
+export interface ReferralStatsSummary {
+  codes: ReferralCodeStats[];
+  totalUniqueClicks: number;
+  totalCodes: number;
+  totalLast7d: number;
 }
 
 interface ReferralClickRow {
@@ -27,7 +37,7 @@ interface ReferralClickRow {
   created_at: string;
 }
 
-export async function fetchReferralStats(): Promise<ReferralCodeStats[]> {
+export async function fetchReferralStats(): Promise<ReferralStatsSummary> {
   const supabase = adminClient();
   const { data, error } = await supabase
     .from('referral_clicks')
@@ -47,6 +57,8 @@ export async function fetchReferralStats(): Promise<ReferralCodeStats[]> {
       android: 0,
       other: 0,
       last7d: 0,
+      firstClickAt: row.created_at,
+      lastClickAt: row.created_at,
     };
 
     const updated: ReferralCodeStats = {
@@ -57,10 +69,25 @@ export async function fetchReferralStats(): Promise<ReferralCodeStats[]> {
       other: existing.other + (row.platform === 'other' ? 1 : 0),
       last7d:
         existing.last7d + (new Date(row.created_at).getTime() >= sevenDaysAgo ? 1 : 0),
+      firstClickAt:
+        new Date(row.created_at).getTime() < new Date(existing.firstClickAt).getTime()
+          ? row.created_at
+          : existing.firstClickAt,
+      lastClickAt:
+        new Date(row.created_at).getTime() > new Date(existing.lastClickAt).getTime()
+          ? row.created_at
+          : existing.lastClickAt,
     };
 
     byCode.set(row.code, updated);
   }
 
-  return Array.from(byCode.values()).sort((a, b) => b.total - a.total);
+  const codes = Array.from(byCode.values()).sort((a, b) => b.total - a.total);
+
+  return {
+    codes,
+    totalUniqueClicks: rows.length,
+    totalCodes: codes.length,
+    totalLast7d: codes.reduce((sum, c) => sum + c.last7d, 0),
+  };
 }
