@@ -6,6 +6,13 @@ import { fetchAscMetrics } from '@/lib/admin/asc';
 import { fetchSentryMetrics } from '@/lib/admin/sentry';
 import { fetchReferralStats } from '@/lib/admin/referrals';
 import { requireAdmin } from '@/lib/admin/auth';
+import {
+  DashboardSection,
+  HeroStat,
+  ListCard,
+  ListRow,
+  StatCard,
+} from './dashboard-components';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
@@ -28,137 +35,144 @@ export default async function AdminPage() {
     fetchReferralStats().catch(() => null),
   ]);
 
+  // Sentry/ASC return an object with null fields (not a null object) when
+  // their env vars are missing or a call fails, so "connected" is judged
+  // per source rather than assumed from object presence.
+  const sentryConnected = sentry != null && sentry.totalEvents24h != null;
+  const ascConnected = asc != null && asc.ratingsAverage != null;
+
   return (
-    <main className="mx-auto max-w-7xl space-y-8 p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-3xl font-bold text-[#E6C39B]">Crumb Admin</h1>
-        <div className="flex items-center gap-4">
-          <p className="text-sm opacity-60">
-            Auto-refresh every 5 min, {new Date().toLocaleString('en-GB')}
-          </p>
-          <Link
-            href="/admin/referrals"
-            className="rounded-lg border border-[#E6C39B]/40 px-3 py-1.5 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
-          >
-            Referrals (UGC tracking)
-          </Link>
+    <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E6C39B] text-lg font-bold text-[#1A1208]">
+            C
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-[#E6C39B]">Crumbify Admin</h1>
+            <p className="text-xs opacity-60">
+              Last updated {new Date().toLocaleString('en-GB')} · auto-refreshes every 5 min
+            </p>
+          </div>
         </div>
+        <Link
+          href="/admin/referrals"
+          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E6C39B]/40 px-4 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
+        >
+          Referrals dashboard
+        </Link>
       </header>
 
-      <Section title="Funnel">
-        <Stat label="Waitlist" value={supabase?.waitlistCount} delta={supabase?.newWaitlistLast7d} />
-        <Stat label="Signed up" value={supabase?.profilesCount} delta={supabase?.newProfilesLast7d} />
-        <Stat label="Onboarded" value={supabase?.onboardedCount} />
-        <Stat label="Premium" value={supabase?.premiumCount} />
-        <Stat label="Reviews" value={supabase?.reviewsCount} delta={supabase?.reviewsLast7d} />
-      </Section>
-
-      <Section title="Revenue (RevenueCat)">
-        <Stat label="Active subs" value={rc?.activeSubscribers} />
-        <Stat label="Trial subs" value={rc?.trialSubscribers} />
-        <Stat label="MRR" value={rc?.mrr} prefix="£" />
-        <Stat label="ARR" value={rc?.arr} prefix="£" />
-        <Stat label="New 30d" value={rc?.newSubscribers30d} />
-        <Stat label="Churn 30d" value={rc?.churned30d} />
-      </Section>
-
-      <Section title="App Store">
-        <Stat label="Rating" value={asc?.ratingsAverage} fixed={2} />
-        <Stat label="Total reviews" value={asc?.ratingsCount} />
-        <Stat label="Recent reviews (200 max)" value={asc?.recentReviewCount} />
-      </Section>
-
-      <Section title="Errors (Sentry, 24h)">
-        <Stat label="Crash-free user %" value={sentry?.crashFreeUsers24h ? sentry.crashFreeUsers24h * 100 : null} suffix="%" fixed={2} />
-        <Stat label="Total events" value={sentry?.totalEvents24h} />
-      </Section>
-
-      <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold text-[#E6C39B]">Referrals</h2>
-          <Link href="/admin/referrals" className="text-sm text-[#E6C39B] hover:underline">
-            View full dashboard
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Unique clicks" value={referrals?.totalUniqueClicks} />
-          <Stat label="Codes" value={referrals?.totalCodes} />
-          <Stat label="Last 7d" value={referrals?.totalLast7d} />
-        </div>
-        {referrals && referrals.codes.length > 0 && (
-          <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
-            {referrals.codes.slice(0, 3).map((c) => (
-              <li key={c.code} className="flex items-center justify-between p-3">
-                <span className="font-mono text-sm">{c.code}</span>
-                <span className="font-mono text-sm opacity-80">{c.total}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <HeroStat label="Signed up" value={supabase?.profilesCount} />
+        <HeroStat label="Premium" value={supabase?.premiumCount} />
+        <HeroStat
+          label="MRR"
+          value={rc?.mrr}
+          prefix="£"
+          unavailable={rc == null}
+        />
+        <HeroStat
+          label="Crash-free (24h)"
+          value={sentryConnected && sentry?.crashFreeUsers24h != null ? sentry.crashFreeUsers24h * 100 : null}
+          suffix="%"
+          fixed={2}
+          unavailable={!sentryConnected}
+        />
+        <HeroStat
+          label="Referral clicks"
+          value={referrals?.totalUniqueClicks}
+          unavailable={referrals == null}
+        />
       </section>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DashboardSection
+          title="Funnel"
+          subtitle="Waitlist through to reviews"
+          connected={supabase != null}
+          unavailableReason="Supabase service-role metrics failed to load. Check SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL."
+        >
+          <StatCard label="Waitlist" value={supabase?.waitlistCount} delta={supabase?.newWaitlistLast7d} />
+          <StatCard label="Signed up" value={supabase?.profilesCount} delta={supabase?.newProfilesLast7d} />
+          <StatCard label="Onboarded" value={supabase?.onboardedCount} />
+          <StatCard label="Premium" value={supabase?.premiumCount} />
+          <StatCard label="Reviews" value={supabase?.reviewsCount} delta={supabase?.reviewsLast7d} />
+        </DashboardSection>
+
+        <DashboardSection
+          title="Revenue"
+          subtitle="RevenueCat"
+          connected={rc != null}
+          unavailableReason="RevenueCat metrics are not connected. Set REVENUECAT_PROJECT_ID and REVENUECAT_SECRET_KEY."
+        >
+          <StatCard label="Active subs" value={rc?.activeSubscribers} />
+          <StatCard label="Trial subs" value={rc?.trialSubscribers} />
+          <StatCard label="MRR" value={rc?.mrr} prefix="£" />
+          <StatCard label="ARR" value={rc?.arr} prefix="£" />
+          <StatCard label="New (30d)" value={rc?.newSubscribers30d} deltaPeriod="30d" />
+          <StatCard label="Churn (30d)" value={rc?.churned30d} deltaPeriod="30d" />
+        </DashboardSection>
+
+        <DashboardSection
+          title="App Store"
+          subtitle="App Store Connect"
+          connected={ascConnected}
+          unavailableReason="App Store Connect metrics are not connected. Set ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY."
+        >
+          <StatCard label="Rating" value={asc?.ratingsAverage} fixed={2} unavailable={!ascConnected} />
+          <StatCard label="Total reviews" value={asc?.ratingsCount} unavailable={!ascConnected} />
+          <StatCard label="Recent reviews (200 max)" value={asc?.recentReviewCount} unavailable={!ascConnected} />
+        </DashboardSection>
+
+        <DashboardSection
+          title="Errors"
+          subtitle="Sentry, last 24 hours"
+          connected={sentryConnected}
+          unavailableReason="Sentry metrics are not connected. Set SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT."
+        >
+          <StatCard
+            label="Crash-free users"
+            value={sentry?.crashFreeUsers24h != null ? sentry.crashFreeUsers24h * 100 : null}
+            suffix="%"
+            fixed={2}
+            unavailable={!sentryConnected}
+          />
+          <StatCard label="Total events" value={sentry?.totalEvents24h} unavailable={!sentryConnected} />
+        </DashboardSection>
+      </div>
+
+      <DashboardSection
+        title="Referrals"
+        subtitle="UGC influencer tracking links"
+        connected={referrals != null}
+        unavailableReason="Referral click data failed to load from Supabase."
+        action={
+          <Link href="/admin/referrals" className="text-sm font-medium text-[#E6C39B] hover:underline">
+            View full dashboard →
+          </Link>
+        }
+      >
+        <StatCard label="Unique clicks" value={referrals?.totalUniqueClicks} />
+        <StatCard label="Active codes" value={referrals?.activeCodes} />
+        <StatCard label="Last 7 days" value={referrals?.totalLast7d} deltaPeriod="7d" />
+      </DashboardSection>
+
+      {referrals && referrals.codes.length > 0 && (
+        <ListCard title="Top referral codes">
+          {referrals.codes.slice(0, 5).map((c) => (
+            <ListRow key={c.code} left={<span className="font-mono text-sm">{c.code}</span>} right={c.total} />
+          ))}
+        </ListCard>
+      )}
+
       {sentry?.topIssues && sentry.topIssues.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-xl font-semibold text-[#E6C39B]">Top issues</h2>
-          <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
-            {sentry.topIssues.map((i) => (
-              <li key={i.id} className="flex items-center justify-between p-3">
-                <span className="truncate pr-4">{i.title}</span>
-                <span className="font-mono text-sm opacity-80">{i.count}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ListCard title="Top issues (Sentry)">
+          {sentry.topIssues.map((i) => (
+            <ListRow key={i.id} left={i.title} right={i.count} />
+          ))}
+        </ListCard>
       )}
     </main>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-[#E6C39B]">{title}</h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  delta,
-  prefix,
-  suffix,
-  fixed,
-}: {
-  label: string;
-  value: number | null | undefined;
-  delta?: number | null;
-  prefix?: string;
-  suffix?: string;
-  fixed?: number;
-}) {
-  const display =
-    value == null
-      ? '—'
-      : `${prefix ?? ''}${
-          fixed != null ? value.toFixed(fixed) : value.toLocaleString('en-GB')
-        }${suffix ?? ''}`;
-  return (
-    <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-      <div className="text-xs uppercase tracking-wider opacity-60">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{display}</div>
-      {delta != null && (
-        <div className="mt-1 text-xs text-[#E6C39B]">+{delta} (7d)</div>
-      )}
-    </div>
   );
 }
