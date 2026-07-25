@@ -8,12 +8,17 @@ function parseList(env: string | undefined): string[] {
     .filter(Boolean);
 }
 
-const DEFAULT_ADMIN_EMAILS = ['admin@crumbify.co.uk', 'ali@crumbify.co.uk'];
-
 export function getAdminEmailAllowlist(): string[] {
   const configured = parseList(process.env.ADMIN_EMAILS);
-  const list = configured.length > 0 ? configured : DEFAULT_ADMIN_EMAILS;
-  return list.map((email) => email.toLowerCase().trim());
+  if (configured.length === 0) {
+    // Fail closed: never fall back to a built-in list. Do not log the
+    // configured value (there is none) or any candidate email here.
+    console.warn(
+      'ADMIN_EMAILS is not configured. Admin access is disabled until it is set.',
+    );
+    return [];
+  }
+  return configured.map((email) => email.toLowerCase().trim());
 }
 
 export function isAdminEmail(email: string | null | undefined): boolean {
@@ -24,8 +29,9 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 
 /**
  * Admin gate: Cookie session — Supabase access token cookie + user email in
- * ADMIN_EMAILS (falls back to a built-in default allowlist when the env var
- * is unset). Returns a truthy id on success, `null` when not authorised.
+ * ADMIN_EMAILS. ADMIN_EMAILS is required; if it is unset or empty, admin
+ * access is disabled entirely (fail closed). Returns a truthy id on success,
+ * `null` when not authorised.
  */
 export async function requireAdmin(): Promise<string | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
