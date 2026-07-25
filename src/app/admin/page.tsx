@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { fetchSupabaseAdminMetrics } from '@/lib/admin/supabase-admin';
 import { fetchRcMetrics } from '@/lib/admin/revenuecat';
 import { fetchAscMetrics } from '@/lib/admin/asc';
 import { fetchSentryMetrics } from '@/lib/admin/sentry';
+import { fetchReferralStats } from '@/lib/admin/referrals';
 import { requireAdmin } from '@/lib/admin/auth';
 
 export const dynamic = 'force-dynamic';
@@ -16,22 +18,31 @@ export default async function AdminPage() {
 
   // Fetch in parallel — each source caches independently via fetch()
   // revalidate, so a failure in one doesn't block the others.
-  const [supabase, rc, asc, sentry] = await Promise.all([
+  const [supabase, rc, asc, sentry, referrals] = await Promise.all([
     fetchSupabaseAdminMetrics().catch(() => null),
     RC_PROJECT_ID
       ? fetchRcMetrics(RC_PROJECT_ID).catch(() => null)
       : Promise.resolve(null),
     fetchAscMetrics().catch(() => null),
     fetchSentryMetrics().catch(() => null),
+    fetchReferralStats().catch(() => null),
   ]);
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 p-6">
-      <header className="flex items-baseline justify-between">
+      <header className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-bold text-[#E6C39B]">Crumb Admin</h1>
-        <p className="text-sm opacity-60">
-          Auto-refresh every 5 min · {new Date().toLocaleString('en-GB')}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-sm opacity-60">
+            Auto-refresh every 5 min, {new Date().toLocaleString('en-GB')}
+          </p>
+          <Link
+            href="/admin/referrals"
+            className="rounded-lg border border-[#E6C39B]/40 px-3 py-1.5 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
+          >
+            Referrals (UGC tracking)
+          </Link>
+        </div>
       </header>
 
       <Section title="Funnel">
@@ -61,6 +72,30 @@ export default async function AdminPage() {
         <Stat label="Crash-free user %" value={sentry?.crashFreeUsers24h ? sentry.crashFreeUsers24h * 100 : null} suffix="%" fixed={2} />
         <Stat label="Total events" value={sentry?.totalEvents24h} />
       </Section>
+
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-xl font-semibold text-[#E6C39B]">Referrals</h2>
+          <Link href="/admin/referrals" className="text-sm text-[#E6C39B] hover:underline">
+            View full dashboard
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Stat label="Unique clicks" value={referrals?.totalUniqueClicks} />
+          <Stat label="Codes" value={referrals?.totalCodes} />
+          <Stat label="Last 7d" value={referrals?.totalLast7d} />
+        </div>
+        {referrals && referrals.codes.length > 0 && (
+          <ul className="divide-y divide-white/10 rounded-lg border border-white/10">
+            {referrals.codes.slice(0, 3).map((c) => (
+              <li key={c.code} className="flex items-center justify-between p-3">
+                <span className="font-mono text-sm">{c.code}</span>
+                <span className="font-mono text-sm opacity-80">{c.total}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {sentry?.topIssues && sentry.topIssues.length > 0 && (
         <section className="space-y-2">
