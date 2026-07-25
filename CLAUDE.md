@@ -94,6 +94,28 @@ Blockers before app build 2 → Apple/Google submission. Source of truth: app re
 
 Locked external strings: contact `contact@crumbify.co.uk`, store review `appreview@crumbify.co.uk`, account-delete `admin@crumbify.co.uk`, X `@crumbifyco`, delete URL `https://crumbify.co.uk/delete-account`.
 
+## Security guards (automated, run on every `npm test`)
+
+This repo is PUBLIC on GitHub, so two invariants are enforced by static-analysis jest
+tests instead of relying on review alone:
+
+- `src/__tests__/security/no-committed-secrets.test.ts` - walks tracked source
+  (`src/**`, `supabase/**`, `tests/**`, `next.config.ts`, `package.json`) and fails if it
+  finds a realistic Stripe live/test secret key, Stripe webhook secret, JWT-shaped string,
+  Google API key, a literal `service_role` key assignment, or `SUPABASE_SERVICE_ROLE_KEY=`
+  / `STRIPE_SECRET_KEY=` assigned a literal instead of a `process.env` reference. It uses a
+  minimum realistic key length so it does not fire on this repo's own test placeholders
+  (`sk_test_key`, `whsec_test`, `test-service-role-key`). **If it fires:** move the value to
+  an environment variable and rotate the key immediately - a public-repo key is scraped
+  within minutes.
+- `src/__tests__/security/no-raw-ip-persistence.test.ts` - reads `src/app/referral/route.ts`
+  and asserts the Supabase `referral_clicks` payload contains `ip_hash` and never a bare
+  `ip:` or `user_agent:` key, and that no `console.*` call passes the raw client-IP
+  variable. Raw IPs are personal data under UK GDPR. **If it fires:** you (or a refactor)
+  reintroduced raw-IP persistence/logging on the referral route - hash the IP with the
+  existing `hashIp()`/salt pattern before writing or logging anything derived from a
+  visitor's request.
+
 ## Conventions
 
 - **FIND YOUR UNKNOWNS FIRST (PARAMOUNT).** Before any non-trivial feature or design change, follow `~/.claude/rules/common/finding-unknowns.md`: blind-spot pass on unfamiliar areas, brainstorm/prototype multiple directions for anything visual or subjective before real implementation, interview the user (AskUserQuestion) on architecture-changing ambiguities, prefer source-code references over descriptions, and lead implementation plans with data models / interfaces / user-facing flows. Discovery is cheap; re-implementation is not.
