@@ -1,22 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import Home from "@/app/page";
 
-jest.mock("leaflet", () => ({
-  __esModule: true,
-  default: {
-    map: () => ({
-      setView: jest.fn().mockReturnThis(),
-      remove: jest.fn(),
-      invalidateSize: jest.fn(),
-    }),
-    tileLayer: () => ({ addTo: jest.fn() }),
-    marker: () => ({ addTo: jest.fn() }),
-    divIcon: jest.fn(),
-  },
-}));
-
-jest.mock("leaflet/dist/leaflet.css", () => ({}), { virtual: true });
-
 jest.mock("lenis", () => {
   return jest.fn().mockImplementation(() => ({
     raf: jest.fn(),
