@@ -42,24 +42,24 @@ const faqAnswerStyle: React.CSSProperties = {
 
 const faqs = [
   {
-    q: "How does Crumbify access my order history?",
-    a: "Crumbify reads your order history from screenshots you import. You stay in control of what you share. We never ask for your delivery-account password and never connect to those accounts directly. You can also add any restaurant manually.",
+    q: "How do I add restaurants to Crumbify?",
+    a: "Share a TikTok or Instagram post into Crumbify via the share sheet, paste in a Google Maps list link, or search for a place manually. Crumbify does not read order history from screenshots, and it never connects to delivery-platform accounts or APIs.",
   },
   {
     q: "Is my data safe?",
-    a: "Yes. Your order data is stored locally on your device with encryption. Social features use our secure cloud with row-level security. We never sell your data.",
+    a: "Yes. Social features use our secure cloud with row-level security, so only you and the people you choose to share with can see your data. We never sell your data.",
   },
   {
-    q: "What platforms do you support?",
-    a: "Crumbify reads screenshots from Uber Eats, Just Eat, and Deliveroo, and you can log any restaurant by hand.",
+    q: "How does the home feed work?",
+    a: "When you post about a place, your friends can see it, react, and comment in the home feed. You can also discover new places through friends, taste-matched recommendations, and the Discover map.",
   },
   {
     q: "How do I remove data I have added?",
-    a: "Everything in Crumbify comes from what you import or enter, so you stay in control. You can remove individual entries in the app, or delete your whole account at any time (see our delete account page).",
+    a: "Everything in Crumbify comes from what you post or enter, so you stay in control. You can remove individual posts, reviews, or want-to-try entries in the app, or delete your whole account at any time (see our delete account page).",
   },
   {
     q: "What is included in Crumbify Premium?",
-    a: "Crumbify Premium gives you unlimited screenshot imports, your full stats history (including year and all-time), unlimited want-to-try saved spots, photo reviews, friend recommendations, larger groups, and an ad-free experience.",
+    a: "Crumbify Premium gives you deeper stats, deeper friend comparisons, unlimited want-to-try saved spots, and an ad-free experience.",
   },
   {
     q: "How do I delete my account?",
