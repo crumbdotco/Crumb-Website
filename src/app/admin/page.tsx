@@ -82,7 +82,7 @@ export default async function AdminPage() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Unique clicks" value={referrals?.totalUniqueClicks} />
-          <Stat label="Codes" value={referrals?.totalCodes} />
+          <Stat label="Active codes" value={referrals?.activeCodes} />
           <Stat label="Last 7d" value={referrals?.totalLast7d} />
         </div>
         {referrals && referrals.codes.length > 0 && (
