@@ -72,9 +72,7 @@
 /* HERO */
 .landing .hero{position:relative;height:100vh;min-height:720px;overflow:hidden;background:#EFE5D6}
 .landing #lmap{position:absolute;inset:0;z-index:1;background:#EFE5D6}
-.landing .leaflet-container{background:#EFE5D6!important;font-family:var(--body)!important}
-.landing .leaflet-tile-pane{filter:saturate(.94) brightness(1.02) sepia(.05)}
-.landing .pin-di,.landing .here-di{width:0;height:0}
+.landing #lmap img{filter:saturate(.94) brightness(1.02) sepia(.05)}
 .landing .pinwrap{position:absolute;left:0;top:0;display:flex;align-items:center;gap:9px;transform:translate(-50%,-50%);will-change:transform}
 .landing .pinwrap .puck{box-shadow:0 12px 26px rgba(40,26,10,.32);border:3px solid var(--card)}
 .landing .pinwrap .lab{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 12px;box-shadow:0 10px 22px rgba(40,26,10,.16);white-space:nowrap}
