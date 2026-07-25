@@ -191,3 +191,73 @@ describe("security: no committed secrets", () => {
     expect(names.some((n) => n.toLowerCase().includes("service_role"))).toBe(true);
   });
 });
+
+/**
+ * Static-analysis guard: no hardcoded @crumbify.co.uk email address may
+ * appear in src/lib/**, src/app/admin/** or src/app/api/**. Those are the
+ * roots where auth allowlists and internal config live - a hardcoded admin
+ * email there (e.g. a DEFAULT_ADMIN_EMAILS fallback) publishes a phishing /
+ * account-takeover target to anyone reading this PUBLIC repo. Allowlists
+ * must come from env vars only.
+ *
+ * Deliberately narrower than the general secret scan above: legal/support/
+ * footer pages under src/app (outside these three roots) legitimately show
+ * contact@crumbify.co.uk, support@crumbify.co.uk, admin@crumbify.co.uk
+ * (account-deletion instructions) and appreview@crumbify.co.uk, and must
+ * keep passing.
+ */
+describe("security: no hardcoded crumbify.co.uk emails in lib/admin/api", () => {
+  const EMAIL_SCOPED_ROOTS = [
+    path.join("src", "lib"),
+    path.join("src", "app", "admin"),
+    path.join("src", "app", "api"),
+  ];
+
+  const EMAIL_REGEX = /[A-Za-z0-9._%+-]+@crumbify\.co\.uk/g;
+
+  function gatherEmailScanTargets(): string[] {
+    const files: string[] = [];
+    for (const root of EMAIL_SCOPED_ROOTS) {
+      const abs = path.join(REPO_ROOT, root);
+      try {
+        collectFiles(abs, files);
+      } catch {
+        // Root doesn't exist - not a scan failure.
+      }
+    }
+    return files;
+  }
+
+  it("contains no hardcoded @crumbify.co.uk email addresses", () => {
+    const files = gatherEmailScanTargets();
+    expect(files.length).toBeGreaterThan(0);
+
+    const allFindings: string[] = [];
+
+    for (const file of files) {
+      const relPath = path.relative(REPO_ROOT, file);
+      const content = readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+
+      lines.forEach((lineText, index) => {
+        EMAIL_REGEX.lastIndex = 0;
+        const match = EMAIL_REGEX.exec(lineText);
+        if (match) {
+          allFindings.push(
+            `${relPath}:${index + 1} contains hardcoded email "${match[0]}"\n` +
+              `  > ${lineText.trim()}\n` +
+              `  Fix: read the allowlist from process.env.ADMIN_EMAILS (or the relevant env var) instead of hardcoding it.`
+          );
+        }
+      });
+    }
+
+    if (allFindings.length > 0) {
+      throw new Error(
+        `Found ${allFindings.length} hardcoded crumbify.co.uk email(s) in src/lib, src/app/admin or ` +
+          `src/app/api. This repo is PUBLIC - treat every match as a phishing/account-takeover target.\n\n` +
+          allFindings.join("\n\n")
+      );
+    }
+  });
+});
