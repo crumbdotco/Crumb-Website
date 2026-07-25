@@ -46,8 +46,8 @@ The landing is a 1:1 Next.js port of the approved design in `C:\Users\aliba\Down
   `Header → Hero (live Leaflet map) → Manifesto → HowItWorks (#how) → FeedMarquee (#feed) → Band → TasteMatch (#discover) → Groups (#groups) → FoundingSection (#founding) → CTA → Footer`, plus the `ScrollFX` client island.
 - `src/app/landing.css` — the handoff CSS ported verbatim, scoped under `.landing`. Do NOT rewrite to Tailwind. `--ser` is intentionally the Helvetica stack (Instrument Serif deliberately unused).
 - `src/components/landing/` — `data.ts` (posts/spots/scoreColor/store SVGs), atoms (CookieMark, ScorePuck, StoreBadges), client islands: `Header` (solid-on-scroll + two-step burger drawer), `HeroMap` (Leaflet, locked, CARTO Voyager tiles), `ScrollFX` (Lenis lerp .09 + reveals + parallax), `FoundingSection` (Stripe founding flow, first-100 counter).
-- `src/app/referral/route.ts` — `GET /referral?code=X`: logs {code, platform, ua} to Supabase `referral_clicks` then 302s to the store by user agent (envs `NEXT_PUBLIC_APP_STORE_URL` / `NEXT_PUBLIC_PLAY_STORE_URL`, fallback `/`). UGC-influencer tracking links.
-- `src/app/admin/referrals/` — clicks-per-code dashboard behind the existing magic-link admin gate (`requireAdmin`, `ADMIN_EMAILS`).
+- `src/app/referral/route.ts` — `GET /referral?code=X`: upserts `{code, platform, ip_hash}` into Supabase `referral_clicks` (unique on `code,ip_hash`, `ignoreDuplicates: true`, so one row per unique visitor per code) then 302s to the store by user agent (envs `NEXT_PUBLIC_APP_STORE_URL` / `NEXT_PUBLIC_PLAY_STORE_URL`, fallback `/`). The client IP is read from `x-forwarded-for` / `x-real-ip`, hashed with sha256 + `REFERRAL_IP_SALT` (falls back to `SUPABASE_SERVICE_ROLE_KEY` if unset), and never stored or logged in raw form; logging is skipped entirely if no salt is configured. UGC-influencer tracking links.
+- `src/app/admin/referrals/` — unique-visitor clicks-per-code dashboard (summary totals + per-code table with platform split, last 7 days, first/last click, share URL) behind the existing magic-link admin gate (`requireAdmin`, `ADMIN_EMAILS`). Linked from the main `/admin` header and a `Referrals` summary section there.
 - `src/components/legal/` — LegalShell, BackLink, ContactLinks (shared dark legal-page chrome).
 - Fonts: **Bricolage Grotesque** (display) + **Hanken Grotesk** (body) via `next/font/google` in `layout.tsx`.
 - Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/` — dark-themed.
@@ -93,6 +93,28 @@ Blockers before app build 2 → Apple/Google submission. Source of truth: app re
 3. `support/` — fix stale "Crumb" branding, the factually-wrong "OAuth/API" FAQ answer (it's OCR), and the "spending analytics" money-rule violation.
 
 Locked external strings: contact `contact@crumbify.co.uk`, store review `appreview@crumbify.co.uk`, account-delete `admin@crumbify.co.uk`, X `@crumbifyco`, delete URL `https://crumbify.co.uk/delete-account`.
+
+## Security guards (automated, run on every `npm test`)
+
+This repo is PUBLIC on GitHub, so two invariants are enforced by static-analysis jest
+tests instead of relying on review alone:
+
+- `src/__tests__/security/no-committed-secrets.test.ts` - walks tracked source
+  (`src/**`, `supabase/**`, `tests/**`, `next.config.ts`, `package.json`) and fails if it
+  finds a realistic Stripe live/test secret key, Stripe webhook secret, JWT-shaped string,
+  Google API key, a literal `service_role` key assignment, or `SUPABASE_SERVICE_ROLE_KEY=`
+  / `STRIPE_SECRET_KEY=` assigned a literal instead of a `process.env` reference. It uses a
+  minimum realistic key length so it does not fire on this repo's own test placeholders
+  (`sk_test_key`, `whsec_test`, `test-service-role-key`). **If it fires:** move the value to
+  an environment variable and rotate the key immediately - a public-repo key is scraped
+  within minutes.
+- `src/__tests__/security/no-raw-ip-persistence.test.ts` - reads `src/app/referral/route.ts`
+  and asserts the Supabase `referral_clicks` payload contains `ip_hash` and never a bare
+  `ip:` or `user_agent:` key, and that no `console.*` call passes the raw client-IP
+  variable. Raw IPs are personal data under UK GDPR. **If it fires:** you (or a refactor)
+  reintroduced raw-IP persistence/logging on the referral route - hash the IP with the
+  existing `hashIp()`/salt pattern before writing or logging anything derived from a
+  visitor's request.
 
 ## Conventions
 

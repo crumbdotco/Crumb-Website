@@ -80,8 +80,8 @@ export default function DeleteAccountPage() {
         <h2 style={headingStyle}>Option 2 - By email</h2>
         <p style={bodyStyle}>
           If you no longer have the app installed, email{" "}
-          <a href="mailto:support@crumbify.co.uk" style={linkStyle}>
-            support@crumbify.co.uk
+          <a href="mailto:admin@crumbify.co.uk" style={linkStyle}>
+            admin@crumbify.co.uk
           </a>{" "}
           from the address on your account and ask us to delete it. We action requests
           within 30 days.
@@ -92,11 +92,12 @@ export default function DeleteAccountPage() {
         <h2 style={headingStyle}>What gets deleted</h2>
         <ul style={listStyle}>
           <li>Your profile (name, username, email, avatar)</li>
-          <li>Imported order history and items</li>
-          <li>Restaurant reviews, ratings, and want-to-try lists</li>
-          <li>Friends, groups, messages, and social activity</li>
-          <li>Feed posts you created, their photos, likes, and comments</li>
-          <li>Food Soulmate matches and the opener messages you sent or received</li>
+          <li>Posts you created and their photos</li>
+          <li>Restaurant reviews, scores, and private notes</li>
+          <li>Your been-to and want-to-try lists</li>
+          <li>Comments and reactions you made on posts</li>
+          <li>Your friends and group memberships, and content you shared within groups</li>
+          <li>Direct messages you sent or received</li>
           <li>Your login account</li>
         </ul>
         <div style={noteBoxStyle}>
@@ -115,7 +116,11 @@ export default function DeleteAccountPage() {
             It holds no personal profile data.
           </li>
           <li>
-            Aggregated or anonymized analytics that can no longer identify you.
+            Aggregated or anonymised analytics that can no longer identify you.
+          </li>
+          <li>
+            We keep a record of the request email itself, so we can show we actioned your
+            deletion request.
           </li>
         </ul>
       </section>

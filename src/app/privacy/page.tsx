@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="June 2026">
+    <LegalShell title="Privacy Policy" updated="18 July 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -71,20 +71,22 @@ export default function PrivacyPage() {
           <li>
             <span style={strongStyle}>Account information:</span>{" "}
             Name, email address, username, and profile photo when you create an
-            account via Apple Sign In, Google Sign In, or email OTP.
+            account via Apple Sign In, Google Sign In, or email OTP. Sign in with
+            Apple or Google is used to authenticate you only, it does not give us
+            access to your Apple or Google account data.
           </li>
           <li>
-            <span style={strongStyle}>Order data:</span>{" "}
-            Crumbify reads your order history from screenshots you import (using OCR)
-            and from manual entries you add yourself. It does not connect to delivery
-            platform accounts or APIs to retrieve this data. The imported data is stored
-            locally on your device in an encrypted SQLite database. Anonymised taste
-            profiles and restaurant reviews are synced to our cloud database.
+            <span style={strongStyle}>Restaurants you add:</span>{" "}
+            When you share a TikTok or Instagram post into Crumbify, paste in a
+            Google Maps list link, or search and add a place manually, we store the
+            restaurant, your been-to and want-to-try status, and any score or note
+            you attach. Crumbify does not connect to delivery-platform accounts or
+            APIs, and it does not read your order history from screenshots.
           </li>
           <li>
-            <span style={strongStyle}>Restaurant reviews:</span>{" "}
-            Ratings and notes you write about restaurants. Notes are capped at
-            2,000 characters and synced to the cloud for social features.
+            <span style={strongStyle}>Reviews and private notes:</span>{" "}
+            Scores out of 10 and personal notes you write about places you have
+            been to.
           </li>
           <li>
             <span style={strongStyle}>Profile photo:</span>{" "}
@@ -92,37 +94,44 @@ export default function PrivacyPage() {
             SafeSearch to detect inappropriate content before being stored.
           </li>
           <li>
-            <span style={strongStyle}>Photos in feed posts:</span>{" "}
-            When you add a photo to a feed post or your profile, we store it and run
-            automated safety screening (Google Vision SafeSearch) before it is shown.
+            <span style={strongStyle}>Posts and photos:</span>{" "}
+            When you post about a place to your profile wall or the home feed, with
+            an optional photo, we store it and run automated safety screening
+            (Google Vision SafeSearch) before it is shown to others.
           </li>
           <li>
-            <span style={strongStyle}>Social posts and messages:</span>{" "}
-            Posts you publish (with optional photo and note) and the one-time opener
-            messages you send through Food Soulmate are stored so they can be shown to
-            the intended audience. You can report or block content and users in the app.
+            <span style={strongStyle}>Social activity:</span>{" "}
+            Reactions and comments on posts, friend connections and requests,
+            groups you create or join and their shared lists and shared photos,
+            direct messages you send, and leaderboard participation.
           </li>
           <li>
-            <span style={strongStyle}>Social data:</span>{" "}
-            Friend connections, group memberships, group feed posts, and food
-            soulmate match percentages.
+            <span style={strongStyle}>Location:</span>{" "}
+            With your permission, we use your device location to power the
+            Discover map and to help you find and add nearby places via Google
+            Places.
           </li>
           <li>
             <span style={strongStyle}>Advertising identifiers:</span>{" "}
             We show ads via Google AdMob and, with your consent, use your device
-            advertising identifier to personalise them. You can decline via the in-app
-            consent prompt and (iOS) the App Tracking prompt.
+            advertising identifier to personalise them. You can decline via the
+            in-app consent prompt and, on iOS, the App Tracking Transparency prompt.
           </li>
           <li>
             <span style={strongStyle}>Usage analytics:</span>{" "}
-            Anonymous analytics about screens visited and features used, collected
-            via Vercel Speed Insights on the website and standard app analytics.
+            Device and usage analytics about screens visited and features used in
+            the App, and anonymous performance metrics collected via Vercel Speed
+            Insights on the website.
           </li>
           <li>
-            <span style={strongStyle}>Waitlist data:</span>{" "}
-            Email address, signup IP, country, and user agent when joining the
-            waitlist. This data is used solely for launch notifications and bot
-            prevention.
+            <span style={strongStyle}>Founding-member checkout:</span>{" "}
+            If you buy a founding-member place through the website, Stripe
+            processes the payment and we store your email address to grant the
+            tier to your account. We never see or store your card details.
+          </li>
+          <li>
+            <span style={strongStyle}>Referral link visits:</span>{" "}
+            See section 9 below.
           </li>
         </ul>
       </section>
@@ -130,25 +139,27 @@ export default function PrivacyPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>3. What We Do NOT Collect</h2>
         <ul style={listStyle}>
-          <li>We never access, store, or see your delivery platform passwords.</li>
-          <li>We do not connect to delivery platform accounts or APIs to retrieve your order data. Import is done via screenshots (OCR) or manual entry only.</li>
-          <li>We never share your personal data with third parties for their marketing purposes.</li>
+          <li>We never access, store, or see your delivery-platform or other third-party account passwords.</li>
+          <li>We do not connect to delivery-platform accounts or APIs, and we do not read order history from screenshots. Places are added by sharing a TikTok or Instagram post into the app, pasting a Google Maps list link, or manual search.</li>
+          <li>We never share your personal data with third parties for their own marketing purposes.</li>
           <li>We do not sell your data to advertisers or data brokers.</li>
-          <li>We do not track your location - restaurant maps use data from your imported order history only.</li>
+          <li>We do not show spend, price, or currency figures anywhere in the App or Site.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
         <h2 style={headingStyle}>4. How We Use Your Information</h2>
         <ul style={listStyle}>
-          <li>Generate personalised food delivery statistics and insights.</li>
-          <li>Create your taste profile and food personality type.</li>
-          <li>Enable social features: friend comparisons, food soulmate matching, groups, the global feed, and activity feeds.</li>
-          <li>Compute global statistics (anonymised, aggregated across all users).</li>
-          <li>Send weekly recap notifications and achievement alerts.</li>
-          <li>Moderate uploaded content (avatars, feed photos) for safety.</li>
+          <li>Run the home feed: showing friends&apos; posts, reactions, comments, and leaderboards.</li>
+          <li>Power Discover: the map, nearby places, and taste-matched recommendations.</li>
+          <li>Maintain your Reviews history: been-to places, want-to-try lists, scores, and private notes.</li>
+          <li>Enable Social features: friends, groups, shared lists, shared photos, and direct messages.</li>
+          <li>Run your Profile wall: posts, achievements, and tiers, and the monthly Challenge.</li>
+          <li>Moderate uploaded content (avatars, post photos) for safety.</li>
           <li>Process reports submitted by users about inappropriate content or behaviour.</li>
           <li>Show relevant ads to free-tier users via Google AdMob.</li>
+          <li>Grant and manage Crumbify Premium and founding-member access.</li>
+          <li>Measure referral-link effectiveness (see section 9).</li>
           <li>Improve and maintain the App and Site.</li>
         </ul>
       </section>
@@ -156,17 +167,15 @@ export default function PrivacyPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>5. Data Storage and Security</h2>
         <p style={bodyStyle}>
-          Your order data is stored locally on your device using encrypted SQLite
-          storage. Cloud features use Supabase (hosted in the EU) with row-level
-          security (RLS) policies enforcing per-user data isolation. All API
-          communication uses HTTPS with TLS 1.3.
+          Cloud data is stored with Supabase, using row-level security (RLS)
+          policies that enforce per-user data isolation. All API communication uses
+          HTTPS with TLS.
         </p>
         <ul style={listStyle}>
           <li>Auth tokens are stored on-device only using secure storage.</li>
           <li>Passwords are never stored - authentication uses Apple/Google Sign In or email OTP.</li>
-          <li>Avatar moderation logs are automatically deleted after 30 days.</li>
-          <li>Waitlist audit logs and places search logs are automatically purged on schedule.</li>
-          <li>Account deletion removes all cloud data immediately via a secure Edge Function.</li>
+          <li>Avatar and post-photo moderation logs are automatically deleted after 30 days.</li>
+          <li>Account deletion removes your cloud data as described on our delete-account page.</li>
         </ul>
       </section>
 
@@ -175,19 +184,19 @@ export default function PrivacyPage() {
         <ul style={listStyle}>
           <li>
             <span style={strongStyle}>Supabase:</span>{" "}
-            Cloud database and authentication provider (EU-hosted).
+            Cloud database, authentication, and storage provider for the App and website.
           </li>
           <li>
-            <span style={strongStyle}>Google Places API:</span>{" "}
-            Used to fetch restaurant details (photos, ratings, addresses). Rate-limited per user.
+            <span style={strongStyle}>Google Places:</span>{" "}
+            Used to search for and fetch restaurant details (photos, ratings, addresses) when you add a place or use Discover.
           </li>
           <li>
             <span style={strongStyle}>Google Vision API:</span>{" "}
-            SafeSearch moderation for uploaded avatar images and feed photos. Rate-limited per user.
+            SafeSearch moderation for uploaded avatar images and post photos.
           </li>
           <li>
             <span style={strongStyle}>RevenueCat:</span>{" "}
-            Manages in-app subscriptions. Receives your anonymous user ID only.
+            Manages Crumbify Premium subscriptions. Receives your anonymous user ID only.
           </li>
           <li>
             <span style={strongStyle}>Google AdMob:</span>{" "}
@@ -196,16 +205,16 @@ export default function PrivacyPage() {
             Premium users see no ads.
           </li>
           <li>
-            <span style={strongStyle}>Cloudflare Turnstile:</span>{" "}
-            Bot protection on the waitlist form. No personal data is collected.
+            <span style={strongStyle}>Stripe:</span>{" "}
+            Processes founding-member payments on the website only. We never see or store your card details.
           </li>
           <li>
-            <span style={strongStyle}>Stripe:</span>{" "}
-            Processes founding member payments on the website only. We never see or store your card details.
+            <span style={strongStyle}>Sentry:</span>{" "}
+            Error monitoring for the App and website, to help us find and fix bugs.
           </li>
           <li>
             <span style={strongStyle}>Vercel:</span>{" "}
-            Hosts the website with speed insights analytics.
+            Hosts the website and collects anonymous performance metrics via Speed Insights.
           </li>
         </ul>
       </section>
@@ -214,11 +223,11 @@ export default function PrivacyPage() {
         <h2 style={headingStyle}>7. Social Features and Visibility</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>Crumbify includes social features with the following visibility controls:</p>
         <ul style={listStyle}>
-          <li>You can set your profile to private, hiding your stats from non-friends.</li>
+          <li>You can set your profile to private, hiding your posts and reviews from non-friends.</li>
           <li>Friend requests require mutual acceptance.</li>
           <li>You can block or report any user. Blocked users cannot see your profile or send requests.</li>
-          <li>Group membership is visible to other group members only.</li>
-          <li>Group feed posts are visible to group members only.</li>
+          <li>Group membership and shared group content are visible to other group members only.</li>
+          <li>Direct messages are visible only to the people in the conversation.</li>
           <li>You can unfriend, leave groups, or delete your account at any time.</li>
         </ul>
       </section>
@@ -226,7 +235,7 @@ export default function PrivacyPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>8. Content Moderation</h2>
         <p style={bodyStyle}>
-          Uploaded avatars and feed photos are automatically scanned using Google Vision SafeSearch.
+          Uploaded avatars and post photos are automatically scanned using Google Vision SafeSearch.
           Images flagged as containing adult, violent, or racy content are rejected.
           Users can report other users or content, which is reviewed and actioned.
           Moderation logs are retained for 30 days, then automatically deleted.
@@ -234,7 +243,21 @@ export default function PrivacyPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>9. Advertising</h2>
+        <h2 style={headingStyle}>9. Referral Link Tracking</h2>
+        <p style={bodyStyle}>
+          Some creators share tracking links in the form crumbify.co.uk/referral?code=CODE.
+          When someone visits such a link, we record the referral code and the visitor&apos;s
+          device platform (iOS, Android, or other), and store a salted SHA-256 hash of the
+          visitor&apos;s IP address before redirecting them to the relevant app store. The raw
+          IP address is never stored, only the hash, and only one record is kept per unique
+          visitor per code. We use this solely to measure how many people a creator&apos;s link
+          brings in, on the basis of our legitimate interest in measuring marketing
+          effectiveness.
+        </p>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>10. Advertising</h2>
         <p style={bodyStyle}>
           Free-tier users see ads via Google AdMob. AdMob may use device identifiers for
           ad personalisation. You can decline personalised ads via the in-app consent
@@ -244,13 +267,12 @@ export default function PrivacyPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>10. GDPR and Your Rights</h2>
+        <h2 style={headingStyle}>11. GDPR and Your Rights</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>Under GDPR and UK data protection law, you have the right to:</p>
         <ul style={listStyle}>
           <li>Access all data we hold about you.</li>
           <li>Request correction of inaccurate data.</li>
           <li>Request deletion of your account and all associated data.</li>
-          <li>Export your data in a portable format (Premium feature).</li>
           <li>Object to processing of your data.</li>
           <li>Withdraw consent for optional data collection at any time.</li>
         </ul>
@@ -261,29 +283,32 @@ export default function PrivacyPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>11. Data Retention</h2>
+        <h2 style={headingStyle}>12. Data Retention</h2>
         <ul style={listStyle}>
           <li>Account data is retained until you delete your account.</li>
-          <li>On-device order data is deleted when you uninstall the App.</li>
-          <li>Avatar and feed photo moderation logs: 30 days.</li>
-          <li>Places search logs: 48 hours.</li>
-          <li>Waitlist audit logs: purged on schedule.</li>
-          <li>When you delete your account, all cloud data is removed immediately.</li>
+          <li>Avatar and post-photo moderation logs: 30 days.</li>
+          <li>
+            Waitlist signups: the email waitlist form has been removed from the website, but
+            emails collected while it was live may still be retained for launch notifications;
+            contact us if you would like one removed.
+          </li>
+          <li>Referral-link records: kept as an IP hash with no way to reverse it to an address, retained for as long as we need it to measure referral performance.</li>
+          <li>When you delete your account, your cloud data is removed as described on our delete-account page.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>12. Children&apos;s Privacy</h2>
+        <h2 style={headingStyle}>13. Children&apos;s Privacy</h2>
         <p style={bodyStyle}>
           Crumbify is not intended for children under 16. We do not knowingly
           collect personal information from children under 16. If we discover
           that a child under 16 has provided us with personal information, we
-          will delete it immediately.
+          will delete it.
         </p>
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>13. Changes to This Policy</h2>
+        <h2 style={headingStyle}>14. Changes to This Policy</h2>
         <p style={bodyStyle}>
           We may update this Privacy Policy from time to time. We will notify
           you of any material changes via in-app notification or email. Your
@@ -293,7 +318,7 @@ export default function PrivacyPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>14. Contact Us</h2>
+        <h2 style={headingStyle}>15. Contact Us</h2>
         <p style={bodyStyle}>
           If you have questions about this Privacy Policy, contact us at{" "}
           <a

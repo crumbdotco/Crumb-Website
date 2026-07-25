@@ -1,12 +1,12 @@
 /**
  * Referral redirect route tests.
- * Validates code format, platform detection from user-agent, click logging
- * (non-blocking on insert failure), and redirect targets.
+ * Validates code format, platform detection from user-agent, unique-visitor
+ * click logging via IP-hash upsert (non-blocking on failure), and redirects.
  */
 
 // --- Supabase mock ---
-const mockInsert = jest.fn();
-const mockFrom = jest.fn(() => ({ insert: mockInsert }));
+const mockUpsert = jest.fn();
+const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
 
 jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({ from: mockFrom })),
@@ -30,9 +30,13 @@ import { GET } from "../../app/referral/route";
 
 type FakeRequest = { url: string; headers: Headers };
 
-function buildRequest(url: string, userAgent?: string): FakeRequest {
+function buildRequest(
+  url: string,
+  { userAgent, ip }: { userAgent?: string; ip?: string } = {}
+): FakeRequest {
   const headers = new Headers();
   if (userAgent) headers.set("user-agent", userAgent);
+  if (ip) headers.set("x-forwarded-for", ip);
   return { url, headers };
 }
 
@@ -46,11 +50,12 @@ const DESKTOP_UA =
 describe("GET /referral", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFrom.mockImplementation(() => ({ insert: mockInsert }));
+    mockFrom.mockImplementation(() => ({ upsert: mockUpsert }));
     mockCreateClient.mockReturnValue({ from: mockFrom });
-    mockInsert.mockResolvedValue({ error: null });
+    mockUpsert.mockResolvedValue({ error: null });
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
+    process.env.REFERRAL_IP_SALT = "test-salt";
     process.env.NEXT_PUBLIC_APP_STORE_URL = "https://apps.apple.com/app/crumbify";
     process.env.NEXT_PUBLIC_PLAY_STORE_URL =
       "https://play.google.com/store/apps/details?id=crumbify";
@@ -59,97 +64,222 @@ describe("GET /referral", () => {
   afterEach(() => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.REFERRAL_IP_SALT;
     delete process.env.NEXT_PUBLIC_APP_STORE_URL;
     delete process.env.NEXT_PUBLIC_PLAY_STORE_URL;
   });
 
-  it("redirects iOS user-agent to the App Store and logs an ios click", async () => {
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", IOS_UA);
+  it("redirects iOS user-agent to the App Store and logs an ios click via upsert", async () => {
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://apps.apple.com/app/crumbify");
     expect(mockFrom).toHaveBeenCalledWith("referral_clicks");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "ABC123", platform: "ios", user_agent: IOS_UA })
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "ABC123", platform: "ios" }),
+      { onConflict: "code,ip_hash", ignoreDuplicates: true }
     );
   });
 
   it("redirects Android user-agent to the Play Store and logs an android click", async () => {
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", ANDROID_UA);
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: ANDROID_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(
       "https://play.google.com/store/apps/details?id=crumbify"
     );
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "ABC123", platform: "android", user_agent: ANDROID_UA })
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "ABC123", platform: "android" }),
+      { onConflict: "code,ip_hash", ignoreDuplicates: true }
     );
   });
 
   it("redirects other/desktop user-agents home and logs an other click", async () => {
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", DESKTOP_UA);
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: DESKTOP_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://crumbify.co.uk/");
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "ABC123", platform: "other", user_agent: DESKTOP_UA })
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "ABC123", platform: "other" }),
+      { onConflict: "code,ip_hash", ignoreDuplicates: true }
     );
   });
 
-  it("redirects to home and does not insert when code is invalid", async () => {
-    const req = buildRequest("https://crumbify.co.uk/referral?code=%20%20", IOS_UA);
+  it("redirects to home and does not upsert when code is invalid", async () => {
+    const req = buildRequest("https://crumbify.co.uk/referral?code=%20%20", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://crumbify.co.uk/");
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
   });
 
-  it("redirects to home and does not insert when code is missing", async () => {
-    const req = buildRequest("https://crumbify.co.uk/referral", IOS_UA);
+  it("redirects to home and does not upsert when code is missing", async () => {
+    const req = buildRequest("https://crumbify.co.uk/referral", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://crumbify.co.uk/");
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
   });
 
   it("redirects home when the app store env var is unset for iOS", async () => {
     delete process.env.NEXT_PUBLIC_APP_STORE_URL;
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", IOS_UA);
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://crumbify.co.uk/");
   });
 
-  it("still redirects when the click insert rejects", async () => {
-    mockInsert.mockResolvedValueOnce({ error: { message: "insert failed" } });
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", IOS_UA);
+  it("still redirects when the click upsert rejects", async () => {
+    mockUpsert.mockResolvedValueOnce({ error: { message: "upsert failed" } });
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://apps.apple.com/app/crumbify");
   });
 
-  it("still redirects when the insert call throws", async () => {
-    mockInsert.mockRejectedValueOnce(new Error("network error"));
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", IOS_UA);
+  it("still redirects when the upsert call throws", async () => {
+    mockUpsert.mockRejectedValueOnce(new Error("network error"));
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("https://apps.apple.com/app/crumbify");
   });
 
-  it("does not attempt to insert when Supabase env vars are missing", async () => {
+  it("does not attempt to upsert when Supabase env vars are missing", async () => {
     delete process.env.SUPABASE_URL;
-    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", IOS_UA);
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
     const res = await GET(req as unknown as Request);
 
     expect(res.status).toBe(302);
-    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it("does not log the raw IP or user_agent in the inserted payload, only ip_hash", async () => {
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "9.9.9.9",
+    });
+    await GET(req as unknown as Request);
+
+    const payload = mockUpsert.mock.calls[0][0];
+    expect(payload).toHaveProperty("ip_hash");
+    expect(payload).not.toHaveProperty("ip");
+    expect(payload).not.toHaveProperty("user_agent");
+    expect(typeof payload.ip_hash).toBe("string");
+    expect(payload.ip_hash).not.toBe("9.9.9.9");
+  });
+
+  it("produces different ip_hash values for different IPs", async () => {
+    const req1 = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.1.1.1",
+    });
+    await GET(req1 as unknown as Request);
+    const hash1 = mockUpsert.mock.calls[0][0].ip_hash;
+
+    mockUpsert.mockClear();
+
+    const req2 = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "2.2.2.2",
+    });
+    await GET(req2 as unknown as Request);
+    const hash2 = mockUpsert.mock.calls[0][0].ip_hash;
+
+    expect(hash1).not.toBe(hash2);
+  });
+
+  it("produces a stable ip_hash for the same IP across requests", async () => {
+    const req1 = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "5.5.5.5",
+    });
+    await GET(req1 as unknown as Request);
+    const hash1 = mockUpsert.mock.calls[0][0].ip_hash;
+
+    mockUpsert.mockClear();
+
+    const req2 = buildRequest("https://crumbify.co.uk/referral?code=XYZ789", {
+      userAgent: ANDROID_UA,
+      ip: "5.5.5.5",
+    });
+    await GET(req2 as unknown as Request);
+    const hash2 = mockUpsert.mock.calls[0][0].ip_hash;
+
+    expect(hash1).toBe(hash2);
+  });
+
+  it("falls back to x-real-ip when x-forwarded-for is absent", async () => {
+    const headers = new Headers();
+    headers.set("user-agent", IOS_UA);
+    headers.set("x-real-ip", "8.8.8.8");
+    const req = { url: "https://crumbify.co.uk/referral?code=ABC123", headers };
+
+    await GET(req as unknown as Request);
+
+    expect(mockUpsert).toHaveBeenCalled();
+    const payload = mockUpsert.mock.calls[0][0];
+    expect(payload.ip_hash).toBeTruthy();
+  });
+
+  it("does not upsert (but still redirects) when no salt is configured and no service key fallback exists", async () => {
+    delete process.env.REFERRAL_IP_SALT;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
+    const res = await GET(req as unknown as Request);
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("https://apps.apple.com/app/crumbify");
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the service role key as salt when REFERRAL_IP_SALT is unset", async () => {
+    delete process.env.REFERRAL_IP_SALT;
+    const req = buildRequest("https://crumbify.co.uk/referral?code=ABC123", {
+      userAgent: IOS_UA,
+      ip: "1.2.3.4",
+    });
+    const res = await GET(req as unknown as Request);
+
+    expect(res.status).toBe(302);
+    expect(mockUpsert).toHaveBeenCalled();
   });
 });

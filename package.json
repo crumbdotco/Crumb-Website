@@ -30,6 +30,10 @@
     "stripe": "^20.4.1",
     "tailwind-merge": "^3.6.0"
   },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.3"
+  },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-env": "^7.29.2",
