@@ -198,7 +198,10 @@
 .landing .cta-in h2{font-size:clamp(38px,5.2vw,68px);color:var(--cream)}
 .landing .cta-in h2 em{color:var(--gold)}
 .landing .cta-in p{color:#e5d6c2;font-size:20px;margin:20px auto 34px;max-width:520px}
-.landing .cta-in .stores{justify-content:center}
+/* the badges' centring inside this section is now applied directly on
+   StoreBadges via a `className="justify-center"` prop (CTA.tsx) - see
+   StoreBadges.tsx's file header for why `.stores`/`.store` class hooks
+   were removed here (pixel-fix F-53 fix-round r2, F53-N1). */
 
 /* FOOTER */
 .landing footer{background:var(--ink);color:#cdbfad;padding:clamp(72px,9vw,110px) 0 46px}
@@ -257,8 +260,9 @@
   .landing .match-card,.landing .gcard{padding:22px}
   .landing .cta-in{padding:80px 20px}
   .landing .scrollcue{display:none}
-  .landing .stores{gap:10px}
-  .landing .store{flex:1 1 auto;justify-content:center;min-width:0}
+  /* mobile badge gap + stretch are now Tailwind utilities on StoreBadges
+     itself (max-sm:gap-[10px] on the wrapper, max-sm:flex-1/min-w-0/
+     justify-center on each anchor) - see StoreBadges.tsx. */
   .landing .marquee .mtrack.a{animation-duration:40s}
   .landing .marquee .mtrack.b{animation-duration:46s}
 }

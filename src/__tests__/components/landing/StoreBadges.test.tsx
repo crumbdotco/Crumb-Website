@@ -41,6 +41,13 @@ describe("StoreBadges", () => {
       expect(appStoreLink).toHaveAttribute("href", "/#founding");
     });
 
+    it("the App Store badge's visible label reads Coming soon, matching its aria-label and the Play badge's convention (fix-round r2, F53-N3)", () => {
+      render(<StoreBadges />);
+      const appStoreLink = screen.getByRole("link", { name: /App Store/i });
+      expect(appStoreLink).toHaveTextContent("Coming soon");
+      expect(appStoreLink).not.toHaveTextContent("Download on the");
+    });
+
     it('the Google Play badge falls back to the working /#founding CTA too, never a bare "#" or a disabled span', () => {
       render(<StoreBadges />);
       const playLink = screen.getByRole("link", { name: /Google Play/i });
@@ -72,6 +79,21 @@ describe("StoreBadges", () => {
         "href",
         "https://play.google.com/store/apps/details?id=com.crumbify.app",
       );
+    });
+  });
+
+  describe("className prop (fix-round r2, F53-N1: CTA.tsx recentring)", () => {
+    it("merges an optional className onto the wrapper without dropping the base layout classes", () => {
+      const { getByTestId } = render(<StoreBadges className="justify-center" />);
+      const wrapper = getByTestId("store-badges");
+      expect(wrapper.className).toMatch(/justify-center/);
+      expect(wrapper.className).toMatch(/flex-wrap/);
+    });
+
+    it("renders with no extra classes when className is omitted (homepage Hero.tsx usage)", () => {
+      const { getByTestId } = render(<StoreBadges />);
+      const wrapper = getByTestId("store-badges");
+      expect(wrapper.className).not.toMatch(/justify-center/);
     });
   });
 

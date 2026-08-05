@@ -27,12 +27,42 @@
  * badge instead links to the site's founding-member join section
  * (`/#founding`, FoundingSection.tsx) as the working fallback CTA, so a
  * recipient without the app always has somewhere real to go.
+ *
+ * Pixel-fix F-53 fix-round r2 (F53-N1): the anchor's text colour uses the
+ * `!` (important) Tailwind v4 modifier (`!text-white` / `hover:!text-white`)
+ * rather than r1's plain `text-white`. Reason: `.landing` (the homepage's
+ * page-scoped stylesheet, src/app/landing.css) is imported UNLAYERED at
+ * src/app/page.tsx, while Tailwind's generated utilities live inside
+ * `@layer utilities` (src/app/globals.css's `@import "tailwindcss"`).
+ * Unlayered CSS always wins over layered CSS regardless of selector
+ * specificity, so landing.css's `.landing a{color:var(--gold-2)}` /
+ * `.landing a:hover{color:var(--ink)}` silently overrode the plain
+ * `text-white` utility on the homepage (Hero.tsx / CTA.tsx) - the label
+ * rendered gold, and near-invisible ink-on-black on hover. `/u/[username]`
+ * (ProfileShareLanding.tsx) never imports landing.css so was never affected
+ * - this was purely a homepage regression. The `!` modifier emits
+ * `color:#fff!important`, which beats an unlayered non-`!important` rule
+ * too, so this fixes the homepage without landing.css needing to know
+ * anything about this component, and without reintroducing the
+ * `.landing .store` coupling R1 deliberately removed.
+ *
+ * `className` (optional) lets a consumer add layout-only utilities to the
+ * badges' flex wrapper - e.g. CTA.tsx passes `justify-center` to recentre
+ * them inside its centred `.cta-in` band, now that the old
+ * `.landing .cta-in .stores{justify-content:center}` rule has no matching
+ * class left to attach to (the wrapper below carries no `stores` class by
+ * design - see the file-header note above on why).
  */
 
 import { appleSvg, gplaySvg } from "./data";
 
 /** Working fallback destination when a platform's store URL env is unset. */
 const FALLBACK_CTA_HREF = "/#founding";
+
+export interface StoreBadgesProps {
+  /** Extra layout-only classes merged onto the badges' flex wrapper. */
+  readonly className?: string;
+}
 
 interface StoreBadgeProps {
   readonly href: string;
@@ -45,7 +75,7 @@ interface StoreBadgeProps {
 function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBadgeProps) {
   return (
     <a
-      className="inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:text-white active:translate-y-0"
+      className="inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-sm:flex-1 max-sm:min-w-0 max-sm:justify-center"
       href={href}
       aria-label={ariaLabel}
     >
@@ -61,16 +91,19 @@ function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBad
   );
 }
 
-export function StoreBadges() {
+export function StoreBadges({ className = "" }: StoreBadgesProps = {}) {
   const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL || "";
   const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL || "";
 
   return (
-    <div className="flex flex-wrap gap-[13px]" data-testid="store-badges">
+    <div
+      className={`flex flex-wrap gap-[13px] max-sm:gap-[10px]${className ? ` ${className}` : ""}`}
+      data-testid="store-badges"
+    >
       <StoreBadge
         href={appStoreUrl || FALLBACK_CTA_HREF}
         iconSvg={appleSvg}
-        smallLabel="Download on the"
+        smallLabel={appStoreUrl ? "Download on the" : "Coming soon"}
         bigLabel="App Store"
         ariaLabel={
           appStoreUrl
