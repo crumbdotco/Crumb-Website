@@ -7,6 +7,7 @@
       "sha256_cert_fingerprints": [
         "REPLACE_WITH_SHA256_FROM_PLAY_CONSOLE"
       ]
-    }
+    },
+    "comment": "OWNER ACTION (pixel-fix F-53R6, not fixable by an agent): Play Console > [app] > Setup > App integrity > App signing > App signing key certificate > 'SHA-256 certificate fingerprint'. Paste that colon-separated hex value here (or run `keytool -list -v -keystore <release.keystore>` against the real release-signing keystore and copy its SHA256 line). Until this placeholder is replaced, Android App Links verification for BOTH /invite and /u silently fails - not a crash, just a fallback to an app-picker chooser instead of a direct open."
   }
 ]
