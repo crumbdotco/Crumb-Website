@@ -8,6 +8,8 @@
  * the fallback timeout swap, and cleanup.
  */
 
+import { readFileSync } from "fs";
+import { join } from "path";
 import { render, screen, act } from "@testing-library/react";
 import { ProfileShareLanding } from "@/components/profile-share/ProfileShareLanding";
 
@@ -131,5 +133,36 @@ describe("ProfileShareLanding", () => {
         jest.advanceTimersByTime(2000);
       });
     }).not.toThrow();
+  });
+});
+
+// jsdom's `render()` is a client-only mount, not a real server-render ->
+// hydrate pass, so it cannot reproduce the actual SSR-flash bug (F53-N2:
+// the fallback CTA painting before hydration knows isAndroid). Source
+// invariant instead, per the static-analysis-test pattern: assert the
+// `isHydrated` gate is wired onto BOTH branches so a future edit can't
+// silently drop it and reintroduce the flash.
+describe("F53-N2 regression: neither branch renders before hydration is known", () => {
+  const src = readFileSync(
+    join(__dirname, "../../../components/profile-share/ProfileShareLanding.tsx"),
+    "utf8",
+  );
+
+  it("showOpeningMessage is gated on isHydrated", () => {
+    expect(src).toMatch(/const showOpeningMessage = isHydrated && isAndroid && !showFallback;/);
+  });
+
+  it("showFallbackCta is gated on isHydrated (never just !showOpeningMessage)", () => {
+    expect(src).toMatch(/const showFallbackCta = isHydrated && !showOpeningMessage;/);
+  });
+
+  it("the fallback-CTA JSX branch renders off showFallbackCta, not the raw !showOpeningMessage", () => {
+    expect(src).toMatch(/\{showFallbackCta && \(/);
+    expect(src).not.toMatch(/\{!showOpeningMessage && \(/);
+  });
+
+  it("isHydrated's server snapshot is false and client snapshot is true (SSR-false/client-true shape)", () => {
+    expect(src).toMatch(/function getServerIsHydratedSnapshot\(\): boolean \{\s*return false;/);
+    expect(src).toMatch(/function getIsHydratedSnapshot\(\): boolean \{\s*return true;/);
   });
 });

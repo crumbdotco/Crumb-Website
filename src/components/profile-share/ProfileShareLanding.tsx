@@ -21,6 +21,18 @@
  * explicit "Open in the Crumbify app" button instead, gated behind a real
  * user gesture (also safe to offer on Android as a manual retry).
  *
+ * Fix-round r2 (F53-N2): `isAndroid` is false on the server-rendered HTML
+ * (there is no `navigator` during SSR - see getServerIsAndroidSnapshot
+ * below), so before r2 an Android recipient's FIRST PAINT was the
+ * give-up "get the app" fallback CTA, which then flipped to the "Opening
+ * in the Crumbify app..." message once React hydrated and re-read the real
+ * user agent - the opposite of the intended experience. `isHydrated`
+ * (also read via useSyncExternalStore, same SSR-false/client-true shape)
+ * gates render of BOTH branches: until hydration is known to have
+ * happened, the page shows only the neutral "@username" heading with no
+ * opening message and no fallback CTA, so nobody sees the give-up state
+ * flash before the real handoff attempt fires.
+ *
  * Brand rules (house, ~/.claude/rules/common/frontend-design.md +
  * this repo's CLAUDE.md): no money/£ figures, no letter-spacing > 0, no
  * em/en dashes (plain hyphens only), no decorative separator dots, no
@@ -53,6 +65,21 @@ function getServerIsAndroidSnapshot(): boolean {
   return false;
 }
 
+/** True once mounted on the client; false during SSR/hydration (F53-N2). */
+function getIsHydratedSnapshot(): boolean {
+  return true;
+}
+
+/** The hydration state never changes after mount, so subscribing is a permanent no-op. */
+function subscribeToHydration(): () => void {
+  return () => {};
+}
+
+/** Not yet hydrated during server rendering. */
+function getServerIsHydratedSnapshot(): boolean {
+  return false;
+}
+
 export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
   const [showFallback, setShowFallback] = useState(false);
   // Hydration-safe read of a browser-only value (react-hooks/set-state-in-
@@ -66,6 +93,14 @@ export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
     subscribeToPlatform,
     isAndroidDevice,
     getServerIsAndroidSnapshot,
+  );
+  // Gates BOTH the opening-message and fallback-CTA branches below (F53-N2)
+  // so the give-up fallback never paints before hydration knows whether
+  // this is Android (see file header).
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getIsHydratedSnapshot,
+    getServerIsHydratedSnapshot,
   );
 
   useEffect(() => {
@@ -92,7 +127,8 @@ export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
     return () => window.clearTimeout(timer);
   }, [username, isAndroid]);
 
-  const showOpeningMessage = isAndroid && !showFallback;
+  const showOpeningMessage = isHydrated && isAndroid && !showFallback;
+  const showFallbackCta = isHydrated && !showOpeningMessage;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4ECE1] px-6 py-16 text-center text-[#1A1208]">
@@ -108,7 +144,7 @@ export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
         </p>
       )}
 
-      {!showOpeningMessage && (
+      {showFallbackCta && (
         <div className="flex flex-col items-center gap-6" data-testid="fallback-cta">
           <p className="max-w-sm text-base text-[#4a3f33]">
             Get the Crumbify app to see this profile, follow their food finds, and
