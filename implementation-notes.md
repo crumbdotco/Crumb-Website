@@ -116,3 +116,83 @@ EmailCapture, FeaturePhoneA, GroupCard, LedgeButton, PersonalityChart, PhoneFram
 ReviewCard, SoulmateCard, tokens.ts) were left in place untouched, per the brief's
 instruction not to delete old files (a later cleanup pass does that). They are no longer
 imported from `page.tsx` or the new `FoundingSection.tsx`.
+
+## Pixel-fix F-53 fix-round r2 (website repo)
+
+Round-2 re-review (wave1-rereview-r2.json) closed 9/10 round-1 findings and
+opened 5 new ones (F53-N1..N5), all in this repo. Fixed all five:
+
+- **F53-N1 (HIGH):** round-1's fix for F53-R1 (self-styling StoreBadges,
+  deleting `.landing .store`/`.stores` CSS) silently regressed the
+  MARKETING HOMEPAGE - `landing.css` is imported UNLAYERED at
+  `src/app/page.tsx` while Tailwind's utilities live inside
+  `@layer utilities` (`src/app/globals.css`'s `@import "tailwindcss"`), so
+  unlayered `.landing a{color:var(--gold-2)}` / `.landing a:hover{color:
+  var(--ink)}` always beat the plain `text-white`/`hover:text-white`
+  utilities regardless of specificity - badge labels rendered gold, and
+  near-invisible ink-on-black on hover. Fixed by switching to Tailwind v4's
+  `!` important modifier (`!text-white hover:!text-white`) on the anchor,
+  which emits `!important` and wins over any unlayered non-`!important`
+  rule too. Also restored the two orphaned layout rules the class deletion
+  broke: `StoreBadges` now takes an optional `className` prop (CTA.tsx
+  passes `justify-center` to recentre the badges in its centred `.cta-in`
+  band) and carries its own mobile-responsive Tailwind utilities
+  (`max-sm:gap-[10px]` on the wrapper, `max-sm:flex-1 max-sm:min-w-0
+  max-sm:justify-center` on each anchor) replacing the dead
+  `max-width:560px` `.landing .stores`/`.store` rules, which are now
+  removed from `landing.css` with a pointer comment. Verified the ONLY
+  consumers are `Hero.tsx`, `CTA.tsx`, `ProfileShareLanding.tsx` (all still
+  correctly render via the shared component, just with the colour now
+  robust to the cascade and the CTA band's centring restored via prop
+  rather than a global class hook).
+- **F53-N2 (LOW):** `ProfileShareLanding.tsx` rendered the give-up
+  fallback CTA in the server-rendered HTML on every platform (`isAndroid`
+  is `false` during SSR - no `navigator`), so an Android recipient's FIRST
+  PAINT was "get the app" before flipping to "Opening in the Crumbify
+  app..." post-hydration. Added a second `useSyncExternalStore`
+  (`isHydrated`, same SSR-false/client-true shape as the existing
+  `isAndroid` read) gating BOTH the opening-message and fallback-CTA
+  branches, so the page shows only the neutral `@username` heading until
+  hydration is known to have happened. jsdom's `render()` is a client-only
+  mount (not a real SSR->hydrate pass) so it can't reproduce the flash
+  behaviourally - added a static-analysis regression test instead,
+  asserting the `isHydrated` gate is wired onto both branches by source
+  inspection, per the repo's static-analysis-test convention (mirrors the
+  app repo's `.claude/rules/testing-and-gates.md` pattern).
+- **F53-N3 (LOW):** the App Store badge's visible label read "Download on
+  the App Store" even when `NEXT_PUBLIC_APP_STORE_URL` was unset (href
+  `/#founding`), disagreeing with its own aria-label and the Play badge's
+  already-conditional convention. Mirrored the Play badge: `smallLabel`
+  is now `appStoreUrl ? "Download on the" : "Coming soon"`.
+- **F53-N4:** app-repo-only, see `../worktrees/pixelfix-share-f53/implementation-notes.md`.
+- **F53-N5 (LOW):** removed the non-spec `comment` key from
+  `assetlinks.json`'s statement object (restoring the plain two-key
+  `relation`/`target` shape a Digital Asset Links verifier expects) and
+  moved the owner-action note to a new `public/.well-known/README.md`.
+
+Automation-as-infrastructure check: the recurring class here is exactly
+the one this repo's `.claude/rules/ultracode-workflows.md` and the app
+repo's `implementation-playbook.md` already name - "a fix round introduces
+its own regression" (specifically: deleting CSS coupled to a component
+without checking what ELSE that CSS's selectors were carrying, and without
+checking the unlayered-vs-layered cascade interaction with Tailwind v4).
+No new automated guard added for the cascade-order class specifically
+(a genuine Playwright/computed-style check was flagged as the ideal fix by
+the r2 reviewer but is out of scope for a targeted fix round - jsdom
+cannot compute real CSS cascade); logged explicitly per the Standing Test
+rather than silently skipped. The `!important` fix itself is a structural
+guard against a repeat of this exact regression (an `!important` utility
+cannot lose to an unlayered non-`!important` rule, so a future landing.css
+edit can't silently re-break this again the same way).
+
+Gates run this round: `npx tsc --noEmit` -> 0 errors. `npx eslint` on all
+touched source + test files -> 0 errors (1 pre-existing unrelated warning
+on CTA.tsx's `<img>` usage, not touched by this fix). Targeted jest
+(`--testPathPattern "(StoreBadges|ProfileShareLanding)"`, `--maxWorkers=2`)
+-> 2 suites / 25 tests passed (7 new tests added: App Store fallback
+label, className merge x2, 4 F53-N2 static-invariant assertions). Full
+`npm test`, `npm run build`, `next build` NOT re-run in this fix-round
+session (targeted-only per this session's scope, and this repo's known
+pre-existing failing suites - `waitlist-extended.test.ts`,
+`EtherealShadow*.test.tsx` - are unrelated and out of scope, see the
+earlier "Gate results" section above).
