@@ -52,6 +52,25 @@
  * `.landing .cta-in .stores{justify-content:center}` rule has no matching
  * class left to attach to (the wrapper below carries no `stores` class by
  * design - see the file-header note above on why).
+ *
+ * Pixel-fix F-53 fix-round r3 (F53-R3-1, F53-R3-2 - accepted deviation):
+ * - F53-R3-1: the homepage-critical `!text-white`/`hover:!text-white`
+ *   important modifiers are now asserted by a jsdom test
+ *   (StoreBadges.test.tsx) so silently dropping the `!` (a tidy-up edit or a
+ *   Tailwind v3->v4 codemod) fails the suite instead of shipping the
+ *   gold-on-black/near-invisible-hover homepage regression a second time.
+ * - F53-R3-2: the mobile breakpoint is now `max-[560px]:` (an arbitrary
+ *   variant) instead of Tailwind's default `max-sm:` (640px), and
+ *   `flex-[1_1_auto]` instead of `flex-1` (`flex:1 1 0%`) - both restored to
+ *   match the ORIGINAL deleted `.landing .store{flex:1 1 auto; ...}` /
+ *   `@media(max-width:560px)` rule exactly. One delta is deliberately NOT
+ *   fixed and is an accepted deviation: the old rules were `.landing`-scoped
+ *   so they never reached `/u/[username]`, but these are anchor-level
+ *   Tailwind utilities that apply everywhere this component is mounted -
+ *   ProfileShareLanding's badges now get the same mobile stretch/gap
+ *   behaviour the homepage always had, which they never had before. This is
+ *   considered a harmless (arguably positive) consistency improvement, not
+ *   a regression to chase.
  */
 
 import { appleSvg, gplaySvg } from "./data";
@@ -75,7 +94,7 @@ interface StoreBadgeProps {
 function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBadgeProps) {
   return (
     <a
-      className="inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-sm:flex-1 max-sm:min-w-0 max-sm:justify-center"
+      className="inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-[560px]:flex-[1_1_auto] max-[560px]:min-w-0 max-[560px]:justify-center"
       href={href}
       aria-label={ariaLabel}
     >
@@ -97,7 +116,7 @@ export function StoreBadges({ className = "" }: StoreBadgesProps = {}) {
 
   return (
     <div
-      className={`flex flex-wrap gap-[13px] max-sm:gap-[10px]${className ? ` ${className}` : ""}`}
+      className={`flex flex-wrap gap-[13px] max-[560px]:gap-[10px]${className ? ` ${className}` : ""}`}
       data-testid="store-badges"
     >
       <StoreBadge
