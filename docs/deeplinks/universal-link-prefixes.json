@@ -1,0 +1,37 @@
+{
+  "comment": "Canonical universal-link path-prefix manifest for https://crumbify.co.uk share/deep links (pixel-fix W3R1-share-f53b-01, 2026-08-06 orchestrator adjudication). This file is DUPLICATED VERBATIM (same host + prefixes array) in the sibling app repo at docs/deeplinks/universal-link-prefixes.json - that is this file's TWIN. Each repo's own static-analysis guard test asserts its OWN platform config matches ITS OWN copy of this manifest: the website repo's src/__tests__/well-known/universal-link-prefix-manifest-parity.test.ts checks public/.well-known/apple-app-site-association against this copy; the app repo's __tests__/regression/universal-link-prefix-manifest-parity.test.ts checks app.json's Android intentFilters against its copy. The two copies are NOT diffed automatically across repos (they run in separate CI checkouts) - keeping them in sync is a manual-but-guarded discipline: whenever a share surface is added or removed, edit BOTH copies of this file in the SAME PR-pair and re-run BOTH repos' parity guards before merging either. A stale/missing entry in one repo's copy is caught immediately by that repo's own guard; a forgotten update to the OTHER repo's copy is caught by comparing this comment's twin pointer against the sibling file during review.",
+  "host": "crumbify.co.uk",
+  "twin": "crumbdotco/app repo, docs/deeplinks/universal-link-prefixes.json (sibling repo checkout - not resolvable by path from this repo's CI, cross-referenced by filename/comment for manual review only)",
+  "prefixes": [
+    {
+      "path": "/invite",
+      "androidPathPrefix": "/invite",
+      "iosComponent": "/invite*",
+      "note": "referral invite links (pre-existing, predates F-53)"
+    },
+    {
+      "path": "/u",
+      "androidPathPrefix": "/u/",
+      "iosComponent": "/u/*",
+      "note": "profile-share links (pixel-fix F-53)"
+    },
+    {
+      "path": "/review",
+      "androidPathPrefix": "/review/",
+      "iosComponent": "/review/*",
+      "note": "review-share links (pixel-fix F-53b, 2026-08-06)"
+    },
+    {
+      "path": "/post",
+      "androidPathPrefix": "/post/",
+      "iosComponent": "/post/*",
+      "note": "post-share links (pixel-fix F-53b, 2026-08-06)"
+    },
+    {
+      "path": "/place",
+      "androidPathPrefix": "/place/",
+      "iosComponent": "/place/*",
+      "note": "place-share links (pixel-fix F-53b, 2026-08-06)"
+    }
+  ]
+}

@@ -62,9 +62,10 @@
  * spotlight/glow effects.
  */
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { StoreBadges } from "../landing/StoreBadges";
 import { attemptCrumbifyDeepLink } from "./attempt-app-deep-link";
+import { useHydratedPlatform } from "../share-landing/use-hydrated-platform";
 
 export interface ProfileShareLandingProps {
   readonly username: string;
@@ -73,58 +74,17 @@ export interface ProfileShareLandingProps {
 /** How long to wait for the OS to hand off to the app before showing the fallback CTA. */
 const APP_OPEN_TIMEOUT_MS = 1500;
 
-/** True only on a genuine Android user agent (undefined `navigator` -> false). */
-function isAndroidDevice(): boolean {
-  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
-}
-
-/** The platform "store" never changes after mount, so subscribing is a permanent no-op. */
-function subscribeToPlatform(): () => void {
-  return () => {};
-}
-
-/** No `navigator` exists during server rendering. */
-function getServerIsAndroidSnapshot(): boolean {
-  return false;
-}
-
-/** True once mounted on the client; false during SSR/hydration (F53-N2). */
-function getIsHydratedSnapshot(): boolean {
-  return true;
-}
-
-/** The hydration state never changes after mount, so subscribing is a permanent no-op. */
-function subscribeToHydration(): () => void {
-  return () => {};
-}
-
-/** Not yet hydrated during server rendering. */
-function getServerIsHydratedSnapshot(): boolean {
-  return false;
-}
-
 export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
   const [showFallback, setShowFallback] = useState(false);
-  // Hydration-safe read of a browser-only value (react-hooks/set-state-in-
-  // effect forbids deriving this via a setState call inside a mount effect,
-  // and computing it inline during render would mismatch the server-
-  // rendered HTML, which has no `navigator`). `useSyncExternalStore` is
-  // React's own tool for exactly this: it renders `getServerIsAndroidSnapshot`
-  // (false) during SSR/hydration and `isAndroidDevice()` (the real value)
-  // once mounted on the client, reconciling the two without a manual effect.
-  const isAndroid = useSyncExternalStore(
-    subscribeToPlatform,
-    isAndroidDevice,
-    getServerIsAndroidSnapshot,
-  );
-  // Gates BOTH the opening-message and fallback-CTA branches below (F53-N2)
-  // so the give-up fallback never paints before hydration knows whether
-  // this is Android (see file header).
-  const isHydrated = useSyncExternalStore(
-    subscribeToHydration,
-    getIsHydratedSnapshot,
-    getServerIsHydratedSnapshot,
-  );
+  // Pixel-fix F-53b (2026-08-06): the isAndroid/isHydrated SSR-safe read
+  // moved to the shared src/components/share-landing/use-hydrated-platform.ts
+  // hook so /review, /post, /place (built on the same hook) share ONE
+  // implementation of this trade instead of N hand-rolled copies - see that
+  // hook's file header for the full SSR/hydration writeup this used to carry
+  // inline. Gates BOTH the opening-message and fallback-CTA branches below
+  // (F53-N2) so the give-up fallback never paints before hydration knows
+  // whether this is Android.
+  const { isAndroid, isHydrated } = useHydratedPlatform();
 
   useEffect(() => {
     // If the tab is still visible after the timeout, the OS did not hand

@@ -12,6 +12,18 @@
           {
             "/": "/u/*",
             "comment": "Match profile-share links (pixel-fix F-53)"
+          },
+          {
+            "/": "/review/*",
+            "comment": "Match review-share links (pixel-fix F-53b, 2026-08-06)"
+          },
+          {
+            "/": "/post/*",
+            "comment": "Match post-share links (pixel-fix F-53b, 2026-08-06)"
+          },
+          {
+            "/": "/place/*",
+            "comment": "Match place-share links (pixel-fix F-53b, 2026-08-06)"
           }
         ]
       }

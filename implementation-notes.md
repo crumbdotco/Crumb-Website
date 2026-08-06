@@ -287,3 +287,44 @@ No test assertions were changed in a way that alters pass/fail behaviour for R4-
 only) or for R4-WEB-1 beyond genuinely tightening the guard. Gates re-run: `npx tsc --noEmit` =
 0 errors; `npx jest` (full suite) = 16 suites / 154 tests PASS (unchanged count - no tests
 added or removed this round, only regex/comment edits).
+
+## Wave-3 fix round 1 (W3R1-share-f53b-01, -03, -06) - 2026-08-06
+
+App-repo-adjudicated review findings that also touch this repo. Full detail
+(including the app-side findings 02/04/05) lives in the app repo's
+`implementation-notes.md` "Pixel-fix F-53b, fix round 1" section - this
+entry covers only the website-repo half.
+
+- **W3R1-share-f53b-01 (MED)**: added `docs/deeplinks/universal-link-
+  prefixes.json`, a verbatim duplicate of the app repo's new canonical
+  manifest of the same name (each names the other as its "twin" in its own
+  header comment). New `src/__tests__/well-known/universal-link-prefix-
+  manifest-parity.test.ts` checks `public/.well-known/apple-app-site-
+  association`'s `components` array against THIS repo's manifest copy in
+  both directions, replacing the previous hardcoded-expectation-list guard
+  (`apple-app-site-association.test.ts`, left in place unchanged - it still
+  covers the shape/appID/wildcard invariants this new file does not
+  duplicate). See the app repo's implementation-notes.md for the full
+  "why this is REAL parity now, not two independent lists" writeup and the
+  explicit limits of what it does NOT automate (no cross-repo diff - the
+  two repos run in separate CI checkouts).
+
+- **W3R1-share-f53b-03 (MED)**: added `src/__tests__/components/share-
+  landing/attempt-app-deep-link.test.ts` - direct unit tests for
+  `buildCrumbifyDeepLink(pathSegment, id)` (previously only exercised
+  indirectly via a `jest.mock()` in `AppShareLanding.test.tsx`): the three
+  real path-segment shapes, percent-encoding, underscore/hyphen round-trip,
+  the empty-id edge case, and a smoke test for `attemptCrumbifyDeepLink`'s
+  `window.location.href` assignment. Mirrors the profile-share sibling's
+  own test file shape-for-shape.
+
+- **W3R1-share-f53b-06 (LOW)**: no code change in this repo - the Android
+  rollout-ordering note belongs to the app repo (its intent filters are
+  what require a native build). This repo's AASA update takes effect on
+  the website deploy alone with no equivalent gap. See the app repo's
+  PR-DESCRIPTION-NOTES section for the exact wording to carry into both
+  PRs' descriptions.
+
+Gates run this round: `npx tsc --noEmit` = 0 errors. Targeted jest
+(`--testPathPattern "(universal-link-prefix-manifest-parity|share-landing.
+attempt-app-deep-link)"`, `--maxWorkers=2`) = 2 suites / 13 tests PASS.
