@@ -139,9 +139,20 @@ describe("ProfileShareLanding", () => {
 // jsdom's `render()` is a client-only mount, not a real server-render ->
 // hydrate pass, so it cannot reproduce the actual SSR behaviour. Source
 // invariant instead, per the static-analysis-test pattern.
+//
+// Pixel-fix F-53b (2026-08-06): the isAndroid/isHydrated snapshot functions
+// moved to the shared src/components/share-landing/use-hydrated-platform.ts
+// hook (see that file's own regression coverage for the snapshot-shape
+// assertions) - this file now only asserts ProfileShareLanding.tsx's OWN
+// consumption of the hook (the showOpeningMessage/showFallbackCta
+// derivation), which did not move.
 describe("F53-N2 regression: the opening-message branch never renders before hydration is known", () => {
   const src = readFileSync(
     join(__dirname, "../../../components/profile-share/ProfileShareLanding.tsx"),
+    "utf8",
+  );
+  const hookSrc = readFileSync(
+    join(__dirname, "../../../components/share-landing/use-hydrated-platform.ts"),
     "utf8",
   );
 
@@ -179,12 +190,21 @@ describe("F53-N2 regression: the opening-message branch never renders before hyd
     expect(src).toMatch(/\{showFallbackCta && \(/);
   });
 
-  it("isHydrated's server snapshot is false and client snapshot is true (SSR-false/client-true shape)", () => {
-    expect(src).toMatch(/function getServerIsHydratedSnapshot\(\): boolean \{\s*return false;/);
-    expect(src).toMatch(/function getIsHydratedSnapshot\(\): boolean \{\s*return true;/);
+  it("consumes isAndroid/isHydrated from the shared useHydratedPlatform hook, not a local re-implementation", () => {
+    expect(src).toMatch(
+      /import \{ useHydratedPlatform \} from "\.\.\/share-landing\/use-hydrated-platform";/,
+    );
+    expect(src).toMatch(/const \{ isAndroid, isHydrated \} = useHydratedPlatform\(\);/);
+    expect(src).not.toMatch(/function getServerIsHydratedSnapshot/);
+    expect(src).not.toMatch(/function getServerIsAndroidSnapshot/);
   });
 
-  it("isAndroid's server snapshot is false too, so the hydration-render matches SSR HTML exactly (no mismatch from the ungated fallback branch)", () => {
-    expect(src).toMatch(/function getServerIsAndroidSnapshot\(\): boolean \{\s*return false;/);
+  it("isHydrated's server snapshot is false and client snapshot is true (SSR-false/client-true shape) - shared hook", () => {
+    expect(hookSrc).toMatch(/function getServerIsHydratedSnapshot\(\): boolean \{\s*return false;/);
+    expect(hookSrc).toMatch(/function getIsHydratedSnapshot\(\): boolean \{\s*return true;/);
+  });
+
+  it("isAndroid's server snapshot is false too, so the hydration-render matches SSR HTML exactly (no mismatch from the ungated fallback branch) - shared hook", () => {
+    expect(hookSrc).toMatch(/function getServerIsAndroidSnapshot\(\): boolean \{\s*return false;/);
   });
 });
