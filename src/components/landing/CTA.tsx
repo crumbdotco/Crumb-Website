@@ -11,7 +11,7 @@ export function CTA() {
           Your next favourite spot is <em className="s">one tap away</em>.
         </h2>
         <p>Crumbify is out now. Get it, add your friends, and start posting the places you love.</p>
-        <StoreBadges />
+        <StoreBadges className="justify-center" />
       </div>
     </section>
   );
