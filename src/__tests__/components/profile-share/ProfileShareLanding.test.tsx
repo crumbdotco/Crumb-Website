@@ -155,9 +155,22 @@ describe("F53-N2 regression: the opening-message branch never renders before hyd
   // got no store badges, no explanation - just the "@username" heading).
   // SSR/hydration-render both use the false server snapshots for BOTH
   // isHydrated and isAndroid, so showFallbackCta = !showOpeningMessage is
-  // true in server HTML too - no hydration mismatch, since the hydration
+  // true in server HTML too - no hydration MISMATCH, since the hydration
   // render matches the server render exactly.
-  it("showFallbackCta is the plain negation of showOpeningMessage (renders in SSR/no-JS too, not gated on isHydrated)", () => {
+  //
+  // THIS LOCKS AN INTENTIONAL, ACCEPTED TRADE-OFF (round-4 re-review,
+  // R4-WEB-2, wave1-rereview-r4-journal.jsonl), not a bug-free shape: it
+  // REOPENS F53-N2 (r2, LOW) - on a genuine Android device the fallback CTA
+  // now paints briefly before hydration confirms the platform and swaps to
+  // the "Opening in the Crumbify app..." message, exactly the flash F53-N2
+  // originally fixed. The orchestrator decision was to keep this ungated
+  // shape (a no-JS dead end on iOS/desktop/no-JS is worse than a brief
+  // Android-only flash) rather than restore the isHydrated gate. Restoring
+  // `isHydrated && !showOpeningMessage` here would silently re-close F53-N2
+  // but reopen the no-JS/first-paint regression F53-R3-3 fixed - do not
+  // "fix" this assertion without re-reading ProfileShareLanding.tsx's file
+  // header and implementation-notes.md's "Round 4 re-review" section first.
+  it("showFallbackCta is the plain negation of showOpeningMessage (renders in SSR/no-JS too, not gated on isHydrated - LOCKED SHAPE, see F53-N2-vs-F53-R3-3 trade above)", () => {
     expect(src).toMatch(/const showFallbackCta = !showOpeningMessage;/);
     expect(src).not.toMatch(/const showFallbackCta = isHydrated && !showOpeningMessage;/);
   });

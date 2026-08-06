@@ -245,3 +245,45 @@ Gates run in this worktree: `npx jest` (full suite) = 16 suites / 154 tests PASS
 before this round; +2 net: F53-R3-1's new colour test, +1 net across the F53-N2 rename/
 additions in ProfileShareLanding.test.tsx). `npx tsc --noEmit` = 0 errors. `next build` /
 Playwright e2e NOT re-run in this scoped fix pass.
+
+## Round 4 re-review fixes (R4-WEB-1, R4-WEB-2) - 2026-08-06
+
+**R4-WEB-1 (LOW):** the F53-R3-1 colour guard added to `StoreBadges.test.tsx` used unanchored
+regexes (`/!text-white|text-white!/`, `/hover:!text-white|hover:text-white!/`), so the BASE
+assertion still matched the `!text-white` substring inside the surviving `hover:!text-white`
+token even with the base utility's own `!` removed - only the hover half was genuinely
+guarded. Anchored both regexes on whitespace/string boundaries
+(`/(^|\s)(!text-white|text-white!)(\s|$)/` and the `hover:` equivalent) so the base and hover
+utilities are each independently guarded. Re-verified fail-capability by stripping ONLY the
+base `!` from `StoreBadges.tsx` (leaving `hover:!text-white` intact) and confirming the test
+goes red, then restored the source (no diff left in `StoreBadges.tsx`).
+
+**R4-WEB-2 (LOW):** F53-R3-3's `showFallbackCta = !showOpeningMessage` (see round-3 entry
+above) reopens F53-N2 (r2, LOW) - on a genuine Android device the fallback CTA now paints
+briefly pre-hydration before swapping to the "Opening in the Crumbify app..." message, the
+exact flash F53-N2 originally fixed. `ProfileShareLanding.tsx`'s header (lines ~24-38 before
+this round) asserted the opposite ("no flash of the give-up state on Android"), and neither
+the header nor these notes had previously named the reopened finding.
+
+ORCHESTRATOR DECISION (round 4): KEEP the F53-R3-3 behaviour - do NOT restore the
+`isHydrated` gate on `showFallbackCta`. Rationale: a content-empty SSR/no-JS dead end (r2's
+shape, hit by every no-JS visitor and by iOS/desktop's first paint) is judged strictly worse
+than a brief pre-hydration flash of the fallback CTA on Android only (r3's shape). This is an
+ACCEPTED DEVIATION from F53-N2's original fix, not a bug and not an oversight.
+
+What changed this round (docs-only, no behavioural change from F53-R3-3):
+- `ProfileShareLanding.tsx`'s file header rewritten to describe the actual behaviour and name
+  the deliberate trade explicitly, citing F53-N2 vs F53-R3-3 by id.
+- The inline comment immediately above `const showFallbackCta = !showOpeningMessage;` now
+  states plainly that Android sees a flash and that this is accepted, pointing back to the
+  header and this section.
+- `ProfileShareLanding.test.tsx`'s F53-N2 static-invariant test for `showFallbackCta` gained a
+  comment documenting that its locked shape is INTENTIONAL - reads the opposite way as a "bug"
+  to a future agent who has not read this section, so the risk of someone "fixing" it back to
+  `isHydrated && !showOpeningMessage` (silently re-regressing F53-R3-3's no-JS/first-paint fix)
+  is called out explicitly in the test file itself, not only here.
+
+No test assertions were changed in a way that alters pass/fail behaviour for R4-WEB-2 (comments
+only) or for R4-WEB-1 beyond genuinely tightening the guard. Gates re-run: `npx tsc --noEmit` =
+0 errors; `npx jest` (full suite) = 16 suites / 154 tests PASS (unchanged count - no tests
+added or removed this round, only regex/comment edits).
