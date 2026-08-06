@@ -108,7 +108,7 @@ describe("StoreBadges", () => {
   // the `!` (or an upgrade codemod rewriting it) fails this suite instead of
   // shipping silently.
   describe("important-flagged colour utility (F53-R3-1: guards the F53-N1 homepage regression)", () => {
-    it("both badge anchors carry an important-flagged text-white utility (base + hover)", () => {
+    it("both badge anchors carry an important-flagged text-white utility (base + hover), each independently guarded (R4-WEB-1 fix: boundary-anchored so the hover token cannot satisfy the base assertion)", () => {
       const { container } = render(<StoreBadges />);
       const anchors = container.querySelectorAll("a");
       expect(anchors).toHaveLength(2);
@@ -117,8 +117,16 @@ describe("StoreBadges", () => {
         // regardless of specificity - only an `!important`-flagged utility
         // survives that cascade, in either the legacy leading-`!` spelling
         // or Tailwind v4's trailing-`!` spelling.
-        expect(anchor.className).toMatch(/!text-white|text-white!/);
-        expect(anchor.className).toMatch(/hover:!text-white|hover:text-white!/);
+        //
+        // R4-WEB-1 fix: these regexes are whitespace/boundary-anchored so
+        // the BASE utility and the HOVER utility are each independently
+        // guarded. The previous unanchored /!text-white|text-white!/ still
+        // matched the substring inside "hover:!text-white" even when the
+        // base utility's own `!` was removed, so stripping the important
+        // flag from the base colour alone (the exact F53-N1 symptom - gold-
+        // on-black homepage labels) passed this suite silently.
+        expect(anchor.className).toMatch(/(^|\s)(!text-white|text-white!)(\s|$)/);
+        expect(anchor.className).toMatch(/(^|\s)(hover:!text-white|hover:text-white!)(\s|$)/);
       });
     });
   });
