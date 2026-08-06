@@ -26,12 +26,16 @@
  * below), so before r2 an Android recipient's FIRST PAINT was the
  * give-up "get the app" fallback CTA, which then flipped to the "Opening
  * in the Crumbify app..." message once React hydrated and re-read the real
- * user agent - the opposite of the intended experience. `isHydrated`
- * (also read via useSyncExternalStore, same SSR-false/client-true shape)
- * gates render of BOTH branches: until hydration is known to have
- * happened, the page shows only the neutral "@username" heading with no
- * opening message and no fallback CTA, so nobody sees the give-up state
- * flash before the real handoff attempt fires.
+ * user agent - the opposite of the intended experience. r2 fixed this by
+ * gating BOTH branches on `isHydrated` (also read via useSyncExternalStore),
+ * so nobody sees the give-up state flash before the real handoff attempt
+ * fires - but that made the SERVER-RENDERED HTML content-empty on every
+ * platform. Fix-round r3 (F53-R3-3) removed the `isHydrated` gate from the
+ * fallback-CTA branch only (see `showFallbackCta` below): SSR/no-JS now
+ * renders the fallback CTA (the correct final state on iOS/desktop) as
+ * first paint, and a genuine Android device still swaps to the opening
+ * message once hydration confirms the platform - no flash of the give-up
+ * state on Android, and no more content-empty first paint everywhere else.
  *
  * Brand rules (house, ~/.claude/rules/common/frontend-design.md +
  * this repo's CLAUDE.md): no money/£ figures, no letter-spacing > 0, no
@@ -128,7 +132,24 @@ export function ProfileShareLanding({ username }: ProfileShareLandingProps) {
   }, [username, isAndroid]);
 
   const showOpeningMessage = isHydrated && isAndroid && !showFallback;
-  const showFallbackCta = isHydrated && !showOpeningMessage;
+  // F53-R3-3 fix (pixel-fix wave 1 round-3 re-review, LOW): dropped the
+  // `isHydrated &&` conjunct here. Gating the fallback CTA on hydration
+  // made the SERVER-RENDERED HTML content-empty on every platform (just the
+  // "@username" heading, no store badges, no explanation) - a no-JS visitor
+  // hit a dead end, and on iOS/desktop (where the fallback CTA IS the
+  // correct final state) the useful content painted only after hydration
+  // instead of in the first paint. This does NOT reintroduce the F53-N2
+  // hydration mismatch: `getServerIsHydratedSnapshot`/`getServerIsAndroidSnapshot`
+  // both still return false during the hydration render (React renders the
+  // server snapshot on the client's first/hydration pass, not the real one),
+  // so server HTML === hydration HTML regardless of this branch - the
+  // subsequent client-only re-render (once useSyncExternalStore re-reads the
+  // live snapshots) is a normal post-hydration update, not a mismatch. Net
+  // effect: SSR/no-JS visitors now get the fallback CTA (copy + button +
+  // store badges) as first paint; on a real Android device that gets
+  // swapped for the "Opening in the Crumbify app..." message once hydration
+  // confirms the platform.
+  const showFallbackCta = !showOpeningMessage;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4ECE1] px-6 py-16 text-center text-[#1A1208]">
