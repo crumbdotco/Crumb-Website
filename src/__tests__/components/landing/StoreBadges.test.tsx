@@ -97,6 +97,32 @@ describe("StoreBadges", () => {
     });
   });
 
+  // F53-R3-1 fix (pixel-fix wave 1 round-3 re-review, MED): the r2 fix for
+  // F53-N1 (homepage gold-on-black labels + near-invisible ink-on-black
+  // hover, caused by unlayered landing.css beating a plain `text-white`
+  // Tailwind utility) had NO test asserting the colour utility itself - only
+  // the `!` (important) modifier stands between the homepage and that
+  // regression recurring, and jsdom cannot see the cascade outcome directly.
+  // This asserts the anchor className carries an important-flagged
+  // text-white utility in either valid Tailwind v3/v4 spelling, so deleting
+  // the `!` (or an upgrade codemod rewriting it) fails this suite instead of
+  // shipping silently.
+  describe("important-flagged colour utility (F53-R3-1: guards the F53-N1 homepage regression)", () => {
+    it("both badge anchors carry an important-flagged text-white utility (base + hover)", () => {
+      const { container } = render(<StoreBadges />);
+      const anchors = container.querySelectorAll("a");
+      expect(anchors).toHaveLength(2);
+      anchors.forEach((anchor) => {
+        // Unlayered CSS (landing.css) beats layered Tailwind utilities
+        // regardless of specificity - only an `!important`-flagged utility
+        // survives that cascade, in either the legacy leading-`!` spelling
+        // or Tailwind v4's trailing-`!` spelling.
+        expect(anchor.className).toMatch(/!text-white|text-white!/);
+        expect(anchor.className).toMatch(/hover:!text-white|hover:text-white!/);
+      });
+    });
+  });
+
   describe("icon sizing (F53-R1: the raw SVGs in data.ts carry no width/height of their own)", () => {
     it("each icon is wrapped in an explicitly sized container, not left to the SVG's own (nonexistent) intrinsic size", () => {
       const { container } = render(<StoreBadges />);
