@@ -196,3 +196,52 @@ session (targeted-only per this session's scope, and this repo's known
 pre-existing failing suites - `waitlist-extended.test.ts`,
 `EtherealShadow*.test.tsx` - are unrelated and out of scope, see the
 earlier "Gate results" section above).
+
+## Round 3 re-review fixes (F53-R3-1, F53-R3-2, F53-R3-3) - 2026-08-06
+
+**F53-R3-1 (MED):** the r2 fix for F53-N1 (homepage gold-on-black labels / near-invisible
+ink-on-black hover) added no test asserting the anchor's colour utility - only the `!`
+(important) modifier stands between the homepage and the regression recurring, and jsdom
+cannot see the compiled cascade outcome directly. Added a test in `StoreBadges.test.tsx`
+asserting both badge anchors carry `!text-white`/`hover:!text-white` (or the v4 trailing-`!`
+spelling). Verified fail-capable: manually stripped the `!` locally and confirmed the new
+test goes red (then restored it) before committing.
+
+**F53-R3-2 (LOW):** the mobile CSS the r2 fix ported used Tailwind's default `max-sm:`
+(640px) and `flex-1` (`flex:1 1 0%`), not the ORIGINAL deleted rule's `@media(max-width:560px)`
+and `flex:1 1 auto`. Changed both anchor and wrapper to the arbitrary-variant
+`max-[560px]:` breakpoint and `flex-[1_1_auto]`, matching the deleted CSS exactly on two of
+its three axes. The THIRD axis is an accepted deviation, documented in the component header:
+the old rules were `.landing`-scoped and never reached `/u/[username]`, but these Tailwind
+utilities live on the anchor itself and apply everywhere `StoreBadges` mounts - so
+`ProfileShareLanding`'s badges now also get the mobile stretch/gap behaviour the homepage
+always had. Judged harmless/positive rather than worth chasing (would require a second,
+`.landing`-scoped copy of the utility, reintroducing exactly the coupling R1 removed).
+
+**F53-R3-3 (LOW):** `showFallbackCta` was gated on `isHydrated`, which made the
+SERVER-RENDERED HTML content-empty on every platform (a no-JS visitor got only the
+"@username" heading - no store badges, no explanation), and delayed the correct first paint
+on iOS/desktop until after hydration. Dropped the `isHydrated &&` conjunct from
+`showFallbackCta` (now the plain `!showOpeningMessage`) - `showOpeningMessage` keeps its
+`isHydrated` gate untouched. Verified this does NOT reintroduce the F53-N2 hydration
+mismatch: React renders the false server snapshots (`getServerIsHydratedSnapshot`,
+`getServerIsAndroidSnapshot`) during BOTH the actual server render and the client's
+hydration-matching render, so server HTML === hydration HTML regardless of this branch; the
+subsequent re-render (once `useSyncExternalStore` re-reads the live snapshots) is an ordinary
+post-hydration update, not a mismatch. No `<noscript>`/`suppressHydrationWarning` needed.
+Updated the four F53-N2 static-invariant tests in `ProfileShareLanding.test.tsx` to the new
+`showFallbackCta = !showOpeningMessage;` shape (was asserting the now-removed
+`isHydrated && !showOpeningMessage`), and added an assertion that
+`getServerIsAndroidSnapshot` still returns false (the fact that makes the no-mismatch
+argument hold).
+
+**Automation-as-infrastructure answer:** F53-R3-1's new test IS the automation this class was
+missing - a `!`-drop or Tailwind-version codemod now fails the suite instead of shipping
+silently. F53-R3-2/F53-R3-3 are behavioural corrections with their existing static-invariant/
+render-test coverage updated to the new intended shape; no new guard class was needed beyond
+that.
+
+Gates run in this worktree: `npx jest` (full suite) = 16 suites / 154 tests PASS (was 152
+before this round; +2 net: F53-R3-1's new colour test, +1 net across the F53-N2 rename/
+additions in ProfileShareLanding.test.tsx). `npx tsc --noEmit` = 0 errors. `next build` /
+Playwright e2e NOT re-run in this scoped fix pass.
