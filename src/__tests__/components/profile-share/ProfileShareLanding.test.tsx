@@ -137,32 +137,41 @@ describe("ProfileShareLanding", () => {
 });
 
 // jsdom's `render()` is a client-only mount, not a real server-render ->
-// hydrate pass, so it cannot reproduce the actual SSR-flash bug (F53-N2:
-// the fallback CTA painting before hydration knows isAndroid). Source
-// invariant instead, per the static-analysis-test pattern: assert the
-// `isHydrated` gate is wired onto BOTH branches so a future edit can't
-// silently drop it and reintroduce the flash.
-describe("F53-N2 regression: neither branch renders before hydration is known", () => {
+// hydrate pass, so it cannot reproduce the actual SSR behaviour. Source
+// invariant instead, per the static-analysis-test pattern.
+describe("F53-N2 regression: the opening-message branch never renders before hydration is known", () => {
   const src = readFileSync(
     join(__dirname, "../../../components/profile-share/ProfileShareLanding.tsx"),
     "utf8",
   );
 
-  it("showOpeningMessage is gated on isHydrated", () => {
+  it("showOpeningMessage is gated on isHydrated (never shows the Android opening message before hydration confirms the platform)", () => {
     expect(src).toMatch(/const showOpeningMessage = isHydrated && isAndroid && !showFallback;/);
   });
 
-  it("showFallbackCta is gated on isHydrated (never just !showOpeningMessage)", () => {
-    expect(src).toMatch(/const showFallbackCta = isHydrated && !showOpeningMessage;/);
+  // F53-R3-3 fix (pixel-fix wave 1 round-3 re-review, LOW): showFallbackCta
+  // is DELIBERATELY no longer gated on isHydrated - gating it made the
+  // server-rendered HTML content-empty on every platform (a no-JS visitor
+  // got no store badges, no explanation - just the "@username" heading).
+  // SSR/hydration-render both use the false server snapshots for BOTH
+  // isHydrated and isAndroid, so showFallbackCta = !showOpeningMessage is
+  // true in server HTML too - no hydration mismatch, since the hydration
+  // render matches the server render exactly.
+  it("showFallbackCta is the plain negation of showOpeningMessage (renders in SSR/no-JS too, not gated on isHydrated)", () => {
+    expect(src).toMatch(/const showFallbackCta = !showOpeningMessage;/);
+    expect(src).not.toMatch(/const showFallbackCta = isHydrated && !showOpeningMessage;/);
   });
 
-  it("the fallback-CTA JSX branch renders off showFallbackCta, not the raw !showOpeningMessage", () => {
+  it("the fallback-CTA JSX branch renders off showFallbackCta, not a raw duplicate of the negation", () => {
     expect(src).toMatch(/\{showFallbackCta && \(/);
-    expect(src).not.toMatch(/\{!showOpeningMessage && \(/);
   });
 
   it("isHydrated's server snapshot is false and client snapshot is true (SSR-false/client-true shape)", () => {
     expect(src).toMatch(/function getServerIsHydratedSnapshot\(\): boolean \{\s*return false;/);
     expect(src).toMatch(/function getIsHydratedSnapshot\(\): boolean \{\s*return true;/);
+  });
+
+  it("isAndroid's server snapshot is false too, so the hydration-render matches SSR HTML exactly (no mismatch from the ungated fallback branch)", () => {
+    expect(src).toMatch(/function getServerIsAndroidSnapshot\(\): boolean \{\s*return false;/);
   });
 });
