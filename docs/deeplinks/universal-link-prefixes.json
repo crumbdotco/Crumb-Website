@@ -32,6 +32,12 @@
       "androidPathPrefix": "/place/",
       "iosComponent": "/place/*",
       "note": "place-share links (pixel-fix F-53b, 2026-08-06)"
+    },
+    {
+      "path": "/ref",
+      "androidPathPrefix": "/ref",
+      "iosComponent": "/ref*",
+      "note": "referral links, https://crumbify.co.uk/ref?u=<username> (utils/referral-link.ts). Bare entry like /invite (no trailing path segment - the path is exactly /ref, everything after is the ?u= query string, so a trailing-slash prefix would never match). v0.9.4 T16 A6-1: this path existed in the app's referral-link builder and app/_layout.tsx's deep-link handler since Phase 13/14 but was never added to this manifest or app.json's Android intentFilters, so neither iOS Universal Links nor Android App Links ever claimed it - a tap on a referral link fell through to the browser instead of opening the app."
     }
   ]
 }
