@@ -3,7 +3,9 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["KB942C4R47.com.crumbify.app"],
+        "appIDs": [
+          "KB942C4R47.com.crumbify.app"
+        ],
         "components": [
           {
             "/": "/invite*",
@@ -24,6 +26,10 @@
           {
             "/": "/place/*",
             "comment": "Match place-share links (pixel-fix F-53b, 2026-08-06)"
+          },
+          {
+            "/": "/ref*",
+            "comment": "Match referral links (v0.9.4 T16 A6-1, app PR #351)"
           }
         ]
       }
