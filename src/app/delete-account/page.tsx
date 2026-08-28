@@ -56,7 +56,7 @@ const noteBoxStyle: React.CSSProperties = {
 
 export default function DeleteAccountPage() {
   return (
-    <LegalShell title="Delete Your Crumbify Account">
+    <LegalShell title="Delete Your Crumbify Account" updated="28 August 2026">
       <section style={sectionStyle}>
         <p style={bodyStyle}>
           You can permanently delete your Crumbify account and its associated data at any time.
@@ -96,14 +96,21 @@ export default function DeleteAccountPage() {
           <li>Restaurant reviews, scores, and private notes</li>
           <li>Your been-to and want-to-try lists</li>
           <li>Comments and reactions you made on posts</li>
-          <li>Your friends and group memberships, and content you shared within groups</li>
-          <li>Direct messages you sent or received</li>
+          <li>
+            Your friends and group memberships, and content you shared within groups,
+            including group photos
+          </li>
+          <li>Collections you created and their cover photos</li>
+          <li>The hashed identifiers used for contact matching</li>
+          <li>Your push notification token</li>
           <li>Your login account</li>
         </ul>
         <div style={noteBoxStyle}>
           Deletion cascades across our database, so removing your account removes the data
-          tied to it. Photos you uploaded (avatar and feed post photos) are deleted from
-          storage as part of the same flow.
+          tied to it. Photos you uploaded (avatars, feed post photos, collection covers, and
+          group photos) are deleted from storage as part of the same flow. If you signed in
+          with Apple, we also ask Apple to revoke the Sign in with Apple connection for
+          Crumbify as part of deletion.
         </div>
       </section>
 
@@ -114,6 +121,11 @@ export default function DeleteAccountPage() {
             If you joined as a Founding Member, your founding status is tied to your email
             address and is retained so the benefit survives if you sign up again later.
             It holds no personal profile data.
+          </li>
+          <li>
+            If you had a premium subscription or founding status, we keep a minimal
+            entitlement record (your old account ID and dates, with no profile data) so we
+            can reconcile app-store subscriptions.
           </li>
           <li>
             Aggregated or anonymised analytics that can no longer identify you.

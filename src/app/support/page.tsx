@@ -47,11 +47,11 @@ const faqs = [
   },
   {
     q: "Is my data safe?",
-    a: "Yes. Social features use our secure cloud with row-level security, so only you and the people you choose to share with can see your data. We never sell your data.",
+    a: "Your data lives in our secure cloud with row-level security, so other users only see what you share with them. Two things to know: avatar and post photos are served from public links, so anyone with the direct link can open the image, and posts you share to the Trending tab are visible to any signed-in Crumbify user. We never sell your data. See our privacy policy for the full picture.",
   },
   {
-    q: "How does the home feed work?",
-    a: "When you post about a place, your friends can see it, react, and comment in the home feed. You can also discover new places through friends, taste-matched recommendations, and the Discover map.",
+    q: "How does the Home feed work?",
+    a: "When you post about a place, your friends can see it, react, and comment in the Home feed. You can also discover new places through friends, taste-matched recommendations, and the Discover map. You can also choose to share a post to the public Trending tab so people beyond your friends can see it.",
   },
   {
     q: "How do I remove data I have added?",
@@ -59,7 +59,7 @@ const faqs = [
   },
   {
     q: "What is included in Crumbify Premium?",
-    a: "Crumbify Premium gives you deeper stats, deeper friend comparisons, unlimited want-to-try saved spots, and an ad-free experience.",
+    a: "Crumbify Premium gives you Monthly Wrapped, removes Google ads (clearly labelled sponsored restaurant picks still appear, about half as often), and unlocks unlimited profile collections with a premium cover library plus a premium profile badge.",
   },
   {
     q: "How do I delete my account?",

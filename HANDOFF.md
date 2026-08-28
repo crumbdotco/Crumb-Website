@@ -14,6 +14,20 @@ These URLs are used by the **app store listings** as legal/support links:
 
 ---
 
+## ✔ 2026-08-28: legal pages brought to launch-ready state (branch `legal/launch-readiness`)
+
+Tasks 1-3 and 5 below are COMPLETE (the 2026-07-18 rewrite did most of it; the 2026-08-28 pass
+finished the job). The four legal pages were re-grounded in two read-only audit workflows over
+the app repo plus a 2x-opus adversarial review ladder (33 findings fixed to zero). Highlights:
+contacts-matching/PostHog/Resend/transfers/cookies/ICO sections added to privacy; terms got
+subscription mechanics (3-day trial, auto-renew, no currency figures), first-100 founding terms,
+Consumer Contracts 2013 digital-content acknowledgment, CRA 2015 liability carve-out, Apple
+minimum-EULA section, UGC zero-tolerance + 24h moderation commitment, and the PENDING trademark
+(UK00004426579 - do not use (R) until registered); delete-account matches the real delete-user
+scope incl. Apple credential revocation. Owner decisions: min age 16, no DPO, cookies inside the
+privacy policy. Open flags live in the project memory `crumbify-legal-launch-flags`.
+Task 4 (founding first-100 cap mechanics) remains open below.
+
 ## ⚠ WHY THIS SESSION EXISTS (read first)
 The app shipped **v0.8.14 build 2** (epics: **global feed** + **Food Soulmate** stranger messaging + **personalized ads** via AdMob/ATT). These add data collection (user photos, messages, ad device-ID tracking) that the **legal pages must reflect BEFORE build 2 is submitted to Apple + Google**. The store consoles' Data Safety / privacy-label changes are gated on these pages being accurate.
 

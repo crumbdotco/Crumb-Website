@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function TermsPage() {
   return (
-    <LegalShell title="Terms of Service" updated="18 July 2026">
+    <LegalShell title="Terms of Service" updated="28 August 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Acceptance of Terms</h2>
         <p style={bodyStyle}>
@@ -77,10 +77,11 @@ export default function TermsPage() {
           eat at. You add places by sharing a TikTok or Instagram post into the App,
           pasting in a Google Maps list link, or searching manually, then post about
           them, rate and note them, and save ones you want to try. Crumbify uses this
-          to power a home feed, a Discover map, reviews, want-to-try lists, groups,
-          friends, direct messages, a profile wall with achievements, and a monthly
-          Challenge. Crumbify does not connect to delivery-platform accounts via their
-          APIs, and it does not read order history from screenshots.
+          to power a Home feed, an optional public Trending tab, a Discover map,
+          reviews, want-to-try lists, groups, friends, profile collections, a profile
+          wall with achievements, and a monthly Challenge. Crumbify does not connect
+          to delivery-platform accounts via their APIs, and it does not read order
+          history from screenshots.
         </p>
       </section>
 
@@ -113,12 +114,18 @@ export default function TermsPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>6. Premium Subscription</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
-          Crumbify Premium unlocks additional features including deeper stats, deeper
-          friend comparisons, unlimited want-to-try saved spots, and an ad-free experience.
+          Crumbify Premium unlocks Monthly Wrapped, removes Google ads (clearly
+          labelled sponsored restaurant picks still appear, about half as often),
+          unlimited profile collections with a premium cover library, and a premium
+          profile badge.
         </p>
         <ul style={listStyle}>
-          <li>Subscriptions are managed through Apple App Store or Google Play Store.</li>
-          <li>Cancellation and refund policies are governed by the respective app store&apos;s terms.</li>
+          <li>Premium is offered as monthly or annual auto-renewing plans bought through the App Store or Google Play.</li>
+          <li>Both plans include a 3-day free trial for eligible new subscribers.</li>
+          <li>The trial converts to a paid subscription unless you cancel before it ends.</li>
+          <li>Subscriptions renew automatically until cancelled in your store account settings at least 24 hours before the current period ends.</li>
+          <li>The price is always shown in the app and at store checkout before you pay.</li>
+          <li>Refunds and billing are handled by Apple or Google under their own terms.</li>
           <li>Premium features may change over time. We will notify you of material changes.</li>
         </ul>
       </section>
@@ -126,23 +133,27 @@ export default function TermsPage() {
       <section style={sectionStyle}>
         <h2 style={headingStyle}>7. Founding Member</h2>
         <p style={{ ...bodyStyle, marginBottom: 8 }}>
-          Founding Member is a <span style={strongStyle}>pre-launch only</span> offer:
-          a one-time payment (processed by Stripe) that grants
-          lifetime Crumbify Premium access. This is separate from the recurring Crumbify Premium
-          subscription available after launch via the App Store and Google Play.
+          Founding Member is a <span style={strongStyle}>limited offer</span>, open to
+          the first 100 paying members, of a one-time payment (processed by Stripe on
+          our website) that grants lifetime Crumbify Premium access. This is separate
+          from the recurring Crumbify Premium subscription available via the App Store
+          and Google Play.
         </p>
         <ul style={listStyle}>
           <li>Founding Members pay once and never pay again - no subscription, no recurring fees.</li>
-          <li>The Founding Member offer will be permanently removed once the App launches publicly.</li>
+          <li>The offer closes permanently once 100 places have been claimed.</li>
           <li>Founding Members receive an exclusive profile badge and all current and future Premium features at no additional cost.</li>
+          <li>Founding Member status is keyed to the email used at purchase and can be restored by verifying that email in the App.</li>
           <li>Founding Member status is non-transferable and tied to your Crumbify account.</li>
+          <li>Founding Member access is digital content supplied immediately. By completing checkout you request immediate supply and acknowledge that you lose the 14-day cancellation right under the Consumer Contracts Regulations 2013 once access is granted; before access is granted you can cancel for a full refund by emailing support@crumbify.co.uk.</li>
+          <li>Lifetime access lasts for as long as Crumbify operates the service. If we ever discontinue Crumbify we will give reasonable notice; individual Premium features may change or be replaced over time.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
         <h2 style={headingStyle}>8. Social Features and Groups</h2>
         <ul style={listStyle}>
-          <li>You can add friends, create or join groups, and post to the home feed and your profile wall.</li>
+          <li>You can add friends, create or join groups, and post to the Home feed and your profile wall.</li>
           <li>Groups let members share lists of places and share photos with each other.</li>
           <li>Group admins can manage members, change group settings, and customise group appearance.</li>
           <li>You can set your profile to private to hide your posts and reviews from non-friends.</li>
@@ -156,10 +167,11 @@ export default function TermsPage() {
         <ul style={listStyle}>
           <li>You retain ownership of content you create (reviews, photos, posts, comments).</li>
           <li>By posting content, you grant Crumbify a non-exclusive licence to display it within the App for its intended purpose.</li>
-          <li>Profile photos and post photos are automatically scanned for inappropriate content using Google Vision SafeSearch.</li>
-          <li>Content flagged as adult, violent, or racy will be rejected.</li>
+          <li>Profile photos and post photos are automatically screened for inappropriate content using Google Vision SafeSearch; content flagged as adult, violent, or racy is rejected. Screening is not perfect, so please report anything you see.</li>
           <li>You can report users or content. Reports are reviewed and actioned by our team.</li>
           <li>We may remove content that violates these Terms without prior notice.</li>
+          <li>We have no tolerance for objectionable content or abusive users.</li>
+          <li>When you report content or a user, we review the report and remove violating content and eject the responsible user within 24 hours.</li>
         </ul>
       </section>
 
@@ -183,10 +195,12 @@ export default function TermsPage() {
         <h2 style={headingStyle}>11. Intellectual Property</h2>
         <p style={bodyStyle}>
           All content, features, branding, and functionality of the App and Site
-          (including the Crumbify name and logo) are owned by Crumbify and are
+          (including the Crumbify name and logo) are owned by Crumbify LTD and are
           protected by copyright, trademark, and other intellectual property laws.
-          You may not reproduce, distribute, or create derivative works without our
-          written consent.
+          The CRUMBIFY name is the subject of UK trade mark application no.
+          UK00004426579 (classes 9, 42 and 45) filed by Crumbify LTD. You may not
+          reproduce, distribute, or create derivative works without our written
+          consent.
         </p>
       </section>
 
@@ -198,21 +212,40 @@ export default function TermsPage() {
           <li>We are not liable for any loss of data caused by factors outside our control.</li>
           <li>Our total liability shall not exceed the amount you paid for the App in the 12 months preceding any claim.</li>
           <li>We are not responsible for third-party services (Stripe, AdMob, Google Places) - their own terms apply.</li>
+          <li>Nothing in these Terms limits or excludes our liability for death or personal injury caused by our negligence, for fraud or fraudulent misrepresentation, or for anything else that cannot be limited or excluded by law. Your statutory rights as a consumer are not affected.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>13. Termination</h2>
+        <h2 style={headingStyle}>13. Apple App Store</h2>
+        <ul style={listStyle}>
+          <li>These Terms are between you and Crumbify LTD only, not Apple.</li>
+          <li>Apple has no obligation to provide maintenance or support for the App.</li>
+          <li>In the event of a failure to conform to warranty, Apple may refund your purchase price and has no other warranty obligation.</li>
+          <li>Apple is not responsible for handling any claims relating to the App, including product liability, regulatory, consumer protection, or intellectual property claims.</li>
+          <li>You confirm you are not in a country under a US government embargo and are not on any US restricted-party list.</li>
+          <li>Apple and its subsidiaries are third-party beneficiaries of these Terms and may enforce them against you.</li>
+        </ul>
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={headingStyle}>14. Termination</h2>
         <ul style={listStyle}>
           <li>We may suspend or terminate your account if you violate these Terms.</li>
           <li>You may delete your account at any time from the App settings.</li>
-          <li>Account deletion removes your data from our cloud systems as described on our delete-account page.</li>
+          <li>
+            Account deletion removes your data from our cloud systems as described on our{" "}
+            <a href="/delete-account" style={linkStyle}>
+              delete-account page
+            </a>
+            .
+          </li>
           <li>If you are a Founding Member and your account is terminated for violating these Terms, no refund will be issued.</li>
         </ul>
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>14. Governing Law</h2>
+        <h2 style={headingStyle}>15. Governing Law</h2>
         <p style={bodyStyle}>
           These Terms are governed by the laws of England and Wales. Any disputes
           arising from these Terms or your use of the App shall be subject to the
@@ -221,7 +254,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>15. Changes to These Terms</h2>
+        <h2 style={headingStyle}>16. Changes to These Terms</h2>
         <p style={bodyStyle}>
           We may update these Terms from time to time. We will notify you of
           material changes via in-app notification or email. Your continued use
@@ -230,7 +263,7 @@ export default function TermsPage() {
       </section>
 
       <section style={sectionStyle}>
-        <h2 style={headingStyle}>16. Contact</h2>
+        <h2 style={headingStyle}>17. Contact</h2>
         <p style={bodyStyle}>
           For questions about these Terms, contact us at{" "}
           <a
