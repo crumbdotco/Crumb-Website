@@ -4,22 +4,20 @@ Marketing + legal site for the **Crumbify** app. Live at **https://crumbify.co.u
 
 ## What Crumbify (the app) is
 
-Cross-platform **food delivery stats + social app** — "Stats.fm for food delivery". Target: UK 18-25 (students, young professionals). React Native + Expo, currently **v0.8.14 build 2**. Lives at `../app`.
+Cross-platform **feed-first social food app**: a social feed of friends' restaurant posts, personal food history (been-to + want-to-try), taste-matched discovery, and light stats. The "food delivery stats" origin is HISTORY - never describe it that way. Target: UK 18-25 (students, young professionals). React Native + Expo, v1.0 pre-release track. Lives at `../app`. (Corrected 2026-08-28 against app code by two audit workflows; see `legal/launch-readiness` PR.)
 
-**How import actually works (CRITICAL — get this right in copy):**
-- Crumbify reads order history from **screenshots you import** (OCR) + **manual entry**.
-- It does **NOT** use delivery-platform APIs or OAuth to pull orders. OAuth (Google/Apple) is **sign-in only**.
-- Never write copy claiming it "connects to Uber Eats / Just Eat via their API / OAuth". That is false.
-- Supported via OCR parsers: Uber Eats, Just Eat, Deliveroo, + manual "any restaurant".
+**How adding places actually works (CRITICAL - get this right in copy):**
+- Share a **TikTok/Instagram post into Crumbify** via the share sheet, paste a **Google Maps list/place link**, or **search manually** (Google Places).
+- Screenshot-OCR import is **RETIRED** (migration 155). Delivery-platform APIs/OAuth were never used for orders and never will be. OAuth (Google/Apple) is **sign-in only**.
+- Never write copy claiming it "connects to Uber Eats / Just Eat" or "reads screenshots". Both are false.
 
-**Core features (for marketing copy):**
-- Top restaurants / cuisines / visit counts (no money/spend figures — see rule below)
-- Annual **Wrapped** (Spotify-Wrapped-style yearly recap, shareable)
-- **Food personality** type (Creature of Habit / The Explorer, etc.)
-- **Food Soulmate** — taste-match % with friends + stranger opener messaging
-- **Food Map** — every restaurant plotted
-- Social: add friends, compare tastes, direct messaging, groups, leaderboards. Reviews: rate places + keep private notes. (No public post feed — that feature was removed.)
-- Premium ("Crumbify Premium", RC products `crumbify_premium_monthly/annual`): extra stats, deeper friend comparisons, ad-free. Mirror real list from app `components/premium/comparison-features.ts`. NO money/spend language.
+**Core features (for marketing copy - verified against code 2026-08-28):**
+- Home feed: friends' posts with photos, reactions, comments; optional per-post sharing to the public **Trending** feed (visible to any signed-in user). There are **NO direct messages** and **NO Food Soulmate** (both removed; regression tests enforce it).
+- **Discover**: GPS map + scroll discovery (Google Places), taste-matched.
+- Reviews: been-to log, scores x.x/10, private notes, want-to-try, **Food Map**.
+- Social: friends, groups (shared lists, votes, photos, comments), leaderboards, monthly Challenge, profile wall + collections.
+- Premium ("Crumbify Premium", RC products `crumbify_premium_monthly/annual`, 3-day trial): Monthly Wrapped, no Google ads (labelled Sponsored restaurant cards still show at half frequency), unlimited collections + premium covers, premium badge. Source of truth: app `components/premium/premium-perks.ts`. NO money/spend language.
+- Founding member: first 100 paying members via Stripe on the site, lifetime premium, closes at 100.
 
 ## Website tech stack
 
@@ -86,12 +84,16 @@ Apply to ALL copy + UI on this site:
 - No decorative notches/tabs on cards (flat edges). Exception: pressable button ledge (Duolingo sink).
 - No spotlight / radial-sweep / torch animations. No glow rings on static elements. Allowed: fade, scale, translate, opacity, spring, color, particle float, crossfade.
 
-## Pending store-compliance tasks (see HANDOFF.md)
+## Legal pages (launch-ready pass 2026-08-28, branch `legal/launch-readiness`)
 
-Blockers before app build 2 → Apple/Google submission. Source of truth: app repo `app/docs/v0814-2-compliance-and-deploys.md` + `app/docs/website-handoff-delete-account.md`.
-1. `privacy/` — add photos / posts+messages / advertising paragraphs; sweep Crumb→Crumbify.
-2. `delete-account/` — add feed posts/photos + soulmate messages to "what gets deleted"; keep URL + `admin@crumbify.co.uk` + founder-email-retained line.
-3. `support/` — fix stale "Crumb" branding, the factually-wrong "OAuth/API" FAQ answer (it's OCR), and the "spending analytics" money-rule violation.
+`privacy/`, `terms/`, `delete-account/`, `support/` were brought to launch-ready state grounded in
+two read-only audit workflows over the app repo (results in the session scratchpad
+`verify-results*.json`). Key facts encoded there: contacts matching is hash-only and skippable;
+avatars + post photos live in PUBLIC storage buckets; group + private-review photos are private
+signed-URL buckets; Sentry + PostHog are EU-hosted; RevenueCat gets the UUID only; sponsored cards
+are non-personalised; deletion is immediate and attempts Apple credential revocation. Entity:
+Crumbify LTD (no. 17288992), min age 16, no DPO, trademark application UK00004426579 (PENDING -
+no (R) symbol until registered). Do not edit these pages from memory - re-verify against app code.
 
 Locked external strings: contact `contact@crumbify.co.uk`, store review `appreview@crumbify.co.uk`, account-delete `admin@crumbify.co.uk`, X `@crumbifyco`, delete URL `https://crumbify.co.uk/delete-account`.
 
