@@ -123,7 +123,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
 
       expect(mockDelete).toHaveBeenCalled();
       expect(mockDeleteEq).toHaveBeenCalledWith("stripe_payment_id", "pi_string123");
-      expect(mockDeleteEq).not.toHaveBeenCalledWith("email", expect.anything());
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
       expect(mockDeleteSelect).toHaveBeenCalledWith("email");
       expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1 });
     });
@@ -145,6 +147,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       await POST(req);
 
       expect(mockDeleteEq).toHaveBeenCalledWith("stripe_payment_id", "pi_object456");
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
     });
 
     it("falls back to charge.id when payment_intent is absent", async () => {
@@ -163,6 +168,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       await POST(req);
 
       expect(mockDeleteEq).toHaveBeenCalledWith("stripe_payment_id", "ch_noPI");
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
     });
 
     it("treats amount_refunded >= amount as a full refund even if refunded flag is false", async () => {
@@ -182,6 +190,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       await POST(req);
 
       expect(mockDeleteEq).toHaveBeenCalledWith("stripe_payment_id", "pi_amountMatch");
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
     });
   });
 
@@ -223,6 +234,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       await POST(req);
 
       expect(mockDeleteEq).toHaveBeenCalledWith("stripe_payment_id", "pi_canceled1");
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
       expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1 });
     });
   });
@@ -241,6 +255,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
 
       expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 0 });
       expect(errorSpy).not.toHaveBeenCalled();
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
     });
   });
 
@@ -264,6 +281,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
         "connection reset"
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
+      expect(
+        mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
+      ).toBe(true);
     });
   });
 
@@ -330,6 +350,23 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
 
       expect(mockDelete).not.toHaveBeenCalled();
       expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("does not touch the delete chain for payment_intent.succeeded (confusable event with the same id shape)", async () => {
+      const paymentIntent = {
+        id: "pi_succeeded1",
+        receipt_email: "founder@example.com",
+      };
+      mockConstructEvent.mockReturnValueOnce({
+        type: "payment_intent.succeeded",
+        data: { object: paymentIntent },
+      });
+
+      const req = buildRequest(JSON.stringify(paymentIntent), "valid_sig");
+      await POST(req);
+
+      expect(mockDelete).not.toHaveBeenCalled();
+      expect(mockUpsert).toHaveBeenCalled();
     });
   });
 });
