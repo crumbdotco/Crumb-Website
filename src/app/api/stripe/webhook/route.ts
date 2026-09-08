@@ -100,5 +100,58 @@ export async function POST(request: Request) {
     }
   }
 
+  if (event.type === 'charge.refunded' || event.type === 'payment_intent.canceled') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const obj = event.data.object as any;
+
+    let paymentId: string | undefined;
+
+    if (event.type === 'charge.refunded') {
+      const fullyRefunded =
+        obj.refunded === true ||
+        (typeof obj.amount_refunded === 'number' &&
+          typeof obj.amount === 'number' &&
+          obj.amount_refunded >= obj.amount);
+
+      if (!fullyRefunded) {
+        console.warn('Partial refund on charge, not demoting founding member:', obj.id);
+        return NextResponse.json({ received: true });
+      }
+
+      const paymentIntent = obj.payment_intent;
+      if (typeof paymentIntent === 'string') {
+        paymentId = paymentIntent;
+      } else if (paymentIntent && typeof paymentIntent === 'object' && typeof paymentIntent.id === 'string') {
+        paymentId = paymentIntent.id;
+      } else if (typeof obj.id === 'string') {
+        paymentId = obj.id;
+      }
+    } else {
+      paymentId = typeof obj.id === 'string' ? obj.id : undefined;
+    }
+
+    if (!paymentId) {
+      console.error('Refund/cancellation event had no resolvable payment id:', event.type);
+      return NextResponse.json({ received: true });
+    }
+
+    // Demotion is a DELETE, never an UPDATE: waitlist.tier's CHECK constraint
+    // only allows 'free'/'founding_member', and trg_prevent_tier_downgrade
+    // (app repo supabase/migrations/009_waitlist_lockdown.sql) silently
+    // reverts any UPDATE that would move tier from founding_member to free.
+    const { data, error } = await getSupabase()
+      .from('waitlist')
+      .delete()
+      .eq('stripe_payment_id', paymentId)
+      .select('email');
+
+    if (error) {
+      console.error('Supabase delete error in refund webhook:', error.message);
+      return NextResponse.json({ received: true });
+    }
+
+    return NextResponse.json({ received: true, demoted: data?.length ?? 0 });
+  }
+
   return NextResponse.json({ received: true });
 }

@@ -52,6 +52,7 @@ The landing is a 1:1 Next.js port of the approved design in `C:\Users\aliba\Down
 - Legal/support pages: `privacy/`, `terms/`, `delete-account/`, `support/`, `founding-member/success/` — dark-themed.
 - `src/app/admin/` — magic-link-gated admin dashboard (RevenueCat / ASC / Sentry panels; mostly stale except `referrals/`).
 - `src/app/api/` — `waitlist/founding/` (first-100 counter), `stripe/webhook/`, `admin/session/`. (Waitlist signup, `/ref`, `/invite` were deleted 2026-07-18; `/ref` + `/invite` 301 to `/` via `next.config.ts`.)
+- `stripe/webhook/` also handles `charge.refunded` (only on a full refund) and `payment_intent.canceled` by DELETING the matching `waitlist` row keyed on `stripe_payment_id`, never an UPDATE: the app repo's `supabase/migrations/009_waitlist_lockdown.sql` puts a CHECK constraint on `tier` (only `free`/`founding_member`) and a `trg_prevent_tier_downgrade` trigger that silently reverts any UPDATE demoting `founding_member` to `free`.
 
 ## Brand / theme (current — cream editorial, SITE_HANDOFF)
 
