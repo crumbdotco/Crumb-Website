@@ -1,12 +1,13 @@
 /**
  * Unit tests for the single-source founding cap helper (src/lib/founding-cap.ts).
  * Both the Stripe webhook and the public founding-availability route read the
- * cap through getFoundingCap(); this file pins its fallback semantics
- * directly (RPC value used when valid, DEFAULT_FOUNDING_CAP=100 on any
- * error/null/non-numeric/out-of-range result, never 0).
+ * cap through getFoundingCap(); this file pins its fail-closed semantics
+ * directly (RPC value used when valid, FoundingCapUnavailableError thrown on
+ * any error/rejection/null/non-numeric/out-of-range result - never a
+ * guessed fallback number).
  */
 
-import { DEFAULT_FOUNDING_CAP, getFoundingCap } from "@/lib/founding-cap";
+import { FoundingCapUnavailableError, getFoundingCap } from "@/lib/founding-cap";
 
 function fakeSupabase(rpcResult: { data?: unknown; error?: { message: string } | null }) {
   return {
@@ -15,18 +16,14 @@ function fakeSupabase(rpcResult: { data?: unknown; error?: { message: string } |
 }
 
 describe("getFoundingCap", () => {
-  let warnSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    warnSpy.mockRestore();
-  });
-
-  it("DEFAULT_FOUNDING_CAP is 100", () => {
-    expect(DEFAULT_FOUNDING_CAP).toBe(100);
+    errorSpy.mockRestore();
   });
 
   it("returns the RPC's numeric value when valid", async () => {
@@ -35,65 +32,86 @@ describe("getFoundingCap", () => {
 
     expect(cap).toBe(250);
     expect(supabase.rpc).toHaveBeenCalledWith("get_founding_cap");
-    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP and warns on an RPC error", async () => {
+  it("throws FoundingCapUnavailableError and logs on an RPC error", async () => {
     const supabase = fakeSupabase({ data: null, error: { message: "permission denied" } });
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("falling back to DEFAULT_FOUNDING_CAP"),
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("refusing to guess the cap"),
       "permission denied"
     );
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP on a null result", async () => {
+  it("throws FoundingCapUnavailableError on a null result", async () => {
     const supabase = fakeSupabase({ data: null, error: null });
-    const cap = await getFoundingCap(supabase);
+    const cap = getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
-    expect(warnSpy).toHaveBeenCalled();
+    await expect(cap).rejects.toBeInstanceOf(FoundingCapUnavailableError);
+    expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP on zero (never a cap of 0)", async () => {
+  it("throws FoundingCapUnavailableError on zero (never treats 0 as a usable cap)", async () => {
     const supabase = fakeSupabase({ data: 0, error: null });
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP on a negative value", async () => {
+  it("throws FoundingCapUnavailableError on a negative value", async () => {
     const supabase = fakeSupabase({ data: -5, error: null });
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP on NaN", async () => {
+  it("throws FoundingCapUnavailableError on NaN", async () => {
     const supabase = fakeSupabase({ data: Number.NaN, error: null });
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP on a non-numeric (string) value, without coercion", async () => {
+  it("throws FoundingCapUnavailableError on a non-numeric (string) value, without coercion", async () => {
     const supabase = fakeSupabase({ data: "100", error: null });
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
-    expect(warnSpy).toHaveBeenCalled();
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
+    expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("falls back to DEFAULT_FOUNDING_CAP when the RPC call throws", async () => {
+  it("throws FoundingCapUnavailableError when the RPC call rejects", async () => {
     const supabase = { rpc: jest.fn().mockRejectedValue(new Error("network down")) };
-    const cap = await getFoundingCap(supabase);
 
-    expect(cap).toBe(100);
-    expect(warnSpy).toHaveBeenCalledWith(
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
+    expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("RPC threw"),
       "network down"
     );
+  });
+
+  it("throws FoundingCapUnavailableError when the RPC call itself throws synchronously (e.g. no rpc method)", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = {} as any;
+
+    await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("RPC threw"),
+      expect.any(String)
+    );
+  });
+
+  it("never returns a number when the RPC did not return a usable value", async () => {
+    const supabase = fakeSupabase({ data: null, error: null });
+    let threw = false;
+    let returnedValue: unknown;
+
+    try {
+      returnedValue = await getFoundingCap(supabase);
+    } catch (err) {
+      threw = true;
+      expect(err).toBeInstanceOf(FoundingCapUnavailableError);
+    }
+
+    expect(threw).toBe(true);
+    expect(returnedValue).toBeUndefined();
   });
 });
