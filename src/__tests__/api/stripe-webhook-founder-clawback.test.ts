@@ -1,5 +1,5 @@
 /**
- * Stripe webhook API route tests — founder clawback (Stage 4.5 B7 / Crumb-Website#17).
+ * Stripe webhook API route tests - founder clawback (Stage 4.5 B7 / Crumb-Website#17).
  *
  * Two extensions on top of the existing refund/cancellation demotion:
  *  1. After the waitlist DELETE succeeds, the route calls the
@@ -70,7 +70,7 @@ function buildRequest(body: string, signature: string): Request {
   } as unknown as Request;
 }
 
-describe("POST /api/stripe/webhook — founder clawback RPC", () => {
+describe("POST /api/stripe/webhook - founder clawback RPC", () => {
   let errorSpy: jest.SpyInstance;
 
   beforeEach(() => {

@@ -68,7 +68,7 @@ describe("security: the founding-member cap has exactly one source", () => {
 
   it("the webhook calls demote_refunded_founder inside the refund branch, AFTER the waitlist delete (never before it)", () => {
     const deleteIndex = webhookSource.indexOf(".delete()");
-    const rpcIndex = webhookSource.indexOf("rpc('demote_refunded_founder'");
+    const rpcIndex = webhookSource.search(/\.rpc\(\s*['"]demote_refunded_founder['"]/);
 
     expect(deleteIndex).toBeGreaterThan(-1);
     expect(rpcIndex).toBeGreaterThan(-1);

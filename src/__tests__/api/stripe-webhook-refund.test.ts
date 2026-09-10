@@ -16,6 +16,7 @@ const mockDelete = jest.fn(() => ({ eq: mockDeleteEq }));
 const mockUpsert = jest.fn();
 const mockEq = jest.fn().mockResolvedValue({ count: 0 });
 const mockSelect = jest.fn(() => ({ eq: mockEq }));
+const mockRpc = jest.fn();
 const mockFrom = jest.fn(() => ({
   upsert: mockUpsert,
   select: mockSelect,
@@ -23,7 +24,7 @@ const mockFrom = jest.fn(() => ({
 }));
 
 jest.mock("@supabase/supabase-js", () => ({
-  createClient: jest.fn(() => ({ from: mockFrom })),
+  createClient: jest.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 import { createClient } from "@supabase/supabase-js";
@@ -84,8 +85,9 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       select: mockSelect,
       delete: mockDelete,
     });
-    mockCreateClient.mockReturnValue({ from: mockFrom });
+    mockCreateClient.mockReturnValue({ from: mockFrom, rpc: mockRpc });
     mockUpsert.mockResolvedValue({ error: null });
+    mockRpc.mockResolvedValue({ data: { found: true, demoted: true }, error: null });
     mockPaymentLinksUpdate.mockResolvedValue({});
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
@@ -127,7 +129,7 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
         mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
       ).toBe(true);
       expect(mockDeleteSelect).toHaveBeenCalledWith("email");
-      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1 });
+      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1, demotedProfiles: 1 });
     });
 
     it("extracts the id when payment_intent is an expanded object", async () => {
@@ -237,7 +239,7 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       expect(
         mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")
       ).toBe(true);
-      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1 });
+      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 1, demotedProfiles: 1 });
     });
   });
 
@@ -253,7 +255,7 @@ describe("POST /api/stripe/webhook — refund demotion", () => {
       const req = buildRequest(JSON.stringify(paymentIntent), "valid_sig");
       await POST(req);
 
-      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 0 });
+      expect(mockJson).toHaveBeenCalledWith({ received: true, demoted: 0, demotedProfiles: 0 });
       expect(errorSpy).not.toHaveBeenCalled();
       expect(
         mockDeleteEq.mock.calls.every(([col]) => col === "stripe_payment_id")

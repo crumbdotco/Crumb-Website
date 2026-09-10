@@ -162,7 +162,7 @@ export async function POST(request: Request) {
       );
 
       if (demoteError) {
-        console.error('demote_refunded_founder RPC failed for a refunded waitlist row:', demoteError.message);
+        console.error('demote_refunded_founder RPC failed for a refunded waitlist row:', paymentId, demoteError.message);
         continue;
       }
 
