@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-
-const FOUNDING_CAP = 100;
+import { getFoundingCap } from '@/lib/founding-cap';
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -91,7 +90,8 @@ export async function POST(request: Request) {
           .eq('tier', 'founding_member');
 
         const linkId = process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
-        if ((count ?? 0) >= FOUNDING_CAP && linkId) {
+        const foundingCap = await getFoundingCap(getSupabase());
+        if ((count ?? 0) >= foundingCap && linkId) {
           await getStripe().paymentLinks.update(linkId, { active: false });
         }
       } catch (capErr) {
@@ -150,7 +150,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    return NextResponse.json({ received: true, demoted: data?.length ?? 0 });
+    // Demote the matching profile(s) via the SECURITY DEFINER RPC (service_role
+    // only). This is idempotent on the DB side; a failure for one row is
+    // logged (without the email, which is PII) and does not stop the loop -
+    // every remaining row still gets its own demotion attempt.
+    let demotedProfiles = 0;
+    for (const row of data ?? []) {
+      const { data: demoteResult, error: demoteError } = await getSupabase().rpc(
+        'demote_refunded_founder',
+        { p_email: row.email }
+      );
+
+      if (demoteError) {
+        console.error('demote_refunded_founder RPC failed for a refunded waitlist row:', paymentId, demoteError.message);
+        continue;
+      }
+
+      if (demoteResult && demoteResult.demoted === true) {
+        demotedProfiles += 1;
+      }
+    }
+
+    return NextResponse.json({
+      received: true,
+      demoted: data?.length ?? 0,
+      demotedProfiles,
+    });
   }
 
   return NextResponse.json({ received: true });

@@ -14,9 +14,17 @@ const mockUpsert = jest.fn();
 const mockEq = jest.fn().mockResolvedValue({ count: 0 });
 const mockSelect = jest.fn(() => ({ eq: mockEq }));
 const mockFrom = jest.fn(() => ({ upsert: mockUpsert, select: mockSelect }));
+// The webhook's belt-and-suspenders cap check reads get_founding_cap() via
+// this .rpc(); a real cap is stubbed here by default so the deactivation
+// tests below exercise the normal (non-refusal) cap path unless a test
+// explicitly makes the RPC unusable to test the refusal path itself. A
+// double with no rpc member at all previously passed the deactivation
+// tests only by accident, because the old fallback-to-100 behaviour masked
+// a real cap-read failure with the same literal the tests expected.
+const mockRpc = jest.fn();
 
 jest.mock("@supabase/supabase-js", () => ({
-  createClient: jest.fn(() => ({ from: mockFrom })),
+  createClient: jest.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 import { createClient } from "@supabase/supabase-js";
@@ -71,8 +79,9 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
     mockEq.mockResolvedValue({ count: 0 });
     mockSelect.mockReturnValue({ eq: mockEq });
     mockFrom.mockReturnValue({ upsert: mockUpsert, select: mockSelect });
-    mockCreateClient.mockReturnValue({ from: mockFrom });
+    mockCreateClient.mockReturnValue({ from: mockFrom, rpc: mockRpc });
     mockUpsert.mockResolvedValue({ error: null });
+    mockRpc.mockResolvedValue({ data: 100, error: null });
     mockPaymentLinksUpdate.mockResolvedValue({});
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
@@ -380,6 +389,26 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
       const req = buildRequest("{}", "valid_sig");
       await POST(req);
 
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Founding cap check failed:",
+        expect.any(Error),
+      );
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("does NOT deactivate and still returns 200 when the cap itself (not the count) is unreadable, i.e. get_founding_cap() refuses (FoundingCapUnavailableError)", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      // The row count read succeeds and is already >= any plausible cap, so
+      // if the cap refusal were silently treated as "no cap" or coerced to
+      // some default, this would wrongly deactivate the payment link.
+      mockEq.mockResolvedValue({ count: 999 });
+      mockRpc.mockResolvedValue({ data: null, error: { message: "permission denied" } });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
         "Founding cap check failed:",
         expect.any(Error),

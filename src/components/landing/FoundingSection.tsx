@@ -11,8 +11,13 @@ import { useEffect, useState } from "react";
 
 interface FoundingData {
   count: number;
-  remaining: number;
-  closed: boolean;
+  // Absent when the live cap could not be read (route degrades rather than
+  // guessing) - only ever rendered when it is genuinely a number.
+  remaining?: number;
+  // Also absent in that same degraded case: a cap-read blip must never be
+  // treated as "closed" (that would wrongly hide the CTA). Only an actual
+  // `=== true` closes the offer; absent/undefined falls through to the CTA.
+  closed?: boolean;
 }
 
 const PERKS = [
@@ -33,7 +38,9 @@ export function FoundingSection() {
       .then((r) => r.json())
       .then((d: FoundingData) => {
         setFounding(d);
-        setLoaded(true);
+        // A refusal response omits `count` (nothing genuine to show), so
+        // treat that the same as the fetch never having resolved yet.
+        setLoaded(typeof d.count === "number");
       })
       .catch(() => setLoaded(true));
   }, []);
@@ -69,12 +76,12 @@ export function FoundingSection() {
               <div className="fbar">
                 <div className="ffill" style={{ width: loaded ? `${progressPct}%` : "0%" }} />
               </div>
-              {loaded && !founding.closed && (
+              {loaded && founding.closed !== true && typeof founding.remaining === "number" && (
                 <div className="fremain">
                   {founding.remaining} spot{founding.remaining !== 1 ? "s" : ""} remaining
                 </div>
               )}
-              {founding.closed ? (
+              {founding.closed === true ? (
                 <div className="fclosed">Founding membership is now closed</div>
               ) : (
                 <button

@@ -10,9 +10,14 @@ const mockUpsert = jest.fn();
 const mockEq = jest.fn().mockResolvedValue({ count: 0 });
 const mockSelect = jest.fn(() => ({ eq: mockEq }));
 const mockFrom = jest.fn(() => ({ upsert: mockUpsert, select: mockSelect }));
+// The webhook's belt-and-suspenders cap check reads get_founding_cap() via
+// this .rpc(); a real cap is stubbed here so the checkout/payment tests in
+// this file exercise the normal (non-refusal) cap path, not an accidental
+// FoundingCapUnavailableError from a double with no rpc member at all.
+const mockRpc = jest.fn();
 
 jest.mock("@supabase/supabase-js", () => ({
-  createClient: jest.fn(() => ({ from: mockFrom })),
+  createClient: jest.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 import { createClient } from "@supabase/supabase-js";
@@ -61,8 +66,9 @@ describe("POST /api/stripe/webhook", () => {
     mockEq.mockResolvedValue({ count: 0 });
     mockSelect.mockReturnValue({ eq: mockEq });
     mockFrom.mockReturnValue({ upsert: mockUpsert, select: mockSelect });
-    mockCreateClient.mockReturnValue({ from: mockFrom });
+    mockCreateClient.mockReturnValue({ from: mockFrom, rpc: mockRpc });
     mockUpsert.mockResolvedValue({ error: null });
+    mockRpc.mockResolvedValue({ data: 100, error: null });
     mockPaymentLinksUpdate.mockResolvedValue({});
     process.env.STRIPE_SECRET_KEY = "sk_test_key";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
