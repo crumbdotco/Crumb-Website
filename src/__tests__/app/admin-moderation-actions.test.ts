@@ -51,6 +51,26 @@ describe('admin moderation actions', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=invalid_input');
   });
 
+  it('rejects a report update with a missing form field', async () => {
+    const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
+
+    await setReportStatusAction(formData({ reportId, status: 'queued' }));
+
+    expect(mockGetAdminAccessToken).not.toHaveBeenCalled();
+    expect(mockSetModerationReportStatus).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=invalid_input');
+  });
+
+  it('rejects a report update with an unsupported status', async () => {
+    const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
+
+    await setReportStatusAction(formData({ source: 'post_reports', reportId, status: 'pending' }));
+
+    expect(mockGetAdminAccessToken).not.toHaveBeenCalled();
+    expect(mockSetModerationReportStatus).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=invalid_input');
+  });
+
   it('updates a report through the verified token and redirects with a safe result code', async () => {
     const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
 
@@ -74,6 +94,37 @@ describe('admin moderation actions', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=update_failed');
     expect(mockRedirect).not.toHaveBeenCalledWith(expect.stringContaining('raw Supabase error detail'));
     expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('redirects a report update when the access token is unavailable', async () => {
+    mockGetAdminAccessToken.mockResolvedValue(null);
+    const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
+
+    await setReportStatusAction(formData({ source: 'post_reports', reportId, status: 'actioned' }));
+
+    expect(mockSetModerationReportStatus).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
+  });
+
+  it('does not expose an unban service failure in the redirect', async () => {
+    mockUnbanModerationUser.mockRejectedValue(new Error('raw Supabase error detail'));
+    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
+
+    await unbanUserAction(formData({ userId }));
+
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
+    expect(mockRedirect).not.toHaveBeenCalledWith(expect.stringContaining('raw Supabase error detail'));
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('redirects an unban when the access token is unavailable', async () => {
+    mockGetAdminAccessToken.mockResolvedValue(null);
+    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
+
+    await unbanUserAction(formData({ userId }));
+
+    expect(mockUnbanModerationUser).not.toHaveBeenCalled();
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
   });
 
   it('rejects an invalid unban request before reading a token or calling the service', async () => {
