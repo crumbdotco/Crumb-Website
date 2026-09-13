@@ -328,3 +328,12 @@ entry covers only the website-repo half.
 Gates run this round: `npx tsc --noEmit` = 0 errors. Targeted jest
 (`--testPathPattern "(universal-link-prefix-manifest-parity|share-landing.
 attempt-app-deep-link)"`, `--maxWorkers=2`) = 2 suites / 13 tests PASS.
+## B6c website admin moderation - 2026-09-13
+
+- Implemented `/admin/moderation` with a page-level `requireAdmin()` gate. The existing ungated admin layout remains unchanged so sign-in and callback routes stay reachable.
+- Reports, active bans, and audit history use the B6a RPC names and render independent unavailable states. Report status actions and unban actions validate their form inputs, re-check admin access, revalidate the page, and redirect with generic result codes.
+- Moderation RPCs use the server-only Supabase service-role key with the verified admin bearer in the `Authorization` header. This keeps the B6a `auth.uid()` guard and audit actor correct. GoTrue unban uses a separate bearer-free service-role client first, then records `admin_unban`.
+- `POST /api/admin/session` now requires an exact allowlisted Origin, or an exact allowlisted Referer origin when Origin is absent. Missing, malformed, null, and lookalike origins receive 403 before JSON parsing or cookie writes.
+- A verified non-admin who reaches the moderation page or directly invokes a moderation action receives a best-effort high-priority Resend alert. The recipient, sender, and API key are server environment variables (`REPORTS_EMAIL_TO`, `REPORTS_EMAIL_FROM`, `RESEND_API_KEY`). Navigation never auto-bans an account.
+- Targeted moderation/action coverage is 100% statements, branches, functions, and lines. Full Jest passed after implementation. Full repository coverage remains below the existing global threshold because unrelated website modules are untested; standalone typecheck retains seven pre-existing errors in `stripe-webhook-refund.test.ts`, while `next build` typechecks and succeeds.
+- Live browser verification was not available in this session: the owner must sign in as the admin, action a throwaway report, unban the throwaway, and confirm `REPORTS_EMAIL_TO` is set in Vercel before deployment.

@@ -181,3 +181,23 @@ Add an RPC `founding_spots_remaining()` / `founding_open()` returning `100 - cou
 - Same warm cream/brown palette as the app (`crumb-cream`, `crumb-brown`, `crumb-dark`, `crumb-card`, `crumb-line`, `crumb-muted` Tailwind tokens).
 - Other legal pages (`privacy`, `terms`, `delete-account`) may also still say "Crumb" instead of "Crumbify" — worth a sweep while you're in here, but the Support page is the blocker for the store submission.
 - **Org transition (2026-06-20):** Individual→Organization migration underway for Apple Dev + Google Play under **Crumbify LTD**; DUNS requested, awaiting issuance. Task 5 (entity identity on legal pages) should ship alongside so store legal links match the new org seller name.
+# HANDOFF - v1.0.0 B6c website admin moderation
+
+## Last session: 2026-09-13 (main)
+
+## Done
+- [x] Added the protected `/admin/moderation` reports, active bans, unban, and audit page.
+- [x] Added service-role RPC wiring with verified bearer audit identity and ordered GoTrue unban.
+- [x] Added high-priority alerts for verified non-admin page and action access.
+- [x] Added exact Origin/Referer checks to `POST /api/admin/session`.
+- [x] Added focused tests with 100% coverage for the new service and action modules.
+
+## Not done / Blocked
+- [ ] Live browser check and Vercel environment confirmation remain owner steps.
+- [ ] Full repository coverage remains below its existing threshold because of unrelated untested modules.
+- [ ] `npx tsc --noEmit` retains seven pre-existing errors in `src/__tests__/api/stripe-webhook-refund.test.ts`.
+
+## Context for next session
+- Work is committed directly on `main`; no push or deployment was performed.
+- Set `REPORTS_EMAIL_TO` to the requested reports mailbox, plus `REPORTS_EMAIL_FROM` and `RESEND_API_KEY`, in Vercel.
+- No auto-ban is performed for URL navigation. Verified non-admin access is denied and alerted; anonymous or unverifiable access is denied without an identity alert.
