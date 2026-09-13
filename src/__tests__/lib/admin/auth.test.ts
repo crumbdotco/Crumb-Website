@@ -173,3 +173,38 @@ describe("requireAdmin", () => {
     expect(result).toBe("user-1");
   });
 });
+
+describe("getAdminSessionUser", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it("returns only the verified session id and email", async () => {
+    mockCookieGet.mockReturnValue({ value: "some-access-token" });
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "person@example.com", app_metadata: { role: "admin" } } },
+      error: null,
+    });
+
+    const { getAdminSessionUser } = await import("@/lib/admin/auth");
+
+    await expect(getAdminSessionUser()).resolves.toEqual({ id: "user-1", email: "person@example.com" });
+  });
+
+  it("returns null when Supabase cannot verify the cookie", async () => {
+    mockCookieGet.mockReturnValue({ value: "some-access-token" });
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: "expired" } });
+
+    const { getAdminSessionUser } = await import("@/lib/admin/auth");
+
+    await expect(getAdminSessionUser()).resolves.toBeNull();
+  });
+});
