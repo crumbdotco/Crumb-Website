@@ -55,12 +55,20 @@ export default async function AdminPage() {
             </p>
           </div>
         </div>
-        <Link
-          href="/admin/referrals"
-          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E6C39B]/40 px-4 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
-        >
-          Referrals dashboard
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/moderation"
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E6C39B]/40 px-4 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
+          >
+            Moderation
+          </Link>
+          <Link
+            href="/admin/referrals"
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E6C39B]/40 px-4 text-sm font-semibold text-[#E6C39B] hover:bg-[#E6C39B]/10"
+          >
+            Referrals dashboard
+          </Link>
+        </div>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
