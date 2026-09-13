@@ -1,8 +1,17 @@
+jest.mock("@supabase/supabase-js", () => ({
+  createClient: jest.fn(),
+}));
+
 import {
   createModerationService,
+  fetchModerationData,
   type ModerationDependencies,
   type ModerationReport,
+  unbanModerationUser,
 } from "@/lib/admin/moderation";
+import { createClient } from "@supabase/supabase-js";
+
+const mockCreateClient = createClient as jest.Mock;
 
 const report = {
   source: "post_reports",
@@ -58,10 +67,11 @@ function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
   });
   const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
   const fetch = jest.fn(() => Promise.resolve({ ok: true }));
+  const createServiceRoleRpcClient = jest.fn(() => ({ rpc }));
 
   return {
     dependencies: {
-      createBearerClient: jest.fn(() => ({ rpc })),
+      createServiceRoleRpcClient,
       createServiceRoleClient: jest.fn(() => ({ auth: { admin: { updateUserById } } })),
       fetch,
       getEnvironment: jest.fn(() => ({
@@ -73,14 +83,15 @@ function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
       ...overrides,
     } as ModerationDependencies,
     rpc,
+    createServiceRoleRpcClient,
     updateUserById,
     fetch,
   };
 }
 
 describe("moderation service", () => {
-  it("maps successful report, ban, and audit RPC rows through the verified bearer", async () => {
-    const { dependencies, rpc } = createDependencies();
+  it("maps successful report, ban, and audit RPC rows through the service-role client with the verified bearer", async () => {
+    const { dependencies, rpc, createServiceRoleRpcClient } = createDependencies();
     const service = createModerationService(dependencies);
 
     const data = await service.fetchModerationData("verified-admin-token");
@@ -90,7 +101,7 @@ describe("moderation service", () => {
       bans: { available: true, rows: [ban] },
       audit: { available: true, rows: [audit] },
     });
-    expect(dependencies.createBearerClient).toHaveBeenCalledWith("verified-admin-token");
+    expect(createServiceRoleRpcClient).toHaveBeenCalledWith("verified-admin-token");
     if (!data.reports.available) throw new Error("Expected reports to be available");
     expect(data.reports.rows[0].reporter_id).toBeNull();
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
@@ -102,7 +113,7 @@ describe("moderation service", () => {
 
   it("keeps a report email delivery state when the RPC returns unknown", async () => {
     const { dependencies } = createDependencies({
-      createBearerClient: jest.fn(() => ({
+      createServiceRoleRpcClient: jest.fn(() => ({
         rpc: jest.fn((name: string) => Promise.resolve({
           data: name === "admin_list_reports" ? [reportWithUnknownEmailDelivery] : [],
           error: null,
@@ -122,7 +133,7 @@ describe("moderation service", () => {
     ["admin_audit_log", "audit"],
   ] as const)("keeps %s unavailable without hiding the other moderation data", async (failedRpc, key) => {
     const { dependencies } = createDependencies({
-      createBearerClient: jest.fn(() => ({
+      createServiceRoleRpcClient: jest.fn(() => ({
         rpc: jest.fn((name: string) =>
           Promise.resolve({ data: name === failedRpc ? null : [], error: name === failedRpc ? { message: "denied" } : null }),
         ),
@@ -148,11 +159,11 @@ describe("moderation service", () => {
       reportId: "not-a-uuid",
       status: "pending" as "queued",
     })).rejects.toThrow("Invalid moderation report status input");
-    expect(dependencies.createBearerClient).not.toHaveBeenCalled();
+    expect(dependencies.createServiceRoleRpcClient).not.toHaveBeenCalled();
   });
 
-  it("sends a valid report mutation through the verified bearer", async () => {
-    const { dependencies, rpc } = createDependencies();
+  it("sends a valid report mutation through the service-role client with the verified bearer", async () => {
+    const { dependencies, rpc, createServiceRoleRpcClient } = createDependencies();
     const service = createModerationService(dependencies);
 
     await service.setModerationReportStatus("verified-admin-token", {
@@ -166,6 +177,7 @@ describe("moderation service", () => {
       p_report_id: report.id,
       p_status: "actioned",
     });
+    expect(createServiceRoleRpcClient).toHaveBeenCalledWith("verified-admin-token");
   });
 
   it("unbans in GoTrue before recording the caller-scoped database action", async () => {
@@ -174,29 +186,33 @@ describe("moderation service", () => {
       events.push("gotrue");
       return Promise.resolve({ error: null });
     });
-    const { dependencies } = createDependencies({
-      createBearerClient: jest.fn(() => ({
-        rpc: jest.fn(() => {
-          events.push("rpc");
-          return Promise.resolve({ data: null, error: null });
+    const createServiceRoleRpcClient = jest.fn(() => ({
+      rpc: jest.fn(() => {
+        events.push("rpc");
+        return Promise.resolve({ data: null, error: null });
         }),
-      })),
-      createServiceRoleClient: jest.fn(() => ({
-        auth: { admin: { updateUserById } },
-      })),
+      }));
+    const createServiceRoleClient = jest.fn(() => ({
+      auth: { admin: { updateUserById } },
+    }));
+    const { dependencies } = createDependencies({
+      createServiceRoleRpcClient,
+      createServiceRoleClient,
     });
     const service = createModerationService(dependencies);
 
     await service.unbanModerationUser("verified-admin-token", ban.user_id);
 
     expect(events).toEqual(["gotrue", "rpc"]);
+    expect(createServiceRoleRpcClient).toHaveBeenCalledWith("verified-admin-token");
+    expect(createServiceRoleClient).toHaveBeenCalledWith();
     expect(updateUserById).toHaveBeenCalledWith(ban.user_id, { ban_duration: "none" });
   });
 
   it("does not call admin_unban when GoTrue rejects the unban", async () => {
     const rpc = jest.fn(() => Promise.resolve({ data: null, error: null }));
     const { dependencies } = createDependencies({
-      createBearerClient: jest.fn(() => ({ rpc })),
+      createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
       createServiceRoleClient: jest.fn(() => ({
         auth: { admin: { updateUserById: jest.fn(() => Promise.resolve({ error: { message: "denied" } })) } },
       })),
@@ -235,5 +251,59 @@ describe("moderation service", () => {
     const service = createModerationService(dependencies);
 
     await expect(service.sendUnauthorizedModerationAlert("user-1", null)).resolves.toBeUndefined();
+  });
+});
+
+describe("production moderation client wiring", () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it("uses the service-role key and verified bearer for moderation RPCs", async () => {
+    const rpc = jest.fn(() => Promise.resolve({ data: [], error: null }));
+    mockCreateClient.mockReturnValue({ rpc });
+
+    await fetchModerationData("verified-admin-token");
+
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      "https://example.supabase.co",
+      "service-role-key",
+      expect.objectContaining({
+        global: { headers: { Authorization: "Bearer verified-admin-token" } },
+      }),
+    );
+  });
+
+  it("keeps GoTrue bearer-free while the admin_unban RPC carries the verified bearer", async () => {
+    const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
+    const rpc = jest.fn(() => Promise.resolve({ data: null, error: null }));
+    mockCreateClient
+      .mockReturnValueOnce({ auth: { admin: { updateUserById } } })
+      .mockReturnValueOnce({ rpc });
+
+    await unbanModerationUser("verified-admin-token", ban.user_id);
+
+    expect(mockCreateClient).toHaveBeenNthCalledWith(
+      1,
+      "https://example.supabase.co",
+      "service-role-key",
+      expect.not.objectContaining({ global: expect.anything() }),
+    );
+    expect(mockCreateClient).toHaveBeenNthCalledWith(
+      2,
+      "https://example.supabase.co",
+      "service-role-key",
+      expect.objectContaining({
+        global: { headers: { Authorization: "Bearer verified-admin-token" } },
+      }),
+    );
   });
 });

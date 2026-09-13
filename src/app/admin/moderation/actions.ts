@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { getAdminAccessToken, requireAdmin } from '@/lib/admin/auth';
+import { getAdminAccessToken, getAdminSessionUser, requireAdmin } from '@/lib/admin/auth';
 import {
+  sendUnauthorizedModerationAlert,
   setModerationReportStatus,
   unbanModerationUser,
   type ReportSource,
@@ -26,9 +27,17 @@ function isReportStatus(value: string): value is ReportStatus {
   return value === 'queued' || value === 'actioned' || value === 'dismissed';
 }
 
+async function redirectUnauthorizedModerationAccess(): Promise<void> {
+  const sessionUser = await getAdminSessionUser();
+  if (sessionUser) {
+    await sendUnauthorizedModerationAlert(sessionUser.id, sessionUser.email).catch(() => undefined);
+  }
+  return redirect('/admin/signin?error=unauthorized');
+}
+
 export async function setReportStatusAction(formData: FormData): Promise<void> {
   const userId = await requireAdmin();
-  if (!userId) return redirect('/admin/signin?error=unauthorized');
+  if (!userId) return redirectUnauthorizedModerationAccess();
 
   const source = readString(formData, 'source');
   const reportId = readString(formData, 'reportId');
@@ -52,7 +61,7 @@ export async function setReportStatusAction(formData: FormData): Promise<void> {
 
 export async function unbanUserAction(formData: FormData): Promise<void> {
   const userId = await requireAdmin();
-  if (!userId) return redirect('/admin/signin?error=unauthorized');
+  if (!userId) return redirectUnauthorizedModerationAccess();
 
   const targetUserId = readString(formData, 'userId');
   if (!UUID_RE.test(targetUserId)) return redirect(`${MODERATION_PATH}?error=invalid_input`);

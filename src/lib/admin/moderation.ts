@@ -68,7 +68,7 @@ interface AlertResponse {
 }
 
 export interface ModerationDependencies {
-  createBearerClient(accessToken: string): RpcClient;
+  createServiceRoleRpcClient(accessToken: string): RpcClient;
   createServiceRoleClient(): ServiceRoleClient;
   fetch(url: string, init: RequestInit): Promise<AlertResponse>;
   getEnvironment(): { resendApiKey?: string; reportsEmailFrom?: string; reportsEmailTo?: string };
@@ -79,11 +79,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function productionDependencies(): ModerationDependencies {
   return {
-    createBearerClient(accessToken) {
+    createServiceRoleRpcClient(accessToken) {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !anonKey) throw new Error('Supabase is not configured');
-      return createClient(url, anonKey, {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!url || !serviceRoleKey) throw new Error('Supabase service role is not configured');
+      return createClient(url, serviceRoleKey, {
         auth: { persistSession: false, autoRefreshToken: false },
         global: { headers: { Authorization: `Bearer ${accessToken}` } },
       });
@@ -134,7 +134,7 @@ async function readModerationRows<T>(request: PromiseLike<{ data: unknown; error
 export function createModerationService(dependencies: ModerationDependencies) {
   return {
     async fetchModerationData(accessToken: string): Promise<ModerationData> {
-      const client = dependencies.createBearerClient(accessToken);
+      const client = dependencies.createServiceRoleRpcClient(accessToken);
       const [reports, bans, audit] = await Promise.all([
         readModerationRows<ModerationReport>(client.rpc('admin_list_reports')),
         readModerationRows<ModerationBan>(client.rpc('admin_list_bans')),
@@ -148,7 +148,7 @@ export function createModerationService(dependencies: ModerationDependencies) {
       input: { source: ReportSource; reportId: string; status: ReportStatus },
     ): Promise<void> {
       if (!isReportInputValid(input)) throw new Error('Invalid moderation report status input');
-      const { error } = await dependencies.createBearerClient(accessToken).rpc('admin_set_report_status', {
+      const { error } = await dependencies.createServiceRoleRpcClient(accessToken).rpc('admin_set_report_status', {
         p_source: input.source,
         p_report_id: input.reportId,
         p_status: input.status,
@@ -164,7 +164,7 @@ export function createModerationService(dependencies: ModerationDependencies) {
       if (authError) throw new Error('Unable to unban moderation user');
 
       const { error: rpcError } = await dependencies
-        .createBearerClient(accessToken)
+        .createServiceRoleRpcClient(accessToken)
         .rpc('admin_unban', { p_user_id: userId });
       if (rpcError) throw new Error('Unable to unban moderation user');
     },
