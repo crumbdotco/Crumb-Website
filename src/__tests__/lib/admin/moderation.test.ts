@@ -1,6 +1,7 @@
 import {
   createModerationService,
   type ModerationDependencies,
+  type ModerationReport,
 } from "@/lib/admin/moderation";
 
 const report = {
@@ -41,6 +42,13 @@ const audit = {
   created_at: "2026-09-13T12:00:00.000Z",
 };
 
+const reportWithUnknownEmailDelivery: ModerationReport = {
+  ...report,
+  source: "post_reports",
+  status: "queued",
+  emailed: null,
+};
+
 function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
   const rpc = jest.fn((name: string) => {
     if (name === "admin_list_reports") return Promise.resolve({ data: [report], error: null });
@@ -59,6 +67,7 @@ function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
       getEnvironment: jest.fn(() => ({
         resendApiKey: "resend-key",
         reportsEmailFrom: "Crumbify <alerts@crumbify.co.uk>",
+        reportsEmailTo: "configured-recipient",
       })),
       now: jest.fn(() => new Date("2026-09-13T12:00:00.000Z")),
       ...overrides,
@@ -85,6 +94,22 @@ describe("moderation service", () => {
       "admin_list_bans",
       "admin_audit_log",
     ]);
+  });
+
+  it("keeps a report email delivery state when the RPC returns unknown", async () => {
+    const { dependencies } = createDependencies({
+      createBearerClient: jest.fn(() => ({
+        rpc: jest.fn((name: string) => Promise.resolve({
+          data: name === "admin_list_reports" ? [reportWithUnknownEmailDelivery] : [],
+          error: null,
+        })),
+      })),
+    });
+    const service = createModerationService(dependencies);
+
+    const data = await service.fetchModerationData("verified-admin-token");
+
+    expect(data.reports).toEqual({ available: true, rows: [reportWithUnknownEmailDelivery] });
   });
 
   it.each([
@@ -141,6 +166,10 @@ describe("moderation service", () => {
 
   it("unbans in GoTrue before recording the caller-scoped database action", async () => {
     const events: string[] = [];
+    const updateUserById = jest.fn(() => {
+      events.push("gotrue");
+      return Promise.resolve({ error: null });
+    });
     const { dependencies } = createDependencies({
       createBearerClient: jest.fn(() => ({
         rpc: jest.fn(() => {
@@ -149,10 +178,7 @@ describe("moderation service", () => {
         }),
       })),
       createServiceRoleClient: jest.fn(() => ({
-        auth: { admin: { updateUserById: jest.fn(() => {
-          events.push("gotrue");
-          return Promise.resolve({ error: null });
-        }) } },
+        auth: { admin: { updateUserById } },
       })),
     });
     const service = createModerationService(dependencies);
@@ -160,9 +186,27 @@ describe("moderation service", () => {
     await service.unbanModerationUser("verified-admin-token", ban.user_id);
 
     expect(events).toEqual(["gotrue", "rpc"]);
+    expect(updateUserById).toHaveBeenCalledWith(ban.user_id, { ban_duration: "none" });
   });
 
-  it("sends a high-priority alert to the moderation mailbox without sensitive request data", async () => {
+  it("does not call admin_unban when GoTrue rejects the unban", async () => {
+    const rpc = jest.fn(() => Promise.resolve({ data: null, error: null }));
+    const { dependencies } = createDependencies({
+      createBearerClient: jest.fn(() => ({ rpc })),
+      createServiceRoleClient: jest.fn(() => ({
+        auth: { admin: { updateUserById: jest.fn(() => Promise.resolve({ error: { message: "denied" } })) } },
+      })),
+    });
+    const service = createModerationService(dependencies);
+
+    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
+      "Unable to unban moderation user",
+    );
+
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("sends a high-priority alert only to the configured moderation mailbox", async () => {
     const { dependencies, fetch } = createDependencies();
     const service = createModerationService(dependencies);
 
@@ -173,7 +217,7 @@ describe("moderation service", () => {
       headers: expect.objectContaining({ "X-Priority": "1" }),
       body: JSON.stringify({
         from: "Crumbify <alerts@crumbify.co.uk>",
-        to: ["reports@crumbify.co.uk"],
+        to: ["configured-recipient"],
         subject: "Unauthorized moderation access attempt",
         text: "Unauthorized moderation access attempt. User ID: user-1. Email: person@example.com. Path: /admin/moderation. Timestamp: 2026-09-13T12:00:00.000Z.",
       }),

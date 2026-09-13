@@ -13,7 +13,7 @@ export interface ModerationReport {
   category: string | null;
   note: string | null;
   status: ReportStatus;
-  emailed: boolean;
+  emailed: boolean | null;
   created_at: string;
   handled_by: string | null;
   handled_at: string | null;
@@ -71,7 +71,7 @@ export interface ModerationDependencies {
   createBearerClient(accessToken: string): RpcClient;
   createServiceRoleClient(): ServiceRoleClient;
   fetch(url: string, init: RequestInit): Promise<AlertResponse>;
-  getEnvironment(): { resendApiKey?: string; reportsEmailFrom?: string };
+  getEnvironment(): { resendApiKey?: string; reportsEmailFrom?: string; reportsEmailTo?: string };
   now(): Date;
 }
 
@@ -100,6 +100,7 @@ function productionDependencies(): ModerationDependencies {
     getEnvironment: () => ({
       resendApiKey: process.env.RESEND_API_KEY,
       reportsEmailFrom: process.env.REPORTS_EMAIL_FROM,
+      reportsEmailTo: process.env.REPORTS_EMAIL_TO,
     }),
     now: () => new Date(),
   };
@@ -169,8 +170,8 @@ export function createModerationService(dependencies: ModerationDependencies) {
     },
 
     async sendUnauthorizedModerationAlert(userId: string, email: string | null): Promise<void> {
-      const { resendApiKey, reportsEmailFrom } = dependencies.getEnvironment();
-      if (!resendApiKey || !reportsEmailFrom) return;
+      const { resendApiKey, reportsEmailFrom, reportsEmailTo } = dependencies.getEnvironment();
+      if (!resendApiKey || !reportsEmailFrom || !reportsEmailTo) return;
 
       const emailLine = email ? ` Email: ${email}.` : '';
       const text = `Unauthorized moderation access attempt. User ID: ${userId}.${emailLine} Path: /admin/moderation. Timestamp: ${dependencies.now().toISOString()}.`;
@@ -184,7 +185,7 @@ export function createModerationService(dependencies: ModerationDependencies) {
           },
           body: JSON.stringify({
             from: reportsEmailFrom,
-            to: ['reports@crumbify.co.uk'],
+            to: [reportsEmailTo],
             subject: 'Unauthorized moderation access attempt',
             text,
           }),
