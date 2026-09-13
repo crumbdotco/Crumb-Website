@@ -27,6 +27,12 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return getAdminEmailAllowlist().includes(normalized);
 }
 
+/** Reads the existing access-token cookie without verifying it. */
+export async function getAdminAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('sb-access-token')?.value ?? null;
+}
+
 /** Reads the existing cookie and returns only a Supabase-verified identity. */
 export async function getAdminSessionUser(): Promise<{ id: string; email: string | null } | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

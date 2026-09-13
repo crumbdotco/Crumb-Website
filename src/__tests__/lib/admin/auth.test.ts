@@ -208,3 +208,27 @@ describe("getAdminSessionUser", () => {
     await expect(getAdminSessionUser()).resolves.toBeNull();
   });
 });
+
+describe("getAdminAccessToken", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("returns the existing access-token cookie without verifying it", async () => {
+    mockCookieGet.mockReturnValue({ value: "existing-access-token" });
+
+    const { getAdminAccessToken } = await import("@/lib/admin/auth");
+
+    await expect(getAdminAccessToken()).resolves.toBe("existing-access-token");
+    expect(mockCookieGet).toHaveBeenCalledWith("sb-access-token");
+    expect(mockGetUser).not.toHaveBeenCalled();
+  });
+
+  it("returns null when the access-token cookie is absent", async () => {
+    mockCookieGet.mockReturnValue(undefined);
+
+    const { getAdminAccessToken } = await import("@/lib/admin/auth");
+
+    await expect(getAdminAccessToken()).resolves.toBeNull();
+  });
+});
