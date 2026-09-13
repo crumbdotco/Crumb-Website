@@ -128,6 +128,21 @@ describe("moderation service", () => {
     expect(data.reports).toEqual({ available: true, rows: [reportWithUnknownEmailDelivery] });
   });
 
+  it("maps successful null RPC data to available empty rows", async () => {
+    const { dependencies } = createDependencies({
+      createServiceRoleRpcClient: jest.fn(() => ({
+        rpc: jest.fn((name: string) =>
+          Promise.resolve({ data: name === "admin_list_reports" ? null : [], error: null }),
+        ),
+      })),
+    });
+    const service = createModerationService(dependencies);
+
+    const data = await service.fetchModerationData("verified-admin-token");
+
+    expect(data.reports).toEqual({ available: true, rows: [] });
+  });
+
   it.each([
     ["admin_list_reports", "reports"],
     ["admin_list_bans", "bans"],
