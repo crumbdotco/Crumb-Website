@@ -120,7 +120,7 @@ function ReportCard({ report }: { report: ModerationReport }) {
     <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-mono text-xs text-[#E6C39B]">{report.source}</p>
+          <p className="font-mono text-xs opacity-60">{report.source}</p>
           {report.report_number != null && <p className="mt-1 text-sm font-semibold">Report #{report.report_number}</p>}
         </div>
         <span className="rounded-full border border-white/15 px-2.5 py-1 text-xs font-semibold capitalize">

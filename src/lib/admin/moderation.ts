@@ -8,7 +8,7 @@ export interface ModerationReport {
   id: string;
   target_type: string;
   target_id: string;
-  reporter_id: string;
+  reporter_id: string | null;
   reason: string | null;
   category: string | null;
   note: string | null;

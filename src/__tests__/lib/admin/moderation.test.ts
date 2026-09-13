@@ -9,7 +9,7 @@ const report = {
   id: "11111111-1111-4111-8111-111111111111",
   target_type: "post",
   target_id: "22222222-2222-4222-8222-222222222222",
-  reporter_id: "33333333-3333-4333-8333-333333333333",
+  reporter_id: null,
   reason: "spam",
   category: "safety",
   note: "Please review",
@@ -83,12 +83,16 @@ describe("moderation service", () => {
     const { dependencies, rpc } = createDependencies();
     const service = createModerationService(dependencies);
 
-    await expect(service.fetchModerationData("verified-admin-token")).resolves.toEqual({
+    const data = await service.fetchModerationData("verified-admin-token");
+
+    expect(data).toEqual({
       reports: { available: true, rows: [report] },
       bans: { available: true, rows: [ban] },
       audit: { available: true, rows: [audit] },
     });
     expect(dependencies.createBearerClient).toHaveBeenCalledWith("verified-admin-token");
+    if (!data.reports.available) throw new Error("Expected reports to be available");
+    expect(data.reports.rows[0].reporter_id).toBeNull();
     expect(rpc.mock.calls.map(([name]) => name)).toEqual([
       "admin_list_reports",
       "admin_list_bans",

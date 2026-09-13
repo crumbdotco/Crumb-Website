@@ -120,7 +120,10 @@ describe('admin moderation page', () => {
 
     expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token');
     expect(screen.getByRole('heading', { name: 'Moderation' })).toBeInTheDocument();
-    expect(screen.getByText('post_reports')).toBeInTheDocument();
+    const reportSource = screen.getByText('post_reports');
+    expect(reportSource).toBeInTheDocument();
+    expect(reportSource).toHaveClass('opacity-60');
+    expect(reportSource).not.toHaveClass('text-[#E6C39B]');
     expect(screen.getByText('group_content_reports')).toBeInTheDocument();
     expect(screen.getByText('Report #42')).toBeInTheDocument();
     expect(screen.getByText('safety')).toBeInTheDocument();
