@@ -12,13 +12,25 @@ export function isAllowedAdminSessionRequest(
   origin: string | null,
   referer: string | null,
 ): boolean {
-  const candidate = origin !== null ? origin : referer;
-  if (!candidate || candidate === 'null') {
+  if (origin !== null) {
+    if (!origin || origin === 'null') {
+      return false;
+    }
+
+    try {
+      const parsedOrigin = new URL(origin).origin;
+      return origin === parsedOrigin && ALLOWED_ORIGINS.has(parsedOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  if (!referer) {
     return false;
   }
 
   try {
-    return ALLOWED_ORIGINS.has(new URL(candidate).origin);
+    return ALLOWED_ORIGINS.has(new URL(referer).origin);
   } catch {
     return false;
   }
