@@ -142,6 +142,24 @@ describe('admin moderation page', () => {
     expect(screen.getByText('Reports are unavailable right now.')).toBeInTheDocument();
     expect(screen.getByText('Active bans are unavailable right now.')).toBeInTheDocument();
     expect(screen.getByText('Audit history is unavailable right now.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Newest reports' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Older reports' })).not.toBeInTheDocument();
+  });
+
+  it('does not show report pagination for an initial empty page', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage());
+
+    expect(screen.queryByRole('link', { name: 'Newest reports' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Older reports' })).not.toBeInTheDocument();
   });
 
   it('passes a valid before cursor and shows a Newest reports link', async () => {
@@ -224,5 +242,53 @@ describe('admin moderation page', () => {
     render(await ModerationPage({ searchParams: Promise.resolve({ result: 'nope', error: 'nope' }) }));
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it.each(['__proto__', 'constructor', 'toString'])('ignores inherited message key %s without crashing', async (code) => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ result: code }) }));
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('shows the Newest reports escape link for an empty older cursor page', async () => {
+    const before = '2026-09-13T12:00:00.000Z';
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+
+    expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute('href', '/admin/moderation');
+    expect(screen.queryByRole('link', { name: 'Older reports' })).not.toBeInTheDocument();
+  });
+
+  it('shows the Newest reports escape link for an unavailable older cursor page', async () => {
+    const before = '2026-09-13T12:00:00.000Z';
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: false },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+
+    expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute('href', '/admin/moderation');
   });
 });

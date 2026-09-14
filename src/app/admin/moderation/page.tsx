@@ -52,8 +52,13 @@ function oneSearchParam(value: string | string[] | undefined): string | null {
 }
 
 function moderationMessage(params: ModerationSearchParams): string | null {
-  const code = oneSearchParam(params.result) ?? oneSearchParam(params.error);
-  return code ? MODERATION_MESSAGES[code] ?? null : null;
+  const codes = [oneSearchParam(params.result), oneSearchParam(params.error)];
+  for (const code of codes) {
+    if (code && Object.prototype.hasOwnProperty.call(MODERATION_MESSAGES, code)) {
+      return MODERATION_MESSAGES[code];
+    }
+  }
+  return null;
 }
 
 function formatDate(value: string | null): string {
@@ -156,13 +161,11 @@ function ReportsSection({
       ) : reports.rows.length === 0 ? (
         <p className="text-sm opacity-60">No reports need review.</p>
       ) : (
-        <>
-          <div className="grid gap-4 xl:grid-cols-2">
-            {reports.rows.map((report) => <ReportCard key={`${report.source}-${report.id}`} report={report} />)}
-          </div>
-          <ReportPagination reports={reports.rows} before={before} />
-        </>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {reports.rows.map((report) => <ReportCard key={`${report.source}-${report.id}`} report={report} />)}
+        </div>
       )}
+      <ReportPagination reports={reports.available ? reports.rows : []} before={before} />
     </SectionShell>
   );
 }

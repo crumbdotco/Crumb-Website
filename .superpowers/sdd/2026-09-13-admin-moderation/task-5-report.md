@@ -136,6 +136,42 @@ remains explicitly incomplete.
   plan update in the documentation commit.
 - `.superpowers/sdd/2026-09-13-admin-moderation/task-5-report.md`: this report.
 
+## Final review fix round 2 evidence
+
+The RED command was:
+
+```text
+npm test -- --runTestsByPath src/__tests__/app/admin-moderation-page.test.tsx --maxWorkers=2
+```
+
+The exact failing output was:
+
+```text
+Functions are not valid as a React child. This may happen if you return Object instead of <Object /> from render. Or maybe you meant to call this function rather than return it.
+      <p>{Object}</p>
+
+Objects are not valid as a React child (found: object with keys {}). If you meant to render a collection of children, use an array instead.
+
+expected document not to contain element, found <p ... role="status" /> instead
+
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Newest reports"
+```
+
+The implementation now checks message codes with an own-key allowlist lookup, and renders
+report pagination outside the non-empty reports branch. This keeps the Newest reports escape
+link available for empty or unavailable older cursor pages while keeping initial empty and
+unavailable pages link-free.
+
+The GREEN command passed:
+
+```text
+npm test -- --runTestsByPath src/__tests__/app/admin-moderation-page.test.tsx --maxWorkers=2
+PASS: 1 suite, 17 tests, 0 snapshots failed
+```
+
+The final page assertions also verify that initial empty and unavailable report pages do not
+render either pagination link.
+
 All four modified production files have the required opening headers with purpose,
 security/brand rules, interfaces, and `Test IDs: none` for server-only files.
 
