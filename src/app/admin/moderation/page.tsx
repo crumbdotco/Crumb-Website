@@ -1,13 +1,18 @@
+/**
+ * Purpose: Render the protected Crumbify moderation dashboard for reports, bans, and audit history.
+ * Security and brand rules: Gate before data reads, keep service credentials server-side, and use the existing dark admin visual language.
+ * Interface: ModerationPage() server component; child sections receive typed moderation data.
+ * Test IDs: none (server-only file).
+ */
+
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
   getAdminAccessToken,
-  getAdminSessionUser,
   requireAdmin,
 } from '@/lib/admin/auth';
 import {
   fetchModerationData,
-  sendUnauthorizedModerationAlert,
   type ModerationAuditEntry,
   type ModerationBan,
   type ModerationData,
@@ -37,10 +42,6 @@ function deliveryState(emailed: boolean | null): string {
 }
 
 async function denyUnauthorizedAccess(): Promise<null> {
-  const sessionUser = await getAdminSessionUser();
-  if (sessionUser) {
-    await sendUnauthorizedModerationAlert(sessionUser.id, sessionUser.email).catch(() => undefined);
-  }
   redirect('/admin/signin?error=unauthorized');
   return null;
 }

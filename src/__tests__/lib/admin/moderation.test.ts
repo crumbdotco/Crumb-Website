@@ -5,7 +5,9 @@ jest.mock("@supabase/supabase-js", () => ({
 import {
   createModerationService,
   fetchModerationData,
-  sendUnauthorizedModerationAlert,
+  isModerationUuid,
+  isReportSource,
+  isReportStatus,
   type ModerationDependencies,
   type ModerationReport,
   unbanModerationUser,
@@ -61,32 +63,24 @@ const reportWithUnknownEmailDelivery: ModerationReport = {
 
 function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
   const rpc = jest.fn((name: string) => {
+    if (name === "is_platform_admin") return Promise.resolve({ data: true, error: null });
     if (name === "admin_list_reports") return Promise.resolve({ data: [report], error: null });
     if (name === "admin_list_bans") return Promise.resolve({ data: [ban], error: null });
     if (name === "admin_audit_log") return Promise.resolve({ data: [audit], error: null });
     return Promise.resolve({ data: null, error: null });
   });
   const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
-  const fetch = jest.fn(() => Promise.resolve({ ok: true }));
   const createServiceRoleRpcClient = jest.fn(() => ({ rpc }));
 
   return {
     dependencies: {
       createServiceRoleRpcClient,
       createServiceRoleClient: jest.fn(() => ({ auth: { admin: { updateUserById } } })),
-      fetch,
-      getEnvironment: jest.fn(() => ({
-        resendApiKey: "resend-key",
-        reportsEmailFrom: "Crumbify <alerts@crumbify.co.uk>",
-        reportsEmailTo: "configured-recipient",
-      })),
-      now: jest.fn(() => new Date("2026-09-13T12:00:00.000Z")),
       ...overrides,
     } as ModerationDependencies,
     rpc,
     createServiceRoleRpcClient,
     updateUserById,
-    fetch,
   };
 }
 
@@ -235,16 +229,16 @@ describe("moderation service", () => {
     expect(createServiceRoleRpcClient).toHaveBeenCalledWith("verified-admin-token");
   });
 
-  it("unbans in GoTrue before recording the caller-scoped database action", async () => {
+  it("preflights platform-admin access before GoTrue and records the caller-scoped database action", async () => {
     const events: string[] = [];
     const updateUserById = jest.fn(() => {
       events.push("gotrue");
       return Promise.resolve({ error: null });
     });
     const createServiceRoleRpcClient = jest.fn(() => ({
-      rpc: jest.fn(() => {
-        events.push("rpc");
-        return Promise.resolve({ data: null, error: null });
+      rpc: jest.fn((name: string) => {
+        events.push(name === "is_platform_admin" ? "preflight" : "rpc");
+        return Promise.resolve({ data: name === "is_platform_admin" ? true : null, error: null });
         }),
       }));
     const createServiceRoleClient = jest.fn(() => ({
@@ -258,14 +252,17 @@ describe("moderation service", () => {
 
     await service.unbanModerationUser("verified-admin-token", ban.user_id);
 
-    expect(events).toEqual(["gotrue", "rpc"]);
+    expect(events).toEqual(["preflight", "gotrue", "rpc"]);
     expect(createServiceRoleRpcClient).toHaveBeenCalledWith("verified-admin-token");
     expect(createServiceRoleClient).toHaveBeenCalledWith();
     expect(updateUserById).toHaveBeenCalledWith(ban.user_id, { ban_duration: "none" });
   });
 
   it("does not call admin_unban when GoTrue rejects the unban", async () => {
-    const rpc = jest.fn(() => Promise.resolve({ data: null, error: null }));
+    const rpc = jest.fn((name: string) => Promise.resolve({
+      data: name === "is_platform_admin" ? true : null,
+      error: null,
+    }));
     const { dependencies } = createDependencies({
       createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
       createServiceRoleClient: jest.fn(() => ({
@@ -278,7 +275,7 @@ describe("moderation service", () => {
       "Unable to unban moderation user",
     );
 
-    expect(rpc).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
   });
 
   it("rejects an invalid service unban user id before creating clients", async () => {
@@ -294,7 +291,10 @@ describe("moderation service", () => {
   });
 
   it("rejects an unban when the caller-scoped RPC returns an error", async () => {
-    const rpc = jest.fn(() => Promise.resolve({ data: null, error: { message: "denied" } }));
+    const rpc = jest.fn((name: string) => Promise.resolve({
+      data: name === "is_platform_admin" ? true : null,
+      error: name === "is_platform_admin" ? null : { message: "denied" },
+    }));
     const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
     const { dependencies } = createDependencies({
       createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
@@ -310,52 +310,38 @@ describe("moderation service", () => {
     expect(rpc).toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
   });
 
-  it("sends a high-priority alert only to the configured moderation mailbox", async () => {
-    const { dependencies, fetch } = createDependencies();
-    const service = createModerationService(dependencies);
-
-    await service.sendUnauthorizedModerationAlert("user-1", "person@example.com");
-
-    expect(fetch).toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({
-      method: "POST",
-      headers: expect.objectContaining({ "X-Priority": "1" }),
-      body: JSON.stringify({
-        from: "Crumbify <alerts@crumbify.co.uk>",
-        to: ["configured-recipient"],
-        subject: "Unauthorized moderation access attempt",
-        text: "Unauthorized moderation access attempt. User ID: user-1. Email: person@example.com. Path: /admin/moderation. Timestamp: 2026-09-13T12:00:00.000Z.",
-      }),
-    }));
-  });
-
-  it("swallows alert delivery failures", async () => {
+  it("requires an exact true platform-admin preflight before creating GoTrue", async () => {
+    const events: string[] = [];
+    const rpc = jest.fn((name: string) => {
+      events.push(`rpc:${name}`);
+      return Promise.resolve({ data: false, error: null });
+    });
+    const createServiceRoleClient = jest.fn(() => {
+      events.push("gotrue-client");
+      return { auth: { admin: { updateUserById: jest.fn() } } };
+    });
     const { dependencies } = createDependencies({
-      fetch: jest.fn(() => Promise.reject(new Error("network failure"))),
+      createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
+      createServiceRoleClient,
     });
     const service = createModerationService(dependencies);
 
-    await expect(service.sendUnauthorizedModerationAlert("user-1", null)).resolves.toBeUndefined();
+    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
+      "Unable to verify moderation admin access",
+    );
+
+    expect(events).toEqual(["rpc:is_platform_admin"]);
+    expect(createServiceRoleClient).not.toHaveBeenCalled();
   });
 
-  it.each(["resendApiKey", "reportsEmailFrom", "reportsEmailTo"])(
-    "skips an alert when %s is not configured",
-    async (missingEnvironmentValue) => {
-      const environment = {
-        resendApiKey: "resend-key",
-        reportsEmailFrom: "Crumbify <alerts@crumbify.co.uk>",
-        reportsEmailTo: "configured-recipient",
-      };
-      delete environment[missingEnvironmentValue as keyof typeof environment];
-      const { dependencies, fetch } = createDependencies({
-        getEnvironment: jest.fn(() => environment),
-      });
-      const service = createModerationService(dependencies);
-
-      await service.sendUnauthorizedModerationAlert("user-1", "person@example.com");
-
-      expect(fetch).not.toHaveBeenCalled();
-    },
-  );
+  it("exports the shared moderation input type guards", () => {
+    expect(isModerationUuid(ban.user_id)).toBe(true);
+    expect(isModerationUuid("not-a-uuid")).toBe(false);
+    expect(isReportSource("post_reports")).toBe(true);
+    expect(isReportSource("other")).toBe(false);
+    expect(isReportStatus("actioned")).toBe(true);
+    expect(isReportStatus("pending")).toBe(false);
+  });
 });
 
 describe("production moderation client wiring", () => {
@@ -407,38 +393,15 @@ describe("production moderation client wiring", () => {
     expect(mockCreateClient).not.toHaveBeenCalled();
   });
 
-  it("uses the production alert adapters for the configured recipient", async () => {
-    process.env.RESEND_API_KEY = "resend-key";
-    process.env.REPORTS_EMAIL_FROM = "Crumbify <alerts@crumbify.co.uk>";
-    process.env.REPORTS_EMAIL_TO = "configured-recipient";
-    const fetchMock = jest.fn(() => Promise.resolve({ ok: true }));
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-
-    try {
-      await sendUnauthorizedModerationAlert("user-1", "person@example.com");
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.resend.com/emails",
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: "Bearer resend-key",
-          "X-Priority": "1",
-        }),
-        body: expect.stringContaining("Path: /admin/moderation."),
-      }),
-    );
-  });
-
   it("keeps GoTrue bearer-free while the admin_unban RPC carries the verified bearer", async () => {
     const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
-    const rpc = jest.fn(() => Promise.resolve({ data: null, error: null }));
+    const rpc = jest.fn((name: string) => Promise.resolve({
+      data: name === "is_platform_admin" ? true : null,
+      error: null,
+    }));
     mockCreateClient
-      .mockReturnValueOnce({ auth: { admin: { updateUserById } } })
-      .mockReturnValueOnce({ rpc });
+      .mockReturnValueOnce({ rpc })
+      .mockReturnValueOnce({ auth: { admin: { updateUserById } } });
 
     await unbanModerationUser("verified-admin-token", ban.user_id);
 
@@ -446,15 +409,17 @@ describe("production moderation client wiring", () => {
       1,
       "https://example.supabase.co",
       "service-role-key",
-      expect.not.objectContaining({ global: expect.anything() }),
+      expect.objectContaining({
+        global: { headers: { Authorization: "Bearer verified-admin-token" } },
+      }),
     );
     expect(mockCreateClient).toHaveBeenNthCalledWith(
       2,
       "https://example.supabase.co",
       "service-role-key",
-      expect.objectContaining({
-        global: { headers: { Authorization: "Bearer verified-admin-token" } },
-      }),
+      expect.not.objectContaining({ global: expect.anything() }),
     );
+    expect(rpc).toHaveBeenNthCalledWith(1, "is_platform_admin");
+    expect(rpc).toHaveBeenNthCalledWith(2, "admin_unban", { p_user_id: ban.user_id });
   });
 });

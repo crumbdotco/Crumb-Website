@@ -1,9 +1,7 @@
 const mockRequireAdmin = jest.fn();
-const mockGetAdminSessionUser = jest.fn();
 const mockGetAdminAccessToken = jest.fn();
 const mockSetModerationReportStatus = jest.fn();
 const mockUnbanModerationUser = jest.fn();
-const mockSendUnauthorizedModerationAlert = jest.fn();
 const mockRevalidatePath = jest.fn();
 const mockRedirect = jest.fn();
 
@@ -11,13 +9,14 @@ jest.mock('next/navigation', () => ({ redirect: mockRedirect }));
 jest.mock('next/cache', () => ({ revalidatePath: mockRevalidatePath }));
 jest.mock('@/lib/admin/auth', () => ({
   requireAdmin: mockRequireAdmin,
-  getAdminSessionUser: mockGetAdminSessionUser,
   getAdminAccessToken: mockGetAdminAccessToken,
 }));
 jest.mock('@/lib/admin/moderation', () => ({
+  isModerationUuid: (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
+  isReportSource: (value: unknown) => value === 'post_reports' || value === 'group_content_reports',
+  isReportStatus: (value: unknown) => value === 'queued' || value === 'actioned' || value === 'dismissed',
   setModerationReportStatus: mockSetModerationReportStatus,
   unbanModerationUser: mockUnbanModerationUser,
-  sendUnauthorizedModerationAlert: mockSendUnauthorizedModerationAlert,
 }));
 
 const reportId = '11111111-1111-4111-8111-111111111111';
@@ -33,11 +32,9 @@ describe('admin moderation actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRequireAdmin.mockResolvedValue('admin-user');
-    mockGetAdminSessionUser.mockResolvedValue(null);
     mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
     mockSetModerationReportStatus.mockResolvedValue(undefined);
     mockUnbanModerationUser.mockResolvedValue(undefined);
-    mockSendUnauthorizedModerationAlert.mockResolvedValue(undefined);
   });
 
   it('rejects an invalid report update without reading a token or calling the service', async () => {
@@ -158,67 +155,4 @@ describe('admin moderation actions', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
   });
 
-  it('alerts a verified non-admin before redirecting a report-status action', async () => {
-    const events: string[] = [];
-    mockRequireAdmin.mockResolvedValue(null);
-    mockGetAdminSessionUser.mockResolvedValue({ id: 'user-1', email: 'not-admin@example.com' });
-    mockSendUnauthorizedModerationAlert.mockImplementation(async () => {
-      events.push('alert');
-    });
-    mockRedirect.mockImplementation(() => {
-      events.push('redirect');
-    });
-    const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
-
-    await setReportStatusAction(formData({ source: 'post_reports', reportId, status: 'actioned' }));
-
-    expect(events).toEqual(['alert', 'redirect']);
-    expect(mockSendUnauthorizedModerationAlert).toHaveBeenCalledWith(
-      'user-1',
-      'not-admin@example.com',
-    );
-  });
-
-  it('alerts a verified non-admin before redirecting an unban action', async () => {
-    const events: string[] = [];
-    mockRequireAdmin.mockResolvedValue(null);
-    mockGetAdminSessionUser.mockResolvedValue({ id: 'user-1', email: 'not-admin@example.com' });
-    mockSendUnauthorizedModerationAlert.mockImplementation(async () => {
-      events.push('alert');
-    });
-    mockRedirect.mockImplementation(() => {
-      events.push('redirect');
-    });
-    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
-
-    await unbanUserAction(formData({ userId }));
-
-    expect(events).toEqual(['alert', 'redirect']);
-    expect(mockSendUnauthorizedModerationAlert).toHaveBeenCalledWith(
-      'user-1',
-      'not-admin@example.com',
-    );
-  });
-
-  it('still redirects when the verified non-admin alert fails', async () => {
-    mockRequireAdmin.mockResolvedValue(null);
-    mockGetAdminSessionUser.mockResolvedValue({ id: 'user-1', email: 'not-admin@example.com' });
-    mockSendUnauthorizedModerationAlert.mockRejectedValue(new Error('alert unavailable'));
-    const { setReportStatusAction } = await import('@/app/admin/moderation/actions');
-
-    await setReportStatusAction(formData({ source: 'post_reports', reportId, status: 'actioned' }));
-
-    expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
-  });
-
-  it('does not alert an unverifiable caller before redirecting either moderation action', async () => {
-    mockRequireAdmin.mockResolvedValue(null);
-    mockGetAdminSessionUser.mockResolvedValue(null);
-    const { setReportStatusAction, unbanUserAction } = await import('@/app/admin/moderation/actions');
-
-    await setReportStatusAction(formData({ source: 'post_reports', reportId, status: 'actioned' }));
-    await unbanUserAction(formData({ userId }));
-
-    expect(mockSendUnauthorizedModerationAlert).not.toHaveBeenCalled();
-  });
 });

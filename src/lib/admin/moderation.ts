@@ -1,3 +1,10 @@
+/**
+ * Purpose: Read and mutate the server-only Crumbify moderation surface.
+ * Security and brand rules: Require the verified bearer for every RPC, keep the service-role key server-only, and never expose moderation details or money-related copy.
+ * Interface: Exported moderation data types, input type guards, and bearer-aware service functions.
+ * Test IDs: none (server-only file).
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
 export type ReportSource = 'post_reports' | 'group_content_reports';
@@ -63,16 +70,9 @@ interface ServiceRoleClient {
   };
 }
 
-interface AlertResponse {
-  ok: boolean;
-}
-
 export interface ModerationDependencies {
   createServiceRoleRpcClient(accessToken: string): RpcClient;
   createServiceRoleClient(): ServiceRoleClient;
-  fetch(url: string, init: RequestInit): Promise<AlertResponse>;
-  getEnvironment(): { resendApiKey?: string; reportsEmailFrom?: string; reportsEmailTo?: string };
-  now(): Date;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,26 +96,27 @@ function productionDependencies(): ModerationDependencies {
         auth: { persistSession: false, autoRefreshToken: false },
       });
     },
-    fetch: (url, init) => globalThis.fetch(url, init),
-    getEnvironment: () => ({
-      resendApiKey: process.env.RESEND_API_KEY,
-      reportsEmailFrom: process.env.REPORTS_EMAIL_FROM,
-      reportsEmailTo: process.env.REPORTS_EMAIL_TO,
-    }),
-    now: () => new Date(),
   };
 }
 
+export function isModerationUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
+export function isReportSource(value: unknown): value is ReportSource {
+  return value === 'post_reports' || value === 'group_content_reports';
+}
+
+export function isReportStatus(value: unknown): value is ReportStatus {
+  return value === 'queued' || value === 'actioned' || value === 'dismissed';
+}
+
 function isReportInputValid(input: {
-  source: ReportSource;
-  reportId: string;
-  status: ReportStatus;
-}): boolean {
-  return (
-    (input.source === 'post_reports' || input.source === 'group_content_reports') &&
-    UUID_RE.test(input.reportId) &&
-    (input.status === 'queued' || input.status === 'actioned' || input.status === 'dismissed')
-  );
+  source: unknown;
+  reportId: unknown;
+  status: unknown;
+}): input is { source: ReportSource; reportId: string; status: ReportStatus } {
+  return isReportSource(input.source) && isModerationUuid(input.reportId) && isReportStatus(input.status);
 }
 
 function unavailableWhenError<T>(result: { data: unknown; error: unknown | null }): ModerationAvailability<T> {
@@ -157,42 +158,25 @@ export function createModerationService(dependencies: ModerationDependencies) {
     },
 
     async unbanModerationUser(accessToken: string, userId: string): Promise<void> {
-      if (!UUID_RE.test(userId)) throw new Error('Invalid moderation user id');
+      if (!isModerationUuid(userId)) throw new Error('Invalid moderation user id');
+      const rpcClient = dependencies.createServiceRoleRpcClient(accessToken);
+      let adminCheck: { data: unknown; error: unknown | null };
+      try {
+        adminCheck = await rpcClient.rpc('is_platform_admin');
+      } catch {
+        throw new Error('Unable to verify moderation admin access');
+      }
+      if (adminCheck.error || adminCheck.data !== true) {
+        throw new Error('Unable to verify moderation admin access');
+      }
+
       const { error: authError } = await dependencies
         .createServiceRoleClient()
         .auth.admin.updateUserById(userId, { ban_duration: 'none' });
       if (authError) throw new Error('Unable to unban moderation user');
 
-      const { error: rpcError } = await dependencies
-        .createServiceRoleRpcClient(accessToken)
-        .rpc('admin_unban', { p_user_id: userId });
+      const { error: rpcError } = await rpcClient.rpc('admin_unban', { p_user_id: userId });
       if (rpcError) throw new Error('Unable to unban moderation user');
-    },
-
-    async sendUnauthorizedModerationAlert(userId: string, email: string | null): Promise<void> {
-      const { resendApiKey, reportsEmailFrom, reportsEmailTo } = dependencies.getEnvironment();
-      if (!resendApiKey || !reportsEmailFrom || !reportsEmailTo) return;
-
-      const emailLine = email ? ` Email: ${email}.` : '';
-      const text = `Unauthorized moderation access attempt. User ID: ${userId}.${emailLine} Path: /admin/moderation. Timestamp: ${dependencies.now().toISOString()}.`;
-      try {
-        await dependencies.fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-            'X-Priority': '1',
-          },
-          body: JSON.stringify({
-            from: reportsEmailFrom,
-            to: [reportsEmailTo],
-            subject: 'Unauthorized moderation access attempt',
-            text,
-          }),
-        });
-      } catch {
-        // Alerts are best effort. Do not expose delivery failures to the page.
-      }
     },
   };
 }
@@ -202,4 +186,3 @@ const service = createModerationService(productionDependencies());
 export const fetchModerationData = service.fetchModerationData;
 export const setModerationReportStatus = service.setModerationReportStatus;
 export const unbanModerationUser = service.unbanModerationUser;
-export const sendUnauthorizedModerationAlert = service.sendUnauthorizedModerationAlert;

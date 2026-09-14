@@ -1,23 +1,19 @@
 import { render, screen } from '@testing-library/react';
 
 const mockRequireAdmin = jest.fn();
-const mockGetAdminSessionUser = jest.fn();
 const mockGetAdminAccessToken = jest.fn();
 const mockFetchModerationData = jest.fn();
-const mockSendUnauthorizedModerationAlert = jest.fn();
 const mockRedirect = jest.fn();
 
 jest.mock('next/navigation', () => ({ redirect: mockRedirect }));
 
 jest.mock('@/lib/admin/auth', () => ({
   requireAdmin: mockRequireAdmin,
-  getAdminSessionUser: mockGetAdminSessionUser,
   getAdminAccessToken: mockGetAdminAccessToken,
 }));
 
 jest.mock('@/lib/admin/moderation', () => ({
   fetchModerationData: mockFetchModerationData,
-  sendUnauthorizedModerationAlert: mockSendUnauthorizedModerationAlert,
 }));
 
 jest.mock('@/app/admin/moderation/actions', () => ({
@@ -79,8 +75,6 @@ const audit = {
 describe('admin moderation page', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetAdminSessionUser.mockResolvedValue(null);
-    mockSendUnauthorizedModerationAlert.mockResolvedValue(undefined);
   });
 
   it('redirects an unauthorised visitor before it loads moderation data', async () => {
@@ -89,19 +83,6 @@ describe('admin moderation page', () => {
     const { default: ModerationPage } = await import('@/app/admin/moderation/page');
     await expect(ModerationPage()).resolves.toBeNull();
 
-    expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
-    expect(mockFetchModerationData).not.toHaveBeenCalled();
-    expect(mockSendUnauthorizedModerationAlert).not.toHaveBeenCalled();
-  });
-
-  it('alerts on a verified non-admin session, then redirects without loading moderation data', async () => {
-    mockRequireAdmin.mockResolvedValue(null);
-    mockGetAdminSessionUser.mockResolvedValue({ id: 'session-user', email: 'not-admin@example.com' });
-
-    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
-    await expect(ModerationPage()).resolves.toBeNull();
-
-    expect(mockSendUnauthorizedModerationAlert).toHaveBeenCalledWith('session-user', 'not-admin@example.com');
     expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
     expect(mockFetchModerationData).not.toHaveBeenCalled();
   });

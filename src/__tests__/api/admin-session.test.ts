@@ -26,13 +26,22 @@ function makeRequest(
 }
 
 describe("admin session origin protection", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const mutableEnv = process.env as unknown as Record<string, string | undefined>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mutableEnv.NODE_ENV = "test";
     mockJson.mockImplementation((body: unknown, init?: ResponseInit) => ({
       body,
       status: init?.status ?? 200,
       cookies: { set: mockCookieSet },
     }));
+  });
+
+  afterAll(() => {
+    if (originalNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+    else mutableEnv.NODE_ENV = originalNodeEnv;
   });
 
   it.each([
@@ -47,6 +56,24 @@ describe("admin session origin protection", () => {
     expect(
       isAllowedAdminSessionRequest(null, "https://crumbify.co.uk/admin/signin"),
     ).toBe(true);
+  });
+
+  it("allows localhost origins outside production", () => {
+    mutableEnv.NODE_ENV = "development";
+
+    expect(isAllowedAdminSessionRequest("http://localhost:3000", null)).toBe(true);
+    expect(isAllowedAdminSessionRequest("http://127.0.0.1:3000", null)).toBe(true);
+  });
+
+  it("rejects localhost origins and Referer origins in production", () => {
+    mutableEnv.NODE_ENV = "production";
+
+    expect(isAllowedAdminSessionRequest("http://localhost:3000", null)).toBe(false);
+    expect(isAllowedAdminSessionRequest("http://127.0.0.1:3000", null)).toBe(false);
+    expect(isAllowedAdminSessionRequest(null, "http://localhost:3000/admin/signin")).toBe(false);
+    expect(isAllowedAdminSessionRequest(null, "http://127.0.0.1:3000/admin/signin")).toBe(false);
+    expect(isAllowedAdminSessionRequest("https://crumbify.co.uk", null)).toBe(true);
+    expect(isAllowedAdminSessionRequest(null, "https://crumbify.co.uk/admin/signin")).toBe(true);
   });
 
   it.each([
