@@ -88,7 +88,7 @@ security/brand rules, interfaces, and `Test IDs: none` for server-only files.
 
 ## Commit
 
-Commit SHA is recorded after staging and committing this report and all scoped task files.
+Implementation commit SHA: `7775e1e`.
 
 ## Concerns
 
