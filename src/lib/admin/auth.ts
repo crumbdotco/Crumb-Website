@@ -27,13 +27,14 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return getAdminEmailAllowlist().includes(normalized);
 }
 
-/**
- * Admin gate: Cookie session — Supabase access token cookie + user email in
- * ADMIN_EMAILS. ADMIN_EMAILS is required; if it is unset or empty, admin
- * access is disabled entirely (fail closed). Returns a truthy id on success,
- * `null` when not authorised.
- */
-export async function requireAdmin(): Promise<string | null> {
+/** Reads the existing access-token cookie without verifying it. */
+export async function getAdminAccessToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get('sb-access-token')?.value ?? null;
+}
+
+/** Reads the existing cookie and returns only a Supabase-verified identity. */
+export async function getAdminSessionUser(): Promise<{ id: string; email: string | null } | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return null;
@@ -47,7 +48,19 @@ export async function requireAdmin(): Promise<string | null> {
     auth: { persistSession: false },
   });
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user || !isAdminEmail(data.user.email)) return null;
+  if (error || !data.user) return null;
 
-  return data.user.id;
+  return { id: data.user.id, email: data.user.email ?? null };
+}
+
+/**
+ * Admin gate: Cookie session — Supabase access token cookie + user email in
+ * ADMIN_EMAILS. ADMIN_EMAILS is required; if it is unset or empty, admin
+ * access is disabled entirely (fail closed). Returns a truthy id on success,
+ * `null` when not authorised.
+ */
+export async function requireAdmin(): Promise<string | null> {
+  const user = await getAdminSessionUser();
+  if (!user || !isAdminEmail(user.email)) return null;
+  return user.id;
 }
