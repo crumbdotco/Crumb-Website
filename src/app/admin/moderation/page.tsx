@@ -61,6 +61,8 @@ const MODERATION_MESSAGES: Record<string, string> = {
   unban_failed: 'Unable to unban the user.',
   unban_partial:
     'The user was re-banned because the unban could not be recorded. No audit entry was created. Retry the unban.',
+  unban_unprotected:
+    'The unban could not be recorded, and the compensating re-ban also failed. The account is NOT currently banned, and no audit entry exists. Retry the unban immediately.',
 };
 
 function moderationHref(params: { status: ReportStatusFilter; before?: string | null }): string {

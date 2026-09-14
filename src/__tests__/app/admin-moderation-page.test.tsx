@@ -219,6 +219,11 @@ describe('admin moderation page', () => {
       'unban_partial',
       'The user was re-banned because the unban could not be recorded. No audit entry was created. Retry the unban.',
     ],
+    [
+      'error',
+      'unban_unprotected',
+      'The unban could not be recorded, and the compensating re-ban also failed. The account is NOT currently banned, and no audit entry exists. Retry the unban immediately.',
+    ],
   ])('shows the safe message for %s=%s', async (key, value, message) => {
     mockRequireAdmin.mockResolvedValue('admin-user');
     mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
@@ -232,6 +237,39 @@ describe('admin moderation page', () => {
     render(await ModerationPage({ searchParams: Promise.resolve({ [key]: value }) }));
 
     expect(screen.getByRole('status')).toHaveTextContent(message);
+  });
+
+  it('gives the operator a materially different story for unban_partial vs. unban_unprotected', async () => {
+    // The re-ban-succeeded and re-ban-also-failed outcomes were once
+    // collapsed onto the same copy, which told the operator "the account is
+    // banned again" even in the case where it was not. Assert the two
+    // messages are distinct strings AND that only the unprotected one says
+    // the account is currently unbanned.
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+
+    const { unmount: unmountPartial } = render(
+      await ModerationPage({ searchParams: Promise.resolve({ error: 'unban_partial' }) }),
+    );
+    const partialMessage = screen.getByRole('status').textContent;
+    unmountPartial();
+
+    const { unmount: unmountUnprotected } = render(
+      await ModerationPage({ searchParams: Promise.resolve({ error: 'unban_unprotected' }) }),
+    );
+    const unprotectedMessage = screen.getByRole('status').textContent;
+    unmountUnprotected();
+
+    expect(partialMessage).not.toEqual(unprotectedMessage);
+    expect(partialMessage).not.toMatch(/NOT currently banned/);
+    expect(unprotectedMessage).toMatch(/NOT currently banned/);
   });
 
   it('ignores unknown result and error values', async () => {

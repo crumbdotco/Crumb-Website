@@ -13,6 +13,7 @@ import {
   isReportStatusFilter,
   ModerationUnbanPartialError,
   type ModerationDependencies,
+  type ModerationQueryOptions,
   type ModerationReport,
   REPORT_PAGE_SIZE,
   unbanModerationUser,
@@ -65,6 +66,22 @@ const reportWithUnknownEmailDelivery: ModerationReport = {
   status: "queued",
   emailed: null,
 };
+
+/**
+ * Awaits a promise expected to reject and returns the rejection value,
+ * without swallowing an unexpected FULFILLMENT: `.catch()` alone would
+ * silently return `undefined` if the promise resolved instead of rejected,
+ * which would make a `.restored` assertion pass on `undefined.restored`
+ * throwing a TypeError rather than reporting "expected a rejection".
+ */
+async function catchError(promise: Promise<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (err) {
+    return err;
+  }
+  throw new Error("Expected the promise to reject, but it resolved.");
+}
 
 function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
   const rpc = jest.fn((name: string) => {
@@ -342,7 +359,7 @@ describe("moderation service", () => {
     expect(dependencies.createVerifiedRpcClient).not.toHaveBeenCalled();
   });
 
-  it("re-bans with the hard-ban duration and throws a distinct partial-unban error when admin_unban fails after GoTrue clears the ban", async () => {
+  it("re-bans with the hard-ban duration and throws a distinct partial-unban error carrying restored=true when the re-ban succeeds", async () => {
     const rpc = jest.fn((name: string) => Promise.resolve({
       data: name === "is_platform_admin" ? true : null,
       error: name === "is_platform_admin" ? null : { message: "denied", code: "42501" },
@@ -354,9 +371,9 @@ describe("moderation service", () => {
     });
     const service = createModerationService(dependencies);
 
-    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
-      ModerationUnbanPartialError,
-    );
+    const error = await catchError(service.unbanModerationUser("verified-admin-token", ban.user_id));
+    expect(error).toBeInstanceOf(ModerationUnbanPartialError);
+    expect((error as InstanceType<typeof ModerationUnbanPartialError>).restored).toBe(true);
 
     expect(rpc).toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
     // First call clears the ban, second is the compensating re-ban - both
@@ -366,7 +383,7 @@ describe("moderation service", () => {
     expect(updateUserById).toHaveBeenNthCalledWith(2, ban.user_id, { ban_duration: "876000h" });
   });
 
-  it("still throws the partial-unban error (never masking it) when the compensating re-ban itself returns an error", async () => {
+  it("still throws the partial-unban error (never masking it) with restored=false when the compensating re-ban itself returns an error", async () => {
     const rpc = jest.fn((name: string) => Promise.resolve({
       data: name === "is_platform_admin" ? true : null,
       error: name === "is_platform_admin" ? null : { message: "denied" },
@@ -381,15 +398,15 @@ describe("moderation service", () => {
     });
     const service = createModerationService(dependencies);
 
-    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
-      ModerationUnbanPartialError,
-    );
+    const error = await catchError(service.unbanModerationUser("verified-admin-token", ban.user_id));
+    expect(error).toBeInstanceOf(ModerationUnbanPartialError);
+    expect((error as InstanceType<typeof ModerationUnbanPartialError>).restored).toBe(false);
 
     expect(updateUserById).toHaveBeenCalledTimes(2);
     expect(updateUserById).toHaveBeenNthCalledWith(2, ban.user_id, { ban_duration: "876000h" });
   });
 
-  it("still throws the partial-unban error (never masking it) when the compensating re-ban itself rejects", async () => {
+  it("still throws the partial-unban error (never masking it) with restored=false when the compensating re-ban itself rejects", async () => {
     const rpc = jest.fn((name: string) => Promise.resolve({
       data: name === "is_platform_admin" ? true : null,
       error: name === "is_platform_admin" ? null : { message: "denied" },
@@ -404,9 +421,9 @@ describe("moderation service", () => {
     });
     const service = createModerationService(dependencies);
 
-    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
-      ModerationUnbanPartialError,
-    );
+    const error = await catchError(service.unbanModerationUser("verified-admin-token", ban.user_id));
+    expect(error).toBeInstanceOf(ModerationUnbanPartialError);
+    expect((error as InstanceType<typeof ModerationUnbanPartialError>).restored).toBe(false);
 
     expect(updateUserById).toHaveBeenCalledTimes(2);
   });
@@ -516,6 +533,22 @@ describe("moderation service", () => {
     await service.fetchModerationData("verified-admin-token", status === undefined ? {} : { status });
 
     expect(rpc).toHaveBeenCalledWith("admin_list_reports", expect.objectContaining({ p_status: expectedPStatus }));
+  });
+
+  it("defaults an untrusted, invalid status value to 'queued' at the service boundary rather than passing it through to the RPC", async () => {
+    // ModerationQueryOptions types `status` as ReportStatusFilter, but that
+    // is only enforced at the current call site (the page already validates
+    // via isReportStatusFilter). A future caller with no such guarantee
+    // could hand this an arbitrary string; the service must re-guard rather
+    // than trust the type and forward it straight into admin_list_reports.
+    const { dependencies, rpc } = createDependencies();
+    const service = createModerationService(dependencies);
+
+    await service.fetchModerationData("verified-admin-token", {
+      status: "bogus" as unknown as ModerationQueryOptions["status"],
+    });
+
+    expect(rpc).toHaveBeenCalledWith("admin_list_reports", expect.objectContaining({ p_status: "queued" }));
   });
 
   describe("server-side error logging (never the raw message, never a token)", () => {

@@ -186,9 +186,19 @@ function isReportInputValid(input: {
   return isReportSource(input.source) && isModerationUuid(input.reportId) && isReportStatus(input.status);
 }
 
-function resolveReportStatusFilter(status: ReportStatusFilter | undefined): ReportStatus | null {
+// Re-guards status at the service boundary even though ModerationQueryOptions
+// types `status` as ReportStatusFilter: that type is only enforced by the
+// compiler at the current call site (src/app/admin/moderation/page.tsx),
+// which already validates it via isReportStatusFilter. A future caller
+// (a new route, a script, a value threaded through an `as` cast) has no
+// such guarantee, and status flows straight into the admin_list_reports RPC
+// as p_status - never trust a boundary value twice removed from validation.
+// Unrecognised input degrades to the safe default ('queued'), matching the
+// undefined case, rather than being passed through to the RPC unchecked.
+function resolveReportStatusFilter(status: unknown): ReportStatus | null {
   if (status === undefined) return 'queued';
   if (status === 'all') return null;
+  if (!isReportStatus(status)) return 'queued';
   return status;
 }
 
@@ -242,17 +252,34 @@ async function readModerationRows<T>(
 
 /**
  * Thrown by `unbanModerationUser` when the GoTrue ban was already cleared
- * but the `admin_unban` audit RPC then failed. The service re-applies the
- * hard ban as a best-effort compensating action before throwing this, so
- * the account is never left unbanned with no audit row - but the caller
- * still needs a DISTINCT signal from a plain failure, because "the unban
- * did not happen" (ordinary failure) and "the unban was attempted, rolled
- * back, and needs a retry" (this error) are different operator stories.
+ * but the `admin_unban` audit RPC then failed. The service attempts to
+ * re-apply the hard ban as a best-effort compensating action before
+ * throwing this, so the account is never left unbanned with no audit row
+ * when the compensation succeeds - but the caller still needs a DISTINCT
+ * signal from a plain failure, because "the unban did not happen" (ordinary
+ * failure) and "the unban was attempted, rolled back, and needs a retry"
+ * (this error) are different operator stories.
+ *
+ * `restored` records the OUTCOME of that compensating re-ban, not just that
+ * it was attempted: `true` when the account is banned again (the operator
+ * story above), `false` when the compensating re-ban itself also failed or
+ * threw, leaving the account genuinely UNBANNED with no audit row. Those
+ * are different enough operator stories (retry vs. "the account is exposed
+ * right now") that a caller checking only `instanceof` would tell an
+ * operator "we restored the ban" when the ban was never actually restored.
  */
 export class ModerationUnbanPartialError extends Error {
-  constructor(message = 'Unable to record the unban after the ban was cleared; the ban was restored') {
-    super(message);
+  readonly restored: boolean;
+
+  constructor(restored: boolean, message?: string) {
+    super(
+      message ??
+        (restored
+          ? 'Unable to record the unban after the ban was cleared; the ban was restored'
+          : 'Unable to record the unban after the ban was cleared; the compensating re-ban also failed, leaving the account unbanned with no audit row'),
+    );
     this.name = 'ModerationUnbanPartialError';
+    this.restored = restored;
   }
 }
 
@@ -325,19 +352,24 @@ export function createModerationService(dependencies: ModerationDependencies) {
         // Best-effort compensation: the GoTrue ban is already cleared, but
         // the audit-writing RPC failed, so re-apply the hard ban rather than
         // leave the account unbanned with no audit row. A failure here must
-        // never mask the original admin_unban failure below.
+        // never mask the original admin_unban failure below - but it DOES
+        // change what the caller should tell the operator, so its outcome
+        // (not just the attempt) is carried on the thrown error.
+        let restored = false;
         try {
           const { error: reBanError } = await dependencies
             .createServiceRoleClient()
             .auth.admin.updateUserById(userId, { ban_duration: HARD_BAN_DURATION });
           if (reBanError) {
             logModerationServerError('auth.admin.updateUserById (compensating re-ban)', reBanError);
+          } else {
+            restored = true;
           }
         } catch (err) {
           logModerationServerError('auth.admin.updateUserById (compensating re-ban)', err);
         }
 
-        throw new ModerationUnbanPartialError();
+        throw new ModerationUnbanPartialError(restored);
       }
     },
   };

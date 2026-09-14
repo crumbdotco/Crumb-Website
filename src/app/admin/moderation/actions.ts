@@ -68,7 +68,15 @@ export async function unbanUserAction(formData: FormData): Promise<void> {
     await unbanModerationUser(accessToken, targetUserId);
   } catch (err) {
     if (err instanceof ModerationUnbanPartialError) {
-      return redirect(`${MODERATION_PATH}?error=unban_partial`);
+      // Two distinct operator stories share the same "audit RPC failed"
+      // root cause: the compensating re-ban either succeeded (the account
+      // is banned again, safe to retry) or it also failed (the account is
+      // currently unbanned with no audit row at all). Collapsing both into
+      // one redirect code told the operator "we re-banned them" even when
+      // the re-ban never happened - see err.restored.
+      return redirect(
+        `${MODERATION_PATH}?error=${err.restored ? 'unban_partial' : 'unban_unprotected'}`,
+      );
     }
     return redirect(`${MODERATION_PATH}?error=unban_failed`);
   }

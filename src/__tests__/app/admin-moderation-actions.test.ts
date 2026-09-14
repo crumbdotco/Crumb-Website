@@ -114,13 +114,26 @@ describe('admin moderation actions', () => {
     expect(mockRevalidatePath).not.toHaveBeenCalled();
   });
 
-  it('redirects with a distinct code when the unban was rolled back after the audit RPC failed', async () => {
-    mockUnbanModerationUser.mockRejectedValue(new ModerationUnbanPartialError());
+  it('redirects with a distinct code when the unban was rolled back after the audit RPC failed and the re-ban succeeded', async () => {
+    mockUnbanModerationUser.mockRejectedValue(new ModerationUnbanPartialError(true));
     const { unbanUserAction } = await import('@/app/admin/moderation/actions');
 
     await unbanUserAction(formData({ userId }));
 
     expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_partial');
+    expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
+    expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_unprotected');
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('redirects with a THIRD, distinct code when the compensating re-ban itself failed, leaving the account genuinely unbanned', async () => {
+    mockUnbanModerationUser.mockRejectedValue(new ModerationUnbanPartialError(false));
+    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
+
+    await unbanUserAction(formData({ userId }));
+
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_unprotected');
+    expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_partial');
     expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
     expect(mockRevalidatePath).not.toHaveBeenCalled();
   });
