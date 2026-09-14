@@ -352,6 +352,7 @@ describe("moderation service", () => {
     );
 
     expect(rpc).toHaveBeenCalledWith("is_platform_admin");
+    expect(rpc).not.toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
     expect(createServiceRoleClient).not.toHaveBeenCalled();
   });
 

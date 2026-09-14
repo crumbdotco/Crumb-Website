@@ -56,6 +56,17 @@ The exact new cases are `false`, the truthy strings and numbers `"true"` and `1`
 `null`, `{ data: true, error: { message: "denied" } }`, and a rejected preflight RPC.
 Each asserts that GoTrue and `admin_unban` are not called.
 
+## Review round 2 evidence
+
+The rejected preflight case now explicitly asserts that the final `admin_unban` RPC is
+not called, in addition to asserting no GoTrue client creation. The covering test command
+passed:
+
+```text
+npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts --maxWorkers=2
+PASS: 1 suite, 26 tests, 0 snapshots failed
+```
+
 ## Changed files
 
 - `src/lib/admin/moderation.ts`: exported UUID/source/status guards; exact-true
