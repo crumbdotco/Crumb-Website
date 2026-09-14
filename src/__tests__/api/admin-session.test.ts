@@ -125,4 +125,55 @@ describe("admin session origin protection", () => {
     });
     expect(response).toEqual(expect.objectContaining({ status: 200 }));
   });
+
+  describe("production preview origins (Vercel builds every non-production branch with NODE_ENV=production)", () => {
+    beforeEach(() => {
+      mutableEnv.NODE_ENV = "production";
+    });
+
+    afterEach(() => {
+      delete mutableEnv.VERCEL_ENV;
+      delete mutableEnv.VERCEL_URL;
+    });
+
+    it("allows the exact www apex in production", () => {
+      expect(isAllowedAdminSessionRequest("https://www.crumbify.co.uk", null)).toBe(true);
+    });
+
+    it("rejects a lookalike suffix domain", () => {
+      expect(isAllowedAdminSessionRequest("https://crumbify.co.uk.evil.com", null)).toBe(false);
+    });
+
+    it("rejects a preview host when VERCEL_ENV/VERCEL_URL are unset", () => {
+      expect(isAllowedAdminSessionRequest("https://crumb-website-git-preview.vercel.app", null)).toBe(false);
+    });
+
+    it("allows the exact Vercel preview host when VERCEL_ENV is preview and it equals VERCEL_URL", () => {
+      mutableEnv.VERCEL_ENV = "preview";
+      mutableEnv.VERCEL_URL = "crumb-website-git-preview.vercel.app";
+
+      expect(isAllowedAdminSessionRequest("https://crumb-website-git-preview.vercel.app", null)).toBe(true);
+    });
+
+    it("rejects a preview host that does not exactly equal VERCEL_URL", () => {
+      mutableEnv.VERCEL_ENV = "preview";
+      mutableEnv.VERCEL_URL = "crumb-website-git-preview.vercel.app";
+
+      expect(isAllowedAdminSessionRequest("https://some-other-host.vercel.app", null)).toBe(false);
+    });
+
+    it("rejects the preview host when VERCEL_ENV is not exactly \"preview\"", () => {
+      mutableEnv.VERCEL_ENV = "production";
+      mutableEnv.VERCEL_URL = "crumb-website-git-preview.vercel.app";
+
+      expect(isAllowedAdminSessionRequest("https://crumb-website-git-preview.vercel.app", null)).toBe(false);
+    });
+
+    it("rejects the preview host when VERCEL_ENV is preview but VERCEL_URL is not set", () => {
+      mutableEnv.VERCEL_ENV = "preview";
+      delete mutableEnv.VERCEL_URL;
+
+      expect(isAllowedAdminSessionRequest("https://anything.vercel.app", null)).toBe(false);
+    });
+  });
 });
