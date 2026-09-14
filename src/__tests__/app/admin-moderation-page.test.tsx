@@ -214,6 +214,11 @@ describe('admin moderation page', () => {
     ['error', 'invalid_input', 'The submitted moderation input was invalid.'],
     ['error', 'update_failed', 'Unable to update the report.'],
     ['error', 'unban_failed', 'Unable to unban the user.'],
+    [
+      'error',
+      'unban_partial',
+      'The user was re-banned because the unban could not be recorded. No audit entry was created. Retry the unban.',
+    ],
   ])('shows the safe message for %s=%s', async (key, value, message) => {
     mockRequireAdmin.mockResolvedValue('admin-user');
     mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
@@ -290,5 +295,131 @@ describe('admin moderation page', () => {
     render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
 
     expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute('href', '/admin/moderation');
+  });
+
+  it('shows the audit history cap driven by the shared limit constant', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [audit] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage());
+
+    expect(screen.getByText('Showing the latest 100 entries.')).toBeInTheDocument();
+  });
+
+  it('does not show the audit history cap note when audit history is unavailable', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: false },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage());
+
+    expect(screen.queryByText(/Showing the latest/)).not.toBeInTheDocument();
+  });
+
+  describe('report status filter', () => {
+    beforeEach(() => {
+      mockRequireAdmin.mockResolvedValue('admin-user');
+      mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+      mockFetchModerationData.mockResolvedValue({
+        reports: { available: true, rows: [] },
+        bans: { available: true, rows: [] },
+        audit: { available: true, rows: [] },
+      });
+    });
+
+    it('defaults to the queued status filter and requests no status option', async () => {
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage());
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token');
+      expect(screen.getByText('Showing: Queued')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Actioned' })).toHaveAttribute(
+        'href',
+        '/admin/moderation?status=actioned',
+      );
+      expect(screen.getByRole('link', { name: 'Dismissed' })).toHaveAttribute(
+        'href',
+        '/admin/moderation?status=dismissed',
+      );
+      expect(screen.getByRole('link', { name: 'All statuses' })).toHaveAttribute(
+        'href',
+        '/admin/moderation?status=all',
+      );
+      expect(screen.queryByRole('link', { name: 'Queued' })).not.toBeInTheDocument();
+    });
+
+    it('passes a valid non-default status filter through to fetchModerationData', async () => {
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage({ searchParams: Promise.resolve({ status: 'actioned' }) }));
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', { status: 'actioned' });
+      expect(screen.getByText('Showing: Actioned')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Queued' })).toHaveAttribute('href', '/admin/moderation');
+    });
+
+    it('maps the all status filter to the all option', async () => {
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage({ searchParams: Promise.resolve({ status: 'all' }) }));
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', { status: 'all' });
+      expect(screen.getByText('Showing: All statuses')).toBeInTheDocument();
+    });
+
+    it('falls back to the default queued filter for an invalid status value', async () => {
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage({ searchParams: Promise.resolve({ status: 'bogus' }) }));
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token');
+      expect(screen.getByText('Showing: Queued')).toBeInTheDocument();
+    });
+
+    it('combines a status filter and a before cursor in the fetch options and in pagination hrefs', async () => {
+      const before = '2026-09-13T12:00:00.000Z';
+      mockFetchModerationData.mockResolvedValue({
+        reports: {
+          available: true,
+          rows: Array.from({ length: 50 }, (_, index) => ({
+            ...report,
+            source: 'post_reports' as const,
+            status: 'actioned' as const,
+            id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+            created_at: `2026-09-13T12:${String(index % 60).padStart(2, '0')}:00.000Z`,
+          })),
+        },
+        bans: { available: true, rows: [] },
+        audit: { available: true, rows: [] },
+      });
+
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(
+        await ModerationPage({
+          searchParams: Promise.resolve({ status: 'actioned', before }),
+        }),
+      );
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', {
+        before,
+        status: 'actioned',
+      });
+      expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute(
+        'href',
+        '/admin/moderation?status=actioned',
+      );
+      expect(screen.getByRole('link', { name: 'Older reports' })).toHaveAttribute(
+        'href',
+        '/admin/moderation?status=actioned&before=2026-09-13T12%3A49%3A00.000Z',
+      );
+    });
   });
 });
