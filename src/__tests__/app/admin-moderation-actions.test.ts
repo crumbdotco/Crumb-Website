@@ -17,6 +17,8 @@ jest.mock('@/lib/admin/moderation', () => ({
   unbanModerationUser: mockUnbanModerationUser,
 }));
 
+const { ModerationUnbanPartialError } = jest.requireActual('@/lib/admin/moderation');
+
 const reportId = '11111111-1111-4111-8111-111111111111';
 const userId = '44444444-4444-4444-8444-444444444444';
 
@@ -110,6 +112,27 @@ describe('admin moderation actions', () => {
     expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
     expect(mockRedirect).not.toHaveBeenCalledWith(expect.stringContaining('raw Supabase error detail'));
     expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('redirects with a distinct code when the unban was rolled back after the audit RPC failed', async () => {
+    mockUnbanModerationUser.mockRejectedValue(new ModerationUnbanPartialError());
+    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
+
+    await unbanUserAction(formData({ userId }));
+
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_partial');
+    expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
+    expect(mockRevalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('does not treat a plain unban failure as the partial-unban case', async () => {
+    mockUnbanModerationUser.mockRejectedValue(new Error('Unable to unban moderation user'));
+    const { unbanUserAction } = await import('@/app/admin/moderation/actions');
+
+    await unbanUserAction(formData({ userId }));
+
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/moderation?error=unban_failed');
+    expect(mockRedirect).not.toHaveBeenCalledWith('/admin/moderation?error=unban_partial');
   });
 
   it('redirects an unban when the access token is unavailable', async () => {

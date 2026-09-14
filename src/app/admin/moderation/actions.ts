@@ -14,6 +14,7 @@ import {
   isModerationUuid,
   isReportSource,
   isReportStatus,
+  ModerationUnbanPartialError,
   setModerationReportStatus,
   unbanModerationUser,
 } from '@/lib/admin/moderation';
@@ -65,7 +66,10 @@ export async function unbanUserAction(formData: FormData): Promise<void> {
 
   try {
     await unbanModerationUser(accessToken, targetUserId);
-  } catch {
+  } catch (err) {
+    if (err instanceof ModerationUnbanPartialError) {
+      return redirect(`${MODERATION_PATH}?error=unban_partial`);
+    }
     return redirect(`${MODERATION_PATH}?error=unban_failed`);
   }
 
