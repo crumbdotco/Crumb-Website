@@ -93,3 +93,26 @@
 - [x] **Step 3: Review the diff** for origin substring checks, client exposure of service credentials, missing admin gates, unsafe redirects, and forbidden copy.
 - [x] **Step 4: Record the implementation decisions, the no-auto-ban security rationale, and any unavailable live-device checks** in `implementation-notes.md` and `HANDOFF.md`.
 - [x] **Step 5: Commit documentation updates** with explicit file staging and report the final verification evidence.
+
+### Task 5: Review-to-zero security correction
+
+**Files:**
+- Modify: `src/lib/admin/moderation.ts`
+- Modify: `src/app/admin/moderation/actions.ts`
+- Modify: `src/app/admin/moderation/page.tsx`
+- Modify: `src/app/api/admin/session/route.ts`
+- Modify: focused tests for these modules
+- Modify: `implementation-notes.md`
+- Modify: `HANDOFF.md`
+
+**Interfaces:**
+- The moderation service must verify the caller through `is_platform_admin` before any bearer-free GoTrue admin mutation, then keep the final `admin_unban` RPC check.
+- Shared exported validators are the one source for moderation UUID, report-source, and report-status validation.
+- Production accepts only `https://crumbify.co.uk` for admin-session POST requests. Localhost origins are development-only.
+- The unrequested unauthorized-access email path and its environment requirements are removed.
+
+- [ ] **Step 1: Write focused failing tests** for platform-admin preflight ordering, denial before GoTrue mutation, and production rejection of localhost origins. Confirm each RED failure has the expected reason.
+- [ ] **Step 2: Implement the minimal security corrections**, remove the alert path, and consolidate validators.
+- [ ] **Step 3: Add the required production-file headers** and update tests for the reduced scope.
+- [ ] **Step 4: Run focused tests, full Jest, lint, build, typecheck, coverage, and React Doctor.**
+- [ ] **Step 5: Correct implementation notes and handoff**, name the class guards, and commit with explicit file staging.

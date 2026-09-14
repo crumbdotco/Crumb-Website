@@ -310,16 +310,16 @@ describe("moderation service", () => {
     expect(rpc).toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
   });
 
-  it("requires an exact true platform-admin preflight before creating GoTrue", async () => {
-    const events: string[] = [];
-    const rpc = jest.fn((name: string) => {
-      events.push(`rpc:${name}`);
-      return Promise.resolve({ data: false, error: null });
-    });
-    const createServiceRoleClient = jest.fn(() => {
-      events.push("gotrue-client");
-      return { auth: { admin: { updateUserById: jest.fn() } } };
-    });
+  it.each([
+    ["false", false, null],
+    ["truthy string", "true", null],
+    ["truthy number", 1, null],
+    ["null", null, null],
+    ["RPC error", true, { message: "denied" }],
+  ] as const)("requires exact true platform-admin preflight for %s before creating GoTrue", async (_label, data, error) => {
+    const rpc = jest.fn(() => Promise.resolve({ data, error }));
+    const updateUserById = jest.fn(() => Promise.resolve({ error: null }));
+    const createServiceRoleClient = jest.fn(() => ({ auth: { admin: { updateUserById } } }));
     const { dependencies } = createDependencies({
       createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
       createServiceRoleClient,
@@ -330,7 +330,28 @@ describe("moderation service", () => {
       "Unable to verify moderation admin access",
     );
 
-    expect(events).toEqual(["rpc:is_platform_admin"]);
+    expect(rpc).toHaveBeenCalledWith("is_platform_admin");
+    expect(rpc).not.toHaveBeenCalledWith("admin_unban", { p_user_id: ban.user_id });
+    expect(updateUserById).not.toHaveBeenCalled();
+    expect(createServiceRoleClient).not.toHaveBeenCalled();
+  });
+
+  it("denies a rejected platform-admin preflight before creating GoTrue", async () => {
+    const rpc = jest.fn(() => Promise.reject(new Error("network failure")));
+    const createServiceRoleClient = jest.fn(() => ({
+      auth: { admin: { updateUserById: jest.fn() } },
+    }));
+    const { dependencies } = createDependencies({
+      createServiceRoleRpcClient: jest.fn(() => ({ rpc })),
+      createServiceRoleClient,
+    });
+    const service = createModerationService(dependencies);
+
+    await expect(service.unbanModerationUser("verified-admin-token", ban.user_id)).rejects.toThrow(
+      "Unable to verify moderation admin access",
+    );
+
+    expect(rpc).toHaveBeenCalledWith("is_platform_admin");
     expect(createServiceRoleClient).not.toHaveBeenCalled();
   });
 

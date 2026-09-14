@@ -9,11 +9,29 @@ The initial RED run was:
 npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-actions.test.ts src/__tests__/app/admin-moderation-page.test.tsx src/__tests__/api/admin-session.test.ts --maxWorkers=2
 ```
 
-It failed for the expected missing-behaviour reasons: the unban event sequence had no
-`is_platform_admin` preflight, the denial test reached GoTrue and produced the old
-destructuring error, the new exported guards were absent, and production still accepted
-`http://localhost:3000`. The page/action tests also exposed stale alert and auth mocks,
-which were removed as part of the reduced scope.
+It failed for the expected missing-behaviour reasons. The exact Jest failure text included:
+
+```text
+Expected: ["preflight", "gotrue", "rpc"]
+Received: ["gotrue", "rpc"]
+
+Expected substring: "Unable to verify moderation admin access"
+Received message: "Cannot destructure property 'error' of '(intermediate value)' as it is undefined."
+
+TypeError: (0 , _moderation.isModerationUuid) is not a function
+
+TypeError: (0 , _moderation.isReportSource) is not a function
+
+ReferenceError: mockSendUnauthorizedModerationAlert is not defined
+
+Expected: false
+Received: true
+  at src/__tests__/api/admin-session.test.ts:70:73
+```
+
+The page/action tests also exposed stale alert and auth mocks, which were removed as part
+of the reduced scope. These failures were caused by the missing preflight, missing guards,
+production localhost acceptance, and removed exports, not by test syntax errors.
 
 After the smallest implementation, the focused GREEN command was run twice, including a
 fresh run immediately before commit:
@@ -22,6 +40,21 @@ fresh run immediately before commit:
 npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-actions.test.ts src/__tests__/app/admin-moderation-page.test.tsx src/__tests__/api/admin-session.test.ts --maxWorkers=2
 PASS: 4 suites, 56 tests, 0 snapshots failed
 ```
+
+## Review round 1 evidence
+
+Review round 1 added explicit denial cases for every non-`true` preflight shape and
+replaced the action-test validator copies with the real exported guards. The covering
+focused command was run after those test changes:
+
+```text
+npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-actions.test.ts src/__tests__/app/admin-moderation-page.test.tsx src/__tests__/api/admin-session.test.ts --maxWorkers=2
+PASS: 4 suites, 61 tests, 0 snapshots failed
+```
+
+The exact new cases are `false`, the truthy strings and numbers `"true"` and `1`,
+`null`, `{ data: true, error: { message: "denied" } }`, and a rejected preflight RPC.
+Each asserts that GoTrue and `admin_unban` are not called.
 
 ## Changed files
 
@@ -34,8 +67,9 @@ PASS: 4 suites, 56 tests, 0 snapshots failed
 - `src/app/api/admin/session/route.ts`: production-only `https://crumbify.co.uk`
   allowlist, with localhost origins available only outside production; exact Origin and
   Referer fallback behaviour retained.
-- `src/__tests__/lib/admin/moderation.test.ts`: preflight ordering, exact-true denial,
-  guard exports, and bearer/client ordering; removed alert tests.
+- `src/__tests__/lib/admin/moderation.test.ts`: preflight ordering, exact-true denial for
+  false, truthy non-boolean, null, RPC-error, and rejected-RPC results, guard exports, and
+  bearer/client ordering; removed alert tests.
 - `src/__tests__/app/admin-moderation-actions.test.ts`: removed alert mocks/tests and
   covered the shared guard wiring and existing redirects.
 - `src/__tests__/app/admin-moderation-page.test.tsx`: removed alert mocks/tests while
@@ -46,6 +80,8 @@ PASS: 4 suites, 56 tests, 0 snapshots failed
   and browser-check limitation.
 - `HANDOFF.md`: corrected branch, removed alert environment steps, and marked the browser
   exit check incomplete.
+- `docs/superpowers/plans/2026-09-13-admin-moderation.md`: included the existing Task 5
+  plan update in the documentation commit.
 - `.superpowers/sdd/2026-09-13-admin-moderation/task-5-report.md`: this report.
 
 All four modified production files have the required opening headers with purpose,
@@ -67,7 +103,8 @@ security/brand rules, interfaces, and `Test IDs: none` for server-only files.
 
 ## Verification gates
 
-- Focused Jest: passed, 4 suites / 56 tests, `--maxWorkers=2`.
+- Focused Jest: initial pass 4 suites / 56 tests; review-round pass 4 suites / 61 tests,
+  both with `--maxWorkers=2`.
 - Full Jest immediately before commit: passed, 33 suites / 402 tests. Existing console
   warnings remain from React `act(...)`, webhook/referral error-path logging, and jsdom
   navigation tests.

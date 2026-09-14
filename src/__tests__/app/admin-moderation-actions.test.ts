@@ -12,9 +12,7 @@ jest.mock('@/lib/admin/auth', () => ({
   getAdminAccessToken: mockGetAdminAccessToken,
 }));
 jest.mock('@/lib/admin/moderation', () => ({
-  isModerationUuid: (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
-  isReportSource: (value: unknown) => value === 'post_reports' || value === 'group_content_reports',
-  isReportStatus: (value: unknown) => value === 'queued' || value === 'actioned' || value === 'dismissed',
+  ...jest.requireActual('@/lib/admin/moderation'),
   setModerationReportStatus: mockSetModerationReportStatus,
   unbanModerationUser: mockUnbanModerationUser,
 }));
