@@ -58,6 +58,10 @@ export interface ModerationData {
   audit: ModerationAvailability<ModerationAuditEntry>;
 }
 
+export interface ModerationQueryOptions {
+  before?: string | null;
+}
+
 interface RpcClient {
   rpc(name: string, params?: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown | null }>;
 }
@@ -103,6 +107,10 @@ export function isModerationUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_RE.test(value);
 }
 
+export function isModerationCursor(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && !Number.isNaN(Date.parse(value));
+}
+
 export function isReportSource(value: unknown): value is ReportSource {
   return value === 'post_reports' || value === 'group_content_reports';
 }
@@ -134,10 +142,18 @@ async function readModerationRows<T>(request: PromiseLike<{ data: unknown; error
 
 export function createModerationService(dependencies: ModerationDependencies) {
   return {
-    async fetchModerationData(accessToken: string): Promise<ModerationData> {
+    async fetchModerationData(
+      accessToken: string,
+      options: ModerationQueryOptions = {},
+    ): Promise<ModerationData> {
       const client = dependencies.createServiceRoleRpcClient(accessToken);
+      const reportParams = {
+        p_status: 'queued',
+        p_limit: 50,
+        p_before: isModerationCursor(options.before) ? options.before : null,
+      };
       const [reports, bans, audit] = await Promise.all([
-        readModerationRows<ModerationReport>(client.rpc('admin_list_reports')),
+        readModerationRows<ModerationReport>(client.rpc('admin_list_reports', reportParams)),
         readModerationRows<ModerationBan>(client.rpc('admin_list_bans')),
         readModerationRows<ModerationAuditEntry>(client.rpc('admin_audit_log')),
       ]);

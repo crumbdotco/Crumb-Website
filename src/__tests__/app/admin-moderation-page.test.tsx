@@ -13,6 +13,7 @@ jest.mock('@/lib/admin/auth', () => ({
 }));
 
 jest.mock('@/lib/admin/moderation', () => ({
+  ...jest.requireActual('@/lib/admin/moderation'),
   fetchModerationData: mockFetchModerationData,
 }));
 
@@ -141,5 +142,87 @@ describe('admin moderation page', () => {
     expect(screen.getByText('Reports are unavailable right now.')).toBeInTheDocument();
     expect(screen.getByText('Active bans are unavailable right now.')).toBeInTheDocument();
     expect(screen.getByText('Audit history is unavailable right now.')).toBeInTheDocument();
+  });
+
+  it('passes a valid before cursor and shows a Newest reports link', async () => {
+    const before = '2026-09-13T12:00:00.000Z';
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [report] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+
+    expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', { before });
+    expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute(
+      'href',
+      '/admin/moderation',
+    );
+  });
+
+  it('shows an Older reports link when the queued report page is full', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: {
+        available: true,
+        rows: Array.from({ length: 50 }, (_, index) => ({
+          ...report,
+          id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+          created_at: `2026-09-13T12:${String(index % 60).padStart(2, '0')}:00.000Z`,
+        })),
+      },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage());
+
+    expect(screen.getByRole('link', { name: 'Older reports' })).toHaveAttribute(
+      'href',
+      '/admin/moderation?before=2026-09-13T12%3A49%3A00.000Z',
+    );
+    expect(screen.queryByRole('link', { name: 'Newest reports' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['result', 'report_updated', 'Report status updated.'],
+    ['result', 'user_unbanned', 'User unbanned.'],
+    ['error', 'invalid_input', 'The submitted moderation input was invalid.'],
+    ['error', 'update_failed', 'Unable to update the report.'],
+    ['error', 'unban_failed', 'Unable to unban the user.'],
+  ])('shows the safe message for %s=%s', async (key, value, message) => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ [key]: value }) }));
+
+    expect(screen.getByRole('status')).toHaveTextContent(message);
+  });
+
+  it('ignores unknown result and error values', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ result: 'nope', error: 'nope' }) }));
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

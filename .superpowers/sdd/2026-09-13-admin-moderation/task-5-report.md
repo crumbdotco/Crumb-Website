@@ -67,6 +67,47 @@ npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts --maxWor
 PASS: 1 suite, 26 tests, 0 snapshots failed
 ```
 
+## Final whole-branch fix wave evidence
+
+The RED command was:
+
+```text
+npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-page.test.tsx --maxWorkers=2
+```
+
+The exact RED output included:
+
+```text
+Expected: "admin_list_reports", {"p_before": null, "p_limit": 50, "p_status": "queued"}
+Received: "admin_list_reports"
+
+Expected: "verified-admin-token", {"before": "2026-09-13T12:00:00.000Z"}
+Received: "verified-admin-token"
+
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Older reports"
+TestingLibraryElementError: Unable to find an accessible element with the role "status"
+```
+
+The minimal implementation added queued-only RPC parameters, validated timestamp cursors,
+Older/Newest report links, and allowlisted visible messages for the five action result and
+error codes. The complete focused GREEN command passed:
+
+```text
+npm test -- --runTestsByPath src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-actions.test.ts src/__tests__/app/admin-moderation-page.test.tsx src/__tests__/api/admin-session.test.ts --maxWorkers=2
+PASS: 4 suites, 71 tests, 0 snapshots failed
+```
+
+One full Jest run followed GREEN:
+
+```text
+npm test -- --maxWorkers=2
+PASS: 33 suites, 417 tests, 0 snapshots failed
+```
+
+The plan now removes the obsolete Resend alert requirements and marks all Task 5 steps
+complete. `HANDOFF.md` contains one current handoff document, and the browser exit check
+remains explicitly incomplete.
+
 ## Changed files
 
 - `src/lib/admin/moderation.ts`: exported UUID/source/status guards; exact-true

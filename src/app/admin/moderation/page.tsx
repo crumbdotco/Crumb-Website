@@ -13,6 +13,7 @@ import {
 } from '@/lib/admin/auth';
 import {
   fetchModerationData,
+  isModerationCursor,
   type ModerationAuditEntry,
   type ModerationBan,
   type ModerationData,
@@ -30,6 +31,30 @@ const UNAVAILABLE_DATA: ModerationData = {
 };
 
 const REPORT_STATUSES: ReportStatus[] = ['queued', 'actioned', 'dismissed'];
+const REPORT_PAGE_SIZE = 50;
+
+type ModerationSearchParams = {
+  before?: string | string[];
+  result?: string | string[];
+  error?: string | string[];
+};
+
+const MODERATION_MESSAGES: Record<string, string> = {
+  report_updated: 'Report status updated.',
+  user_unbanned: 'User unbanned.',
+  invalid_input: 'The submitted moderation input was invalid.',
+  update_failed: 'Unable to update the report.',
+  unban_failed: 'Unable to unban the user.',
+};
+
+function oneSearchParam(value: string | string[] | undefined): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function moderationMessage(params: ModerationSearchParams): string | null {
+  const code = oneSearchParam(params.result) ?? oneSearchParam(params.error);
+  return code ? MODERATION_MESSAGES[code] ?? null : null;
+}
 
 function formatDate(value: string | null): string {
   return value ?? 'Not recorded';
@@ -46,7 +71,11 @@ async function denyUnauthorizedAccess(): Promise<null> {
   return null;
 }
 
-export default async function ModerationPage() {
+export default async function ModerationPage({
+  searchParams = Promise.resolve({}),
+}: {
+  searchParams?: Promise<ModerationSearchParams>;
+} = {}) {
   const userId = await requireAdmin();
   if (!userId) return denyUnauthorizedAccess();
 
@@ -56,7 +85,14 @@ export default async function ModerationPage() {
     return null;
   }
 
-  const data = await fetchModerationData(accessToken).catch(() => UNAVAILABLE_DATA);
+  const params = await searchParams;
+  const requestedBefore = oneSearchParam(params.before);
+  const before = isModerationCursor(requestedBefore) ? requestedBefore : null;
+  const data = await (before
+    ? fetchModerationData(accessToken, { before })
+    : fetchModerationData(accessToken)
+  ).catch(() => UNAVAILABLE_DATA);
+  const message = moderationMessage(params);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
@@ -70,7 +106,13 @@ export default async function ModerationPage() {
         </div>
       </header>
 
-      <ReportsSection reports={data.reports} />
+      {message && (
+        <p role="status" className="rounded-lg border border-[#E6C39B]/30 bg-[#E6C39B]/10 p-3 text-sm text-[#E6C39B]">
+          {message}
+        </p>
+      )}
+
+      <ReportsSection reports={data.reports} before={before} />
       <BansSection bans={data.bans} />
       <AuditSection audit={data.audit} />
     </main>
@@ -100,7 +142,13 @@ function UnavailableState({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReportsSection({ reports }: { reports: ModerationData['reports'] }) {
+function ReportsSection({
+  reports,
+  before,
+}: {
+  reports: ModerationData['reports'];
+  before: string | null;
+}) {
   return (
     <SectionShell title="Reports">
       {!reports.available ? (
@@ -108,11 +156,38 @@ function ReportsSection({ reports }: { reports: ModerationData['reports'] }) {
       ) : reports.rows.length === 0 ? (
         <p className="text-sm opacity-60">No reports need review.</p>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {reports.rows.map((report) => <ReportCard key={`${report.source}-${report.id}`} report={report} />)}
-        </div>
+        <>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {reports.rows.map((report) => <ReportCard key={`${report.source}-${report.id}`} report={report} />)}
+          </div>
+          <ReportPagination reports={reports.rows} before={before} />
+        </>
       )}
     </SectionShell>
+  );
+}
+
+function ReportPagination({ reports, before }: { reports: ModerationReport[]; before: string | null }) {
+  const oldest = reports[reports.length - 1]?.created_at;
+  const hasOlder = reports.length === REPORT_PAGE_SIZE && isModerationCursor(oldest);
+  if (!before && !hasOlder) return null;
+
+  return (
+    <nav aria-label="Report pages" className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4 text-sm">
+      {before && (
+        <Link href="/admin/moderation" className="text-[#E6C39B] underline-offset-4 hover:underline">
+          Newest reports
+        </Link>
+      )}
+      {hasOlder && (
+        <Link
+          href={`/admin/moderation?before=${encodeURIComponent(oldest)}`}
+          className="text-[#E6C39B] underline-offset-4 hover:underline"
+        >
+          Older reports
+        </Link>
+      )}
+    </nav>
   );
 }
 

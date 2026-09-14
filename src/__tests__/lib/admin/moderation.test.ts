@@ -104,6 +104,39 @@ describe("moderation service", () => {
       "admin_list_bans",
       "admin_audit_log",
     ]);
+    expect(rpc).toHaveBeenCalledWith("admin_list_reports", {
+      p_status: "queued",
+      p_limit: 50,
+      p_before: null,
+    });
+  });
+
+  it("passes a valid report cursor to the queued report RPC", async () => {
+    const { dependencies, rpc } = createDependencies();
+    const service = createModerationService(dependencies);
+
+    await service.fetchModerationData("verified-admin-token", {
+      before: "2026-09-13T12:00:00.000Z",
+    });
+
+    expect(rpc).toHaveBeenCalledWith("admin_list_reports", {
+      p_status: "queued",
+      p_limit: 50,
+      p_before: "2026-09-13T12:00:00.000Z",
+    });
+  });
+
+  it("does not send an invalid report cursor to the RPC", async () => {
+    const { dependencies, rpc } = createDependencies();
+    const service = createModerationService(dependencies);
+
+    await service.fetchModerationData("verified-admin-token", { before: "not-a-date" });
+
+    expect(rpc).toHaveBeenCalledWith("admin_list_reports", {
+      p_status: "queued",
+      p_limit: 50,
+      p_before: null,
+    });
   });
 
   it("keeps a report email delivery state when the RPC returns unknown", async () => {
