@@ -11,7 +11,9 @@
 
 // --- Supabase mock ---
 const mockDeleteSelect = jest.fn();
-const mockDeleteEq = jest.fn(() => ({ select: mockDeleteSelect }));
+const mockDeleteEq = jest.fn((column: string, value: string) => ({
+  select: mockDeleteSelect,
+}));
 const mockDelete = jest.fn(() => ({ eq: mockDeleteEq }));
 const mockUpsert = jest.fn();
 const mockEq = jest.fn().mockResolvedValue({ count: 0 });
