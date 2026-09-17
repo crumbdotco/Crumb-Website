@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="28 August 2026">
+    <LegalShell title="Privacy Policy" updated="16 September 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -320,6 +320,13 @@ export default function PrivacyPage() {
           reports are reviewed and actioned. Moderation logs are retained for 30
           days, then automatically deleted.
         </p>
+        <p style={bodyStyle}>
+          If we permanently ban an account for abuse, we keep one-way SHA-256 hashes of that account&apos;s email
+          address and device identifier for as long as the ban stands, and a hash of the IP address used
+          at the time of the ban for 30 days, so the same person cannot immediately re-register. The raw email address,
+          device identifier and IP address are not stored for this purpose, and all of these hashes are deleted
+          when a ban is lifted.
+        </p>
       </section>
 
       <section style={sectionStyle}>
@@ -433,6 +440,8 @@ export default function PrivacyPage() {
           <li>Push notification token: while notifications are enabled, removed when you turn them off.</li>
           <li>Notification history (a record of notifications we sent you): while your account exists.</li>
           <li>Avatar and post-photo moderation logs: 30 days.</li>
+          <li>Ban records: hashed email address and device identifier for as long as the ban stands; hashed IP address for 30 days.</li>
+          <li>Pre-launch waitlist sign-up IP address and browser details: deleted 30 days after sign-up (the email itself is covered below).</li>
           <li>Trial-ending reminder scheduling records: 30 days.</li>
           <li>Founding-member emails: retained while the founding benefit exists, so the tier can be restored by verifying that email.</li>
           <li>Pre-launch waitlist emails: kept until launch so we can send the launch notification you signed up for; contact us any time to be removed.</li>
