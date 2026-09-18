@@ -88,6 +88,35 @@ describe('admin moderation page', () => {
     expect(mockFetchModerationData).not.toHaveBeenCalled();
   });
 
+  it('redirects an admin whose access token is unavailable before it loads moderation data', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue(null);
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    await expect(ModerationPage()).resolves.toBeNull();
+
+    expect(mockRedirect).toHaveBeenCalledWith('/admin/signin?error=unauthorized');
+    expect(mockFetchModerationData).not.toHaveBeenCalled();
+  });
+
+  it('renders unavailable states when the moderation read rejects', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockRejectedValue(new Error('secret moderation failure'));
+
+    try {
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage());
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+
+    expect(screen.getByText('Reports are unavailable right now.')).toBeInTheDocument();
+    expect(screen.getByText('Active bans are unavailable right now.')).toBeInTheDocument();
+    expect(screen.getByText('Audit history is unavailable right now.')).toBeInTheDocument();
+  });
+
   it('renders combined reports, active bans, audit records, and operator forms for an admin', async () => {
     mockRequireAdmin.mockResolvedValue('admin-user');
     mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
@@ -163,7 +192,8 @@ describe('admin moderation page', () => {
   });
 
   it('passes a valid before cursor and shows a Newest reports link', async () => {
-    const before = '2026-09-13T12:00:00.000Z';
+    const before = '2026-09-13T12:00:00.123456+00:00';
+    const beforeId = '77777777-7777-4777-8777-777777777777';
     mockRequireAdmin.mockResolvedValue('admin-user');
     mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
     mockFetchModerationData.mockResolvedValue({
@@ -173,13 +203,44 @@ describe('admin moderation page', () => {
     });
 
     const { default: ModerationPage } = await import('@/app/admin/moderation/page');
-    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+    render(await ModerationPage({ searchParams: Promise.resolve({ before, beforeId }) }));
 
-    expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', { before });
+    expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', { before, beforeId });
     expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute(
       'href',
       '/admin/moderation',
     );
+  });
+
+  it('drops an invalid beforeId with its valid before cursor and loads page 1', async () => {
+    const before = '2026-09-13T12:00:00.000Z';
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ before, beforeId: 'not-a-uuid' }) }));
+
+    expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token');
+  });
+
+  it('drops a beforeId without a valid before cursor and loads page 1', async () => {
+    mockRequireAdmin.mockResolvedValue('admin-user');
+    mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+    mockFetchModerationData.mockResolvedValue({
+      reports: { available: true, rows: [] },
+      bans: { available: true, rows: [] },
+      audit: { available: true, rows: [] },
+    });
+
+    const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+    render(await ModerationPage({ searchParams: Promise.resolve({ beforeId: report.id }) }));
+
+    expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token');
   });
 
   it('shows an Older reports link when the queued report page is full', async () => {
@@ -203,10 +264,71 @@ describe('admin moderation page', () => {
 
     expect(screen.getByRole('link', { name: 'Older reports' })).toHaveAttribute(
       'href',
-      '/admin/moderation?before=2026-09-13T12%3A49%3A00.000Z',
+      '/admin/moderation?before=2026-09-13T12%3A49%3A00.000Z&beforeId=00000000-0000-4000-8000-000000000049',
     );
     expect(screen.queryByRole('link', { name: 'Newest reports' })).not.toBeInTheDocument();
   });
+
+  // PostgREST trims trailing zeros from a timestamptz fraction and omits it
+  // entirely for a zero fraction. These are real production shapes for a
+  // report's created_at, not hypothetical ones; before this round none of
+  // them survived isModerationCursor, so a full page whose last row landed
+  // on one of these shapes silently never rendered "Older reports" at all,
+  // making every older report unreachable with no signal.
+  it.each([
+    ['no fraction, numeric offset', '2026-09-13T11:00:00+00:00'],
+    ['one fraction digit', '2026-09-13T11:00:00.5+00:00'],
+    ['two fraction digits', '2026-09-13T11:00:00.12+00:00'],
+  ])(
+    'renders Older reports and forwards the exact cursor for a short-fraction created_at (%s)',
+    async (_label, lastCreatedAt) => {
+      mockRequireAdmin.mockResolvedValue('admin-user');
+      mockGetAdminAccessToken.mockResolvedValue('verified-admin-token');
+      const rows = Array.from({ length: 50 }, (_, index) => ({
+        ...report,
+        id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+        created_at:
+          index === 49 ? lastCreatedAt : `2026-09-13T12:${String(index % 60).padStart(2, '0')}:00.000Z`,
+      }));
+      mockFetchModerationData.mockResolvedValueOnce({
+        reports: { available: true, rows },
+        bans: { available: true, rows: [] },
+        audit: { available: true, rows: [] },
+      });
+
+      const { default: ModerationPage } = await import('@/app/admin/moderation/page');
+      render(await ModerationPage());
+
+      const link = screen.getByRole('link', { name: 'Older reports' });
+      const href = link.getAttribute('href') ?? '';
+      const query = new URLSearchParams(href.slice(href.indexOf('?') + 1));
+      const forwardedBefore = query.get('before');
+      const forwardedBeforeId = query.get('beforeId');
+      expect(forwardedBefore).toBe(lastCreatedAt);
+      expect(forwardedBeforeId).toBe(rows[49].id);
+
+      mockFetchModerationData.mockClear();
+      mockFetchModerationData.mockResolvedValueOnce({
+        reports: { available: true, rows: [] },
+        bans: { available: true, rows: [] },
+        audit: { available: true, rows: [] },
+      });
+
+      render(
+        await ModerationPage({
+          searchParams: Promise.resolve({
+            before: forwardedBefore ?? undefined,
+            beforeId: forwardedBeforeId ?? undefined,
+          }),
+        }),
+      );
+
+      expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', {
+        before: lastCreatedAt,
+        beforeId: rows[49].id,
+      });
+    },
+  );
 
   it.each([
     ['result', 'report_updated', 'Report status updated.'],
@@ -313,7 +435,7 @@ describe('admin moderation page', () => {
     });
 
     const { default: ModerationPage } = await import('@/app/admin/moderation/page');
-    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+    render(await ModerationPage({ searchParams: Promise.resolve({ before, beforeId: report.id }) }));
 
     expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute('href', '/admin/moderation');
     expect(screen.queryByRole('link', { name: 'Older reports' })).not.toBeInTheDocument();
@@ -330,7 +452,7 @@ describe('admin moderation page', () => {
     });
 
     const { default: ModerationPage } = await import('@/app/admin/moderation/page');
-    render(await ModerationPage({ searchParams: Promise.resolve({ before }) }));
+    render(await ModerationPage({ searchParams: Promise.resolve({ before, beforeId: report.id }) }));
 
     expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute('href', '/admin/moderation');
   });
@@ -442,12 +564,13 @@ describe('admin moderation page', () => {
       const { default: ModerationPage } = await import('@/app/admin/moderation/page');
       render(
         await ModerationPage({
-          searchParams: Promise.resolve({ status: 'actioned', before }),
+          searchParams: Promise.resolve({ status: 'actioned', before, beforeId: report.id }),
         }),
       );
 
       expect(mockFetchModerationData).toHaveBeenCalledWith('verified-admin-token', {
         before,
+        beforeId: report.id,
         status: 'actioned',
       });
       expect(screen.getByRole('link', { name: 'Newest reports' })).toHaveAttribute(
@@ -456,7 +579,7 @@ describe('admin moderation page', () => {
       );
       expect(screen.getByRole('link', { name: 'Older reports' })).toHaveAttribute(
         'href',
-        '/admin/moderation?status=actioned&before=2026-09-13T12%3A49%3A00.000Z',
+        '/admin/moderation?status=actioned&before=2026-09-13T12%3A49%3A00.000Z&beforeId=00000000-0000-4000-8000-000000000049',
       );
     });
   });

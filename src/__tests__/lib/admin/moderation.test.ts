@@ -4,6 +4,7 @@ jest.mock("@supabase/supabase-js", () => ({
 
 import {
   AUDIT_HISTORY_LIMIT,
+  buildModerationHref,
   createModerationService,
   fetchModerationData,
   isModerationCursor,
@@ -22,7 +23,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const mockCreateClient = createClient as jest.Mock;
 
-const report = {
+const report: ModerationReport = {
   source: "post_reports",
   id: "11111111-1111-4111-8111-111111111111",
   target_type: "post",
@@ -84,7 +85,8 @@ async function catchError(promise: Promise<unknown>): Promise<unknown> {
 }
 
 function createDependencies(overrides: Partial<ModerationDependencies> = {}) {
-  const rpc = jest.fn((name: string) => {
+  const rpc = jest.fn((name: string, params?: Record<string, unknown>) => {
+    void params; // signature kept for a two-arg mock.calls shape used by later assertions
     if (name === "is_platform_admin") return Promise.resolve({ data: true, error: null });
     if (name === "admin_list_reports") return Promise.resolve({ data: [report], error: null });
     if (name === "admin_list_bans") return Promise.resolve({ data: [ban], error: null });
@@ -148,19 +150,82 @@ describe("moderation service", () => {
   });
 
   it("passes a valid report cursor to the queued report RPC", async () => {
+    const before = "2026-09-13T12:00:00.123456+00:00";
+    const beforeId = "77777777-7777-4777-8777-777777777777";
     const { dependencies, rpc } = createDependencies();
     const service = createModerationService(dependencies);
 
     await service.fetchModerationData("verified-admin-token", {
-      before: "2026-09-13T12:00:00.000Z",
+      before,
+      beforeId,
     });
 
     expect(rpc).toHaveBeenCalledWith("admin_list_reports", {
       p_status: "queued",
       p_limit: REPORT_PAGE_SIZE,
-      p_before: "2026-09-13T12:00:00.000Z",
+      p_before: before,
+      p_before_id: beforeId,
     });
   });
+
+  it.each([
+    ["valid before, missing beforeId", { before: "2026-09-13T12:00:00.000Z" }],
+    ["valid before, null beforeId", { before: "2026-09-13T12:00:00.000Z", beforeId: null }],
+    ["valid before, invalid beforeId", { before: "2026-09-13T12:00:00.000Z", beforeId: "not-a-uuid" }],
+    ["invalid before, valid beforeId", { before: "not-a-date", beforeId: "77777777-7777-4777-8777-777777777777" }],
+    ["missing before, valid beforeId", { beforeId: "77777777-7777-4777-8777-777777777777" }],
+  ] as const)(
+    "discards an unpaired cursor together (%s) and pages from the start",
+    async (_label, options) => {
+      const { dependencies, rpc } = createDependencies();
+      const service = createModerationService(dependencies);
+
+      await service.fetchModerationData("verified-admin-token", options);
+
+      const [, params] = rpc.mock.calls.find(([name]) => name === "admin_list_reports")!;
+      expect(params).toStrictEqual({
+        p_status: "queued",
+        p_limit: REPORT_PAGE_SIZE,
+        p_before: null,
+      });
+    },
+  );
+
+  it("sends exactly p_status, p_limit, and p_before null on page 1, with no p_before_id key", async () => {
+    const { dependencies, rpc } = createDependencies();
+    const service = createModerationService(dependencies);
+
+    await service.fetchModerationData("verified-admin-token");
+
+    // toStrictEqual (not toHaveBeenCalledWith/toEqual) so an accidental
+    // `p_before_id: undefined` key does not slip through: toHaveBeenCalledWith
+    // treats an undefined-valued key as absent, toStrictEqual does not.
+    expect(rpc.mock.calls[0][1]).toStrictEqual({
+      p_status: "queued",
+      p_limit: REPORT_PAGE_SIZE,
+      p_before: null,
+    });
+  });
+
+  it.each([
+    ["zero", 0],
+    ["negative", -5],
+    ["non-integer", 2.5],
+    ["over 200", 201],
+  ] as const)(
+    "falls back to REPORT_PAGE_SIZE for an invalid injected report page size (%s)",
+    async (_label, invalidSize) => {
+      const { dependencies, rpc } = createDependencies();
+      const service = createModerationService(dependencies, { reportPageSize: invalidSize });
+
+      await service.fetchModerationData("verified-admin-token");
+
+      expect(rpc).toHaveBeenCalledWith(
+        "admin_list_reports",
+        expect.objectContaining({ p_limit: REPORT_PAGE_SIZE }),
+      );
+    },
+  );
 
   it("does not send an invalid report cursor to the RPC", async () => {
     const { dependencies, rpc } = createDependencies();
@@ -498,12 +563,217 @@ describe("moderation service", () => {
   it("accepts exactly the ISO-8601 instant shape toISOString() produces", () => {
     expect(isModerationCursor(new Date("2026-09-13T12:00:00.000Z").toISOString())).toBe(true);
     expect(isModerationCursor("2026-09-13T12:00:00.000Z")).toBe(true);
+    expect(isModerationCursor("2026-09-13T12:00:00.123456+00:00")).toBe(true);
+  });
+
+  // PostgREST trims trailing zeros from a timestamptz fraction and omits it
+  // entirely for a zero fraction, so these are real production shapes, not
+  // hypothetical ones. Before this round none of them matched the cursor
+  // regex, so the "Older reports" link silently never rendered whenever the
+  // last row of a page happened to land on one of these shapes.
+  it.each([
+    ["no fraction, Z", "2026-09-13T12:00:00Z"],
+    ["no fraction, numeric offset", "2026-09-13T12:00:00+00:00"],
+    ["one fraction digit", "2026-09-13T12:00:00.5+00:00"],
+    ["two fraction digits", "2026-09-13T12:00:00.12+00:00"],
+    ["three fraction digits", "2026-09-13T12:00:00.123+00:00"],
+    ["five fraction digits", "2026-09-13T12:00:00.23583+00:00"],
+    ["six fraction digits", "2026-09-13T12:00:00.123456+00:00"],
+    ["negative numeric offset", "2026-09-13T12:00:00.5-05:00"],
+  ])("accepts the real PostgREST timestamp shape: %s (%s)", (_label, value) => {
+    expect(isModerationCursor(value)).toBe(true);
+  });
+
+  it("omits an unpaired before cursor from the moderation href", () => {
+    expect(buildModerationHref({ status: "queued", before: "2026-09-13T12:00:00.000Z" })).toBe(
+      "/admin/moderation",
+    );
+  });
+
+  it("omits an unpaired beforeId from the moderation href", () => {
+    expect(buildModerationHref({ status: "queued", beforeId: report.id })).toBe("/admin/moderation");
+  });
+
+  it("keeps only the status for a non-default status with a half cursor", () => {
+    expect(buildModerationHref({ status: "actioned", before: "2026-09-13T12:00:00.000Z" })).toBe(
+      "/admin/moderation?status=actioned",
+    );
+    expect(buildModerationHref({ status: "actioned", beforeId: report.id })).toBe(
+      "/admin/moderation?status=actioned",
+    );
+  });
+
+  it("preserves a database timestamp through the encoded older link and RPC cursor", async () => {
+    const row: ModerationReport = { ...report, created_at: "2026-09-13T12:00:00.123456+00:00" };
+    const href = buildModerationHref({ status: "queued", before: row.created_at, beforeId: row.id });
+    const query = new URLSearchParams(href.slice(href.indexOf("?") + 1));
+    const parsedBefore = query.get("before");
+    const parsedBeforeId = query.get("beforeId");
+    const { dependencies, rpc } = createDependencies();
+    const service = createModerationService(dependencies);
+
+    expect(href).toContain("%2B00%3A00");
+    expect(parsedBefore).toBe(row.created_at);
+    expect(parsedBeforeId).toBe(row.id);
+
+    await service.fetchModerationData("verified-admin-token", {
+      before: parsedBefore,
+      beforeId: parsedBeforeId,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("admin_list_reports", {
+      p_status: "queued",
+      p_limit: REPORT_PAGE_SIZE,
+      p_before: row.created_at,
+      p_before_id: row.id,
+    });
+  });
+
+  // Builds a fixture whose rows deliberately mix real PostgREST timestamp
+  // shapes (no fraction, short fraction, full microsecond fraction) across
+  // DIFFERENT instants, with one genuine tied pair sharing an identical
+  // created_at string. Comparing created_at as plain strings is only sound
+  // when every row shares one format; with mixed formats the fake RPC below
+  // orders/filters by the parsed instant (Date.parse) and falls back to the
+  // id rule only for genuinely equal instants, matching how the real
+  // database can never emit two different string spellings for the same
+  // instant in one column.
+  function buildTieBreakFixture(): ModerationReport[] {
+    const tiedCreatedAt = "2026-09-13T12:00:00+00:00"; // no fraction (item 1 shape)
+    return [
+      { ...report, id: "00000000-0000-4000-8000-000000000005", created_at: "2026-09-13T12:01:00.5+00:00" },
+      { ...report, id: "00000000-0000-4000-8000-000000000004", created_at: tiedCreatedAt },
+      { ...report, id: "00000000-0000-4000-8000-000000000003", created_at: tiedCreatedAt },
+      { ...report, id: "00000000-0000-4000-8000-000000000002", created_at: "2026-09-13T11:59:00.123456+00:00" },
+      { ...report, id: "00000000-0000-4000-8000-000000000001", created_at: "2026-09-13T11:58:00.12+00:00" },
+    ];
+  }
+
+  function orderByInstantThenId(fixture: ModerationReport[]): ModerationReport[] {
+    return [...fixture].sort((left, right) => {
+      const byInstant = Date.parse(right.created_at) - Date.parse(left.created_at);
+      return byInstant || right.id.localeCompare(left.id);
+    });
+  }
+
+  function createTieBreakRpc(ordered: ModerationReport[]) {
+    return jest.fn((name: string, params?: Record<string, unknown>) => {
+      if (name !== "admin_list_reports") return Promise.resolve({ data: [], error: null });
+      const before = typeof params?.p_before === "string" ? params.p_before : null;
+      const beforeId = typeof params?.p_before_id === "string" ? params.p_before_id : null;
+      const beforeInstant = before === null ? null : Date.parse(before);
+      const rows = ordered
+        .filter((row) => {
+          if (before === null || beforeInstant === null) return true;
+          const rowInstant = Date.parse(row.created_at);
+          if (rowInstant !== beforeInstant) return rowInstant < beforeInstant;
+          return beforeId !== null && row.id < beforeId;
+        })
+        .slice(0, Number(params?.p_limit));
+      return Promise.resolve({ data: rows, error: null });
+    });
+  }
+
+  it("walks every tied report exactly once with the real service and link builder", async () => {
+    const fixture = buildTieBreakFixture();
+    const pageSize = 2;
+    const ordered = orderByInstantThenId(fixture);
+    const rpc = createTieBreakRpc(ordered);
+    const dependencies = {
+      createVerifiedRpcClient: jest.fn(() => ({ rpc })),
+      createServiceRoleClient: jest.fn(),
+    } as unknown as ModerationDependencies;
+    const service = createModerationService(dependencies, { reportPageSize: pageSize });
+    const seen: string[] = [];
+    let before: string | null = null;
+    let beforeId: string | null = null;
+    // Bounded: fixture.length+2 pages is always enough to drain this fixture
+    // through an honest exit. An earlier version of this test used `for
+    // (;;)`, and a cursor that stops surviving validation made the fake
+    // return page 1 forever, driving the worker to 3176 MB before it was
+    // killed. The loop below can never hang; `exitedByIntendedCondition`
+    // below proves it also never SILENTLY ran to the cap instead of
+    // terminating for the right reason.
+    let exitedByIntendedCondition = false;
+
+    for (let page = 0; page < fixture.length + 2; page += 1) {
+      const data = await service.fetchModerationData("verified-admin-token", {
+        before,
+        beforeId,
+      });
+      if (!data.reports.available || data.reports.rows.length === 0) {
+        exitedByIntendedCondition = true;
+        break;
+      }
+      seen.push(...data.reports.rows.map((row) => row.id));
+      if (data.reports.rows.length < pageSize) {
+        exitedByIntendedCondition = true;
+        break;
+      }
+      const last = data.reports.rows[data.reports.rows.length - 1];
+      const href = buildModerationHref({ status: "queued", before: last.created_at, beforeId: last.id });
+      const query = new URLSearchParams(href.slice(href.indexOf("?") + 1));
+      before = query.get("before");
+      beforeId = query.get("beforeId");
+    }
+
+    expect(exitedByIntendedCondition).toBe(true);
+    expect(seen).toEqual(ordered.map((row) => row.id));
+    expect(new Set(seen).size).toBe(fixture.length);
+  });
+
+  it("red control: withholding the cursor id from the service returns page 1 again, never a skip-prone page", async () => {
+    // Drives the REAL service and the REAL link builder (no hand-rolled
+    // paging model). Pair-or-nothing (item 5) means the service can no
+    // longer be made to page by timestamp alone, so the honest control for
+    // "an old client sends only `before`" is that the service refuses to
+    // advance: it keeps returning page 1, never a skip-prone page.
+    const fixture = buildTieBreakFixture();
+    const pageSize = 2;
+    const ordered = orderByInstantThenId(fixture);
+    const rpc = createTieBreakRpc(ordered);
+    const dependencies = {
+      createVerifiedRpcClient: jest.fn(() => ({ rpc })),
+      createServiceRoleClient: jest.fn(),
+    } as unknown as ModerationDependencies;
+    const service = createModerationService(dependencies, { reportPageSize: pageSize });
+
+    const firstPage = await service.fetchModerationData("verified-admin-token", {});
+    if (!firstPage.reports.available) throw new Error("Expected reports to be available");
+    const firstPageIds = firstPage.reports.rows.map((row) => row.id);
+    const lastRow = firstPage.reports.rows[firstPage.reports.rows.length - 1];
+
+    // Bounded: three repeats of "an old client hands back only `before`" is
+    // enough to demonstrate it never advances; it is not a search for a
+    // hang.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      // Simulates an old client that never adopted beforeId: it calls the
+      // service with `before` alone, bypassing buildModerationHref (which
+      // would refuse to emit a `before` without its paired `beforeId`).
+      const page = await service.fetchModerationData("verified-admin-token", {
+        before: lastRow.created_at,
+      });
+      if (!page.reports.available) throw new Error("Expected reports to be available");
+      expect(page.reports.rows.map((row) => row.id)).toEqual(firstPageIds);
+    }
+
+    const reportCalls = rpc.mock.calls.filter(([name]) => name === "admin_list_reports");
+    const lastCallParams = reportCalls[reportCalls.length - 1][1];
+    expect(lastCallParams).toStrictEqual({
+      p_status: "queued",
+      p_limit: pageSize,
+      p_before: null,
+    });
   });
 
   it.each([
     "2026-09-13", // date only, no time
-    "2026-09-13T12:00:00Z", // missing milliseconds
-    "2026-09-13T12:00:00.000+01:00", // offset instead of Z
+    "2026-09-13 12:00:00.000Z", // space instead of T
+    "2026-09-13T12:00:00", // missing offset entirely
+    "2026-09-13T12:00:00.0000001Z", // 7 fraction digits, too precise
+    "2026-09-13T12:00:00.000+0100", // malformed numeric offset, no colon
+    "2026-09-13T12:00:00.000ZZ", // garbage suffix
+    "2026-13-45T12:00:00.000Z", // shape matches, impossible date, Date.parse rejects it
     "not-a-date",
     "",
   ])("rejects %s as a moderation cursor", (value) => {
