@@ -13,8 +13,10 @@ import {
 } from '@/lib/admin/auth';
 import {
   AUDIT_HISTORY_LIMIT,
+  buildModerationHref,
   fetchModerationData,
   isModerationCursor,
+  isModerationUuid,
   isReportStatusFilter,
   logModerationServerError,
   REPORT_PAGE_SIZE,
@@ -48,6 +50,7 @@ const STATUS_FILTER_LABELS: Record<ReportStatusFilter, string> = {
 
 type ModerationSearchParams = {
   before?: string | string[];
+  beforeId?: string | string[];
   status?: string | string[];
   result?: string | string[];
   error?: string | string[];
@@ -64,14 +67,6 @@ const MODERATION_MESSAGES: Record<string, string> = {
   unban_unprotected:
     'The unban could not be recorded, and the compensating re-ban also failed. The account is NOT currently banned, and no audit entry exists. Retry the unban immediately.',
 };
-
-function moderationHref(params: { status: ReportStatusFilter; before?: string | null }): string {
-  const query = new URLSearchParams();
-  if (params.status !== DEFAULT_REPORT_STATUS_FILTER) query.set('status', params.status);
-  if (params.before) query.set('before', params.before);
-  const qs = query.toString();
-  return qs ? `/admin/moderation?${qs}` : '/admin/moderation';
-}
 
 function oneSearchParam(value: string | string[] | undefined): string | null {
   return typeof value === 'string' ? value : null;
@@ -118,7 +113,10 @@ export default async function ModerationPage({
 
   const params = await searchParams;
   const requestedBefore = oneSearchParam(params.before);
-  const before = isModerationCursor(requestedBefore) ? requestedBefore : null;
+  const requestedBeforeId = oneSearchParam(params.beforeId);
+  const hasValidCursor = isModerationCursor(requestedBefore) && isModerationUuid(requestedBeforeId);
+  const before = hasValidCursor ? requestedBefore : null;
+  const beforeId = hasValidCursor ? requestedBeforeId : null;
   const requestedStatus = oneSearchParam(params.status);
   const status: ReportStatusFilter =
     requestedStatus !== null && isReportStatusFilter(requestedStatus)
@@ -126,7 +124,10 @@ export default async function ModerationPage({
       : DEFAULT_REPORT_STATUS_FILTER;
 
   const queryOptions: ModerationQueryOptions = {};
-  if (before) queryOptions.before = before;
+  if (before && beforeId) {
+    queryOptions.before = before;
+    queryOptions.beforeId = beforeId;
+  }
   if (status !== DEFAULT_REPORT_STATUS_FILTER) queryOptions.status = status;
   const hasQueryOptions = Object.keys(queryOptions).length > 0;
 
@@ -208,7 +209,11 @@ function ReportsSection({
           {reports.rows.map((report) => <ReportCard key={`${report.source}-${report.id}`} report={report} />)}
         </div>
       )}
-      <ReportPagination reports={reports.available ? reports.rows : []} before={before} status={status} />
+      <ReportPagination
+        reports={reports.available ? reports.rows : []}
+        before={before}
+        status={status}
+      />
     </SectionShell>
   );
 }
@@ -221,7 +226,7 @@ function ReportStatusFilterNav({ status }: { status: ReportStatusFilter }) {
       {otherFilters.map((candidate) => (
         <Link
           key={candidate}
-          href={moderationHref({ status: candidate })}
+          href={buildModerationHref({ status: candidate })}
           className="text-[#E6C39B] underline-offset-4 hover:underline"
         >
           {STATUS_FILTER_LABELS[candidate]}
@@ -240,20 +245,23 @@ function ReportPagination({
   before: string | null;
   status: ReportStatusFilter;
 }) {
-  const oldest = reports[reports.length - 1]?.created_at;
-  const hasOlder = reports.length === REPORT_PAGE_SIZE && isModerationCursor(oldest);
+  const oldest = reports[reports.length - 1];
+  const hasOlder =
+    reports.length === REPORT_PAGE_SIZE &&
+    isModerationCursor(oldest?.created_at) &&
+    isModerationUuid(oldest?.id);
   if (!before && !hasOlder) return null;
 
   return (
     <nav aria-label="Report pages" className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4 text-sm">
       {before && (
-        <Link href={moderationHref({ status })} className="text-[#E6C39B] underline-offset-4 hover:underline">
+        <Link href={buildModerationHref({ status })} className="text-[#E6C39B] underline-offset-4 hover:underline">
           Newest reports
         </Link>
       )}
       {hasOlder && (
         <Link
-          href={moderationHref({ status, before: oldest })}
+          href={buildModerationHref({ status, before: oldest.created_at, beforeId: oldest.id })}
           className="text-[#E6C39B] underline-offset-4 hover:underline"
         >
           Older reports
