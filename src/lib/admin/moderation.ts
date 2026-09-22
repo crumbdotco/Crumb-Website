@@ -66,7 +66,12 @@ export interface ModerationData {
 
 export interface ModerationQueryOptions {
   before?: string | null;
+  beforeId?: string | null;
   status?: ReportStatusFilter;
+}
+
+export interface ModerationServiceOptions {
+  reportPageSize?: number;
 }
 
 interface RpcClient {
@@ -102,13 +107,20 @@ export interface ModerationDependencies {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Matches exactly the shape `Date.prototype.toISOString()` produces (the
-// only shape this module's own cursor links emit). A loose `Date.parse`-only
-// check previously accepted anything the runtime's date parser tolerates
-// ("1", "2026", "Dec 25"), which Postgres's `timestamptz` input either
-// rejects outright or parses under different rules than the browser/Node
-// date parser does.
-const ISO_8601_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+// Matches the database timestamp shape used by cursor links. PostgREST
+// renders `timestamptz` columns with a trimmed fraction: the fraction is
+// OMITTED entirely for a zero fraction and otherwise rendered at whatever
+// precision survives trailing-zero trimming (1 to 6 digits), with a numeric
+// `+00:00`/`-05:00` offset rather than a literal `Z`. A prior version of
+// this regex required exactly three fraction digits and a literal `Z`,
+// which no real PostgREST output ever matches - see the fix-round note in
+// implementation-notes.md for the production impact. A loose
+// `Date.parse`-only check would accept anything the runtime's date parser
+// tolerates ("1", "2026", "Dec 25"), which Postgres's `timestamptz` input
+// either rejects outright or parses under different rules than the
+// browser/Node date parser does, so the shape check stays in addition to
+// the `Date.parse` guard below.
+const ISO_8601_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 // Shared page-size constants. Previously duplicated as an independent
 // literal in this module (`p_limit: 50`) and in the page component
@@ -122,6 +134,21 @@ export const REPORT_PAGE_SIZE = 50;
 // so the cap is visible here (not just as an implicit RPC default) and the
 // page can render an honest "latest N entries" note from the same value.
 export const AUDIT_HISTORY_LIMIT = 100;
+
+export function buildModerationHref(params: {
+  status: ReportStatusFilter;
+  before?: string | null;
+  beforeId?: string | null;
+}): string {
+  const query = new URLSearchParams();
+  if (params.status !== 'queued') query.set('status', params.status);
+  if (params.before && params.beforeId) {
+    query.set('before', params.before);
+    query.set('beforeId', params.beforeId);
+  }
+  const qs = query.toString();
+  return qs ? `/admin/moderation?${qs}` : '/admin/moderation';
+}
 
 // Matches the app repo's `supabase/functions/admin-moderate/index.ts`
 // HARD_BAN_DURATION ("effectively forever", GoTrue has no literal
@@ -283,18 +310,45 @@ export class ModerationUnbanPartialError extends Error {
   }
 }
 
-export function createModerationService(dependencies: ModerationDependencies) {
+// The database RPC clamps p_limit to 1..200 (an out-of-range value is not
+// rejected, just silently clamped server-side), so an injected page size
+// outside that range would desync this module's own "is the page full"
+// logic (`REPORT_PAGE_SIZE`-based hasOlder check in the page component)
+// from what the RPC actually returns. `options.reportPageSize ?? REPORT_PAGE_SIZE`
+// alone is not enough: `??` only falls back on null/undefined, so an
+// injected `0` (falsy but not nullish) would pass straight through as
+// `p_limit: 0`.
+function normalizeReportPageSize(value: number | undefined): number {
+  if (value === undefined) return REPORT_PAGE_SIZE;
+  if (!Number.isInteger(value) || value < 1 || value > 200) return REPORT_PAGE_SIZE;
+  return value;
+}
+
+export function createModerationService(
+  dependencies: ModerationDependencies,
+  options: ModerationServiceOptions = {},
+) {
+  const reportPageSize = normalizeReportPageSize(options.reportPageSize);
+
   return {
     async fetchModerationData(
       accessToken: string,
       options: ModerationQueryOptions = {},
     ): Promise<ModerationData> {
       const client = dependencies.createVerifiedRpcClient(accessToken);
-      const reportParams = {
+      const validBefore = isModerationCursor(options.before) ? options.before : null;
+      const validBeforeId = isModerationUuid(options.beforeId) ? options.beforeId : null;
+      // Pair-or-nothing: an incomplete or mismatched cursor is discarded as
+      // a whole pair, never split. Sending `p_before` alone re-enables
+      // timestamp-only paging, which can skip a report tied with another
+      // at the page boundary (the whole reason this cursor is now a pair).
+      const paired = validBefore !== null && validBeforeId !== null;
+      const reportParams: Record<string, unknown> = {
         p_status: resolveReportStatusFilter(options.status),
-        p_limit: REPORT_PAGE_SIZE,
-        p_before: isModerationCursor(options.before) ? options.before : null,
+        p_limit: reportPageSize,
+        p_before: paired ? validBefore : null,
       };
+      if (paired) reportParams.p_before_id = validBeforeId;
       const [reports, bans, audit] = await Promise.all([
         readModerationRows<ModerationReport>('admin_list_reports', client.rpc('admin_list_reports', reportParams)),
         readModerationRows<ModerationBan>('admin_list_bans', client.rpc('admin_list_bans')),
