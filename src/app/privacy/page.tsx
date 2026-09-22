@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="16 September 2026">
+    <LegalShell title="Privacy Policy" updated="22 September 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -288,7 +288,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span style={strongStyle}>Sentry:</span>{" "}
-            Error monitoring for the App and website, EU-hosted, to help us find and fix bugs. Configured to send no personal details, with automatic redaction of emails and tokens; the user reference attached is your account ID only.
+            Error monitoring for the App and website, EU-hosted, to help us find and fix bugs. Configured to send no personal details, with automatic redaction of emails and tokens; the user reference attached is your account ID only. Sentry session replay records a masked visual replay of the screens, taps, and navigation in your session. It records every session in which an error occurs and one in ten other sessions. All text, images, and vector graphics are masked on your device before the recording leaves it, so the replay never contains what you typed or looked at. We use replays to reproduce crashes and bugs. Sentry is EU-hosted and keeps replays for 90 days, then deletes them.
           </li>
           <li>
             <span style={strongStyle}>Vercel:</span>{" "}
@@ -446,6 +446,7 @@ export default function PrivacyPage() {
           <li>Founding-member emails: retained while the founding benefit exists, so the tier can be restored by verifying that email.</li>
           <li>Pre-launch waitlist emails: kept until launch so we can send the launch notification you signed up for; contact us any time to be removed.</li>
           <li>Referral-link records: kept as a salted IP hash (never reversible to an address) for up to 12 months from the click, then deleted.</li>
+          <li>Sentry session replays (masked): 90 days.</li>
           <li>
             When you delete your account, your cloud data is removed as
             described on our{" "}
