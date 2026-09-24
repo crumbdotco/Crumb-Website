@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="22 September 2026">
+    <LegalShell title="Privacy Policy" updated="24 September 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -127,12 +127,14 @@ export default function PrivacyPage() {
             permission, we read the phone numbers and email addresses in your
             device contacts; we never read names or photos. Each value is
             converted to a one-way SHA-256 hash on your device before anything
-            leaves it, and only those hashes (up to 2000 at a time) are uploaded
-            to check for matching Crumbify accounts, up to 200 matches are
-            returned, and blocked users are excluded. A hash of your own sign-up
-            email is stored the same way so other people can find you. This step
-            is optional and can be skipped, and the hashes are kept only while
-            your account exists.
+            leaves it, and only those hashes (up to 2000 at a time) are sent to
+            check for matching Crumbify accounts. The hashes from your contacts
+            are used only for that check and are not stored; we keep only a
+            record that a check happened (your account and the time) to limit
+            how often it can run. Up to 200 matches are returned, and blocked
+            users are excluded. So that other people can find you, a one-way
+            hash of your own sign-up email is kept while your account exists.
+            This step is optional and can be skipped.
           </li>
           <li>
             <span style={strongStyle}>Location:</span>{" "}
@@ -436,7 +438,7 @@ export default function PrivacyPage() {
         <ul style={listStyle}>
           <li>Account data is retained until you delete your account.</li>
           <li>Import history (the shared link, the resolved place, and the status): while your account exists.</li>
-          <li>Hashed contact-matching identifiers: while your account exists.</li>
+          <li>Contact hashes sent during the find-friends check: not stored; only a record that a check happened (your account and the time) is kept, to limit how often it can run. A one-way hash of your own sign-up email is kept while your account exists so other people can find you.</li>
           <li>Push notification token: while notifications are enabled, removed when you turn them off.</li>
           <li>Notification history (a record of notifications we sent you): while your account exists.</li>
           <li>Avatar and post-photo moderation logs: 30 days.</li>
