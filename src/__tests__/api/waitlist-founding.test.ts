@@ -100,8 +100,8 @@ describe("GET /api/waitlist/founding", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("returns 200 with capAvailable:false and no `count`, `remaining`, or `closed` when the waitlist count read itself fails", async () => {
-    mockEq.mockRejectedValue(new Error("connection reset"));
+  it("returns 200 with capAvailable:false and no `count`, `remaining`, or `closed` when the waitlist count read returns an error", async () => {
+    mockEq.mockResolvedValue({ count: null, error: { message: "permission denied" } });
 
     await GET();
 

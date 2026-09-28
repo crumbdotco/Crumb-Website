@@ -415,6 +415,19 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
     });
+
+    it("does NOT deactivate and still returns 200 when the count read returns a Supabase error", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockResolvedValue({ count: null, error: { message: "permission denied" } });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
   });
 
   // ---------------------------------------------------------------------------
