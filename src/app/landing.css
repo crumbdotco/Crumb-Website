@@ -234,7 +234,7 @@
 .landing .founding .feat-copy .founding-perks li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--hi);flex:none}
 .landing .founding-card .frow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .landing .founding-card .flabel{font-weight:700;font-size:13px;color:var(--ink-2)}
-.landing .founding-card .fcount{font-family:var(--disp);font-weight:800;font-size:16px;color:var(--gold-2)}
+.landing .founding-card .fcount{font-family:var(--disp);font-weight:800;font-size:16px;color:var(--ink)}
 .landing .founding-card .fbar{height:10px;border-radius:999px;background:var(--cream-2);overflow:hidden;margin-bottom:10px}
 .landing .founding-card .ffill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold-2),var(--gold));transition:width .8s cubic-bezier(.16,1,.3,1)}
 .landing .founding-card .fremain{font-size:13px;color:var(--ink-3);font-weight:600;margin-bottom:22px}

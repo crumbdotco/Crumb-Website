@@ -46,12 +46,13 @@ async function isDbRateLimited(supabase: AdminClient, ip: string): Promise<boole
   if (ip === "unknown") return false;
   try {
     const since = new Date(Date.now() - DB_RATE_LIMIT_WINDOW_MS).toISOString();
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("waitlist")
       .select("id", { count: "exact", head: true })
       .eq("signup_ip", ip)
       .gte("created_at", since);
-    return (count ?? 0) >= DB_RATE_LIMIT_MAX;
+    if (error || typeof count !== "number" || !Number.isFinite(count)) return false;
+    return count >= DB_RATE_LIMIT_MAX;
   } catch {
     // If the read itself fails, do not block real signups on it.
     return false;

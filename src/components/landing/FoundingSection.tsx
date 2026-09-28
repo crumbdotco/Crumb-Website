@@ -20,6 +20,12 @@ interface FoundingData {
   closed?: boolean;
 }
 
+function isFoundingData(value: unknown): value is FoundingData {
+  if (typeof value !== "object" || value === null) return false;
+  const data = value as Partial<FoundingData>;
+  return typeof data.count === "number" && Number.isFinite(data.count);
+}
+
 const PERKS = [
   "Founding member badge in the app",
   "Locked-in premium perks, kept as long as you stay",
@@ -27,25 +33,56 @@ const PERKS = [
 ];
 
 export function FoundingSection() {
-  const [founding, setFounding] = useState<FoundingData>({ count: 0, remaining: 100, closed: false });
-  const [loaded, setLoaded] = useState(false);
+  const [founding, setFounding] = useState<FoundingData | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
   const stripeLink =
     (typeof process !== "undefined" && process.env.NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK) || "";
 
   useEffect(() => {
-    fetch("/api/waitlist/founding")
-      .then((r) => r.json())
-      .then((d: FoundingData) => {
-        setFounding(d);
-        // A refusal response omits `count` (nothing genuine to show), so
-        // treat that the same as the fetch never having resolved yet.
-        setLoaded(typeof d.count === "number");
-      })
-      .catch(() => setLoaded(true));
+    const controller = new AbortController();
+    let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const waitForRetry = (delay: number) =>
+      new Promise<void>((resolve) => {
+        retryTimer = setTimeout(resolve, delay);
+      });
+
+    const loadFoundingData = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await fetch("/api/waitlist/founding", { signal: controller.signal });
+          if (!response.ok) throw new Error("Founding count request failed");
+
+          const data: unknown = await response.json();
+          if (!isFoundingData(data)) throw new Error("Founding count response was unavailable");
+
+          if (!active) return;
+          setFounding(data);
+          return;
+        } catch {
+          if (!active || controller.signal.aborted) return;
+          if (attempt === 2) {
+            setUnavailable(true);
+            return;
+          }
+          await waitForRetry(attempt === 0 ? 1000 : 3000);
+          if (!active || controller.signal.aborted) return;
+        }
+      }
+    };
+
+    void loadFoundingData();
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (retryTimer !== undefined) clearTimeout(retryTimer);
+    };
   }, []);
 
-  const clampedCount = Math.min(founding.count, 100);
+  const clampedCount = founding ? Math.min(founding.count, 100) : 0;
   const progressPct = (clampedCount / 100) * 100;
 
   return (
@@ -71,17 +108,20 @@ export function FoundingSection() {
             <div className="match-card founding-card">
               <div className="frow">
                 <span className="flabel">Founding spots claimed</span>
-                <span className="fcount">{loaded ? `${clampedCount} / 100` : "... / 100"}</span>
+                {founding && <span className="fcount">{`${clampedCount} / 100`}</span>}
               </div>
-              <div className="fbar">
-                <div className="ffill" style={{ width: loaded ? `${progressPct}%` : "0%" }} />
-              </div>
-              {loaded && founding.closed !== true && typeof founding.remaining === "number" && (
+              {founding && (
+                <div className="fbar">
+                  <div className="ffill" style={{ width: `${progressPct}%` }} />
+                </div>
+              )}
+              {founding && founding.closed !== true && typeof founding.remaining === "number" && (
                 <div className="fremain">
                   {founding.remaining} spot{founding.remaining !== 1 ? "s" : ""} remaining
                 </div>
               )}
-              {founding.closed === true ? (
+              {unavailable && <div className="fremain">Live count unavailable right now.</div>}
+              {founding?.closed === true ? (
                 <div className="fclosed">Founding membership is now closed</div>
               ) : (
                 <button

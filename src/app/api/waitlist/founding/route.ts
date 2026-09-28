@@ -30,11 +30,14 @@ export async function GET() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase = createClient<any>(url, key);
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from("waitlist")
       .select("*", { count: "exact", head: true })
       .eq("tier", "founding_member");
-    safeCount = count ?? 0;
+    if (error || typeof count !== "number" || !Number.isFinite(count)) {
+      throw new Error(error?.message ?? "waitlist count unavailable");
+    }
+    safeCount = count;
   } catch (err) {
     console.error(
       "Founding availability unavailable: waitlist count read failed:",
