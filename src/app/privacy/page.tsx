@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="24 September 2026">
+    <LegalShell title="Privacy Policy" updated="28 September 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -295,6 +295,22 @@ export default function PrivacyPage() {
           <li>
             <span style={strongStyle}>Vercel:</span>{" "}
             Hosts the website and collects anonymous performance metrics via Speed Insights.
+          </li>
+          <li>
+            <span style={strongStyle}>Cloudflare Turnstile:</span>{" "}
+            Runs the bot check on the waitlist form. Cloudflare says Turnstile processes
+            Signals such as your client IP address, TLS fingerprint, user-agent header,
+            and the sitekey and origin associated with the check, solely to distinguish
+            human visitors from bots. It does not access, store, or transmit your form
+            entries or other page inputs. See Cloudflare&apos;s{" "}
+            <a href="https://www.cloudflare.com/privacypolicy/" style={linkStyle}>
+              privacy policy
+            </a>{" "}
+            and its{" "}
+            <a href="https://www.cloudflare.com/turnstile-privacy-policy/" style={linkStyle}>
+              Turnstile Privacy Addendum
+            </a>
+            .
           </li>
         </ul>
       </section>
