@@ -85,6 +85,19 @@
 .landing .hero-c h1{font-size:clamp(46px,6.6vw,88px);line-height:1}
 .landing .hero-c h1 em{color:var(--gold-2)}
 .landing .hero-c .sub{font-size:clamp(18px,2vw,22px);color:#4d3f2c;line-height:1.55;max-width:560px;margin:22px 0 30px;font-weight:500}
+
+.landing .waitlist-form{max-width:480px;margin:0 0 26px}
+.landing .waitlist-form-row{display:flex;flex-wrap:wrap;gap:10px}
+.landing .waitlist-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.landing .waitlist-form input[type="email"]{flex:1 1 220px;min-width:0;height:48px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-family:var(--body);font-size:16px;font-weight:500}
+.landing .waitlist-form input[type="email"]::placeholder{color:var(--ink-3)}
+.landing .waitlist-form input[type="email"]:disabled{opacity:.6}
+.landing .waitlist-hp{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+.landing .waitlist-submit{flex:0 0 auto;height:48px;padding:0 22px;border:none;border-radius:14px;font-family:var(--body);font-weight:700;font-size:15px;cursor:pointer;background:var(--ink);color:var(--cream);box-shadow:0 5px 0 #000;transition:transform .08s,box-shadow .08s}
+.landing .waitlist-submit:active{transform:translateY(4px);box-shadow:0 1px 0 #000}
+.landing .waitlist-submit:disabled{cursor:not-allowed;opacity:.65;box-shadow:0 5px 0 #000}
+.landing .waitlist-status{min-height:20px;margin:10px 0 0;font-size:14px;color:var(--ink-2);font-weight:500}
+
 .landing .scrollcue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:12;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink-3);font-size:12px;font-weight:700;text-transform:uppercase}
 .landing .scrollcue .m{width:22px;height:34px;border:2px solid var(--ink-3);border-radius:12px;position:relative}
 .landing .scrollcue .m::after{content:"";position:absolute;left:50%;top:6px;width:3px;height:6px;background:var(--ink-3);border-radius:2px;transform:translateX(-50%);animation:sc 1.8s ease-in-out infinite}
@@ -241,6 +254,9 @@
 @media(max-width:640px){
   .landing .hero-c h1{font-size:clamp(34px,8.6vw,60px)}
   .landing .hero-c .sub{font-size:17px;margin:16px 0 22px}
+  .landing .waitlist-form{margin:0 0 20px}
+  .landing .waitlist-form-row{flex-direction:column;align-items:stretch}
+  .landing .waitlist-form input[type="email"],.landing .waitlist-submit{flex:1 1 auto;width:100%}
   .landing .fcard{width:82vw;max-width:320px}
   .landing .match-pct{font-size:48px}
   .landing .feat-copy .ftags span{font-size:13px;padding:8px 13px}
