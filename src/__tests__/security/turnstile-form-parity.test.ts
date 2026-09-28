@@ -6,17 +6,31 @@ const routeSource = fs.readFileSync(path.join(srcRoot, "app/api/waitlist/route.t
 const formSource = fs.readFileSync(path.join(srcRoot, "components/landing/WaitlistForm.tsx"), "utf8");
 const hookSource = fs.readFileSync(path.join(srcRoot, "hooks/useWaitlist.ts"), "utf8");
 
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|\s)\/\/.*$/gm, "$1");
+}
+
 function canRequireTurnstile(source: string): boolean {
+  const uncommented = stripComments(source);
   return (
-    source.includes("NEXT_PUBLIC_TURNSTILE_SITE_KEY") &&
-    source.includes("TURNSTILE_SECRET_KEY") &&
-    /turnstileSiteKey\s*&&\s*turnstileSecret/.test(source) &&
-    source.includes("turnstileToken")
+    uncommented.includes("NEXT_PUBLIC_TURNSTILE_SITE_KEY") &&
+    uncommented.includes("TURNSTILE_SECRET_KEY") &&
+    /turnstileSiteKey\s*&&\s*turnstileSecret/.test(uncommented) &&
+    uncommented.includes("turnstileToken")
   );
 }
 
 function wiresTokenToWaitlist(source: string): boolean {
-  return source.includes("useTurnstile") && source.includes("turnstileToken: token");
+  const uncommented = stripComments(source);
+  return uncommented.includes("useTurnstile") && uncommented.includes("turnstileToken: token");
+}
+
+function mountsWidgetWhenConfigured(source: string): boolean {
+  const uncommented = stripComments(source);
+  return /hasTurnstile\s*&&\s*\(\s*(?:<>\s*)?<Script/.test(uncommented)
+    && uncommented.includes('data-testid="waitlist-turnstile"');
 }
 
 describe("Turnstile route and form parity", () => {
@@ -35,5 +49,25 @@ describe("Turnstile route and form parity", () => {
     expect(formSource).toContain("data-testid=\"waitlist-turnstile\"");
     expect(formSource).toContain("<Script");
     expect(hookSource).toContain("turnstileToken");
+  });
+
+  it("does not count a token mentioned only in a comment", () => {
+    expect(
+      wiresTokenToWaitlist("// turnstileToken: token\nuseWaitlist();"),
+    ).toBe(false);
+  });
+
+  it("requires the widget to mount from the configured-key condition", () => {
+    expect(
+      mountsWidgetWhenConfigured(
+        'const hasTurnstile = true; {false && <><Script /><div data-testid="waitlist-turnstile" /></>}',
+      ),
+    ).toBe(false);
+    expect(
+      mountsWidgetWhenConfigured(
+        'const hasTurnstile = true; {hasTurnstile && (<><Script /><div data-testid="waitlist-turnstile" /></>)}',
+      ),
+    ).toBe(true);
+    expect(mountsWidgetWhenConfigured(formSource)).toBe(true);
   });
 });

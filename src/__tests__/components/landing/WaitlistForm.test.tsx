@@ -6,14 +6,20 @@
  * rendering the server's own message verbatim.
  */
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { WaitlistForm } from "@/components/landing/WaitlistForm";
+import { useWaitlist } from "@/hooks/useWaitlist";
+
+let mockScriptProps: Record<string, unknown> = {};
 
 jest.mock("next/script", () => {
   const React = jest.requireActual<typeof import("react")>("react");
   return {
     __esModule: true,
-    default: (props: Record<string, unknown>) => React.createElement("script", props),
+    default: (props: Record<string, unknown>) => {
+      mockScriptProps = props;
+      return React.createElement("script", props);
+    },
   };
 });
 
@@ -22,6 +28,7 @@ describe("WaitlistForm", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    mockScriptProps = {};
     delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete (window as Window & { turnstile?: unknown }).turnstile;
     jest.restoreAllMocks();
@@ -162,6 +169,7 @@ describe("WaitlistForm", () => {
       size: "flexible",
       appearance: "interaction-only",
     });
+    expect(screen.getByTestId("waitlist-turnstile")).toHaveAttribute("role", "group");
     act(() => (options.callback as (token: string) => void)("turnstile-token"));
     fillAndSubmit();
 
@@ -173,28 +181,102 @@ describe("WaitlistForm", () => {
 
   it("waits for a Turnstile token before submitting", async () => {
     const { renderWidget } = enableTurnstile();
-    global.fetch = jest.fn() as unknown as typeof fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "application/json" },
+      json: async () => ({ success: true, alreadyExists: false }),
+    }) as unknown as typeof fetch;
     render(<WaitlistForm />);
     await waitFor(() => expect(renderWidget).toHaveBeenCalled());
 
     fillAndSubmit();
 
     await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
-      "Please complete the bot check, then try again.",
+      "One moment...",
     ));
     expect(global.fetch).not.toHaveBeenCalled();
+
+    const options = renderWidget.mock.calls[0][1] as Record<string, unknown>;
+    act(() => (options.callback as (token: string) => void)("turnstile-token"));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
+      "You're on the list. See you soon.",
+    ));
   });
 
-  it("shows a visible message when the widget reports an error", async () => {
+  it("shows a bounded retry message if the token never arrives", async () => {
+    jest.useFakeTimers();
+    const { renderWidget } = enableTurnstile();
+    render(<WaitlistForm />);
+    await waitFor(() => expect(renderWidget).toHaveBeenCalled());
+
+    fillAndSubmit();
+    expect(screen.getByTestId("waitlist-status")).toHaveTextContent("One moment...");
+
+    act(() => jest.advanceTimersByTime(5_000));
+    expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
+      "The bot check is taking too long. Please try again.",
+    );
+    jest.useRealTimers();
+  });
+
+  it("shows a refresh message when the widget script fails to load", async () => {
+    const { renderWidget } = enableTurnstile();
+    render(<WaitlistForm />);
+    await waitFor(() => expect(renderWidget).toHaveBeenCalled());
+
+    act(() => (mockScriptProps.onError as () => void)());
+
+    await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
+      "The bot check could not load. Please refresh the page and try again.",
+    ));
+  });
+
+  it("shows the widget error visibly", async () => {
     const { renderWidget } = enableTurnstile();
     render(<WaitlistForm />);
     await waitFor(() => expect(renderWidget).toHaveBeenCalled());
 
     const options = renderWidget.mock.calls[0][1] as Record<string, unknown>;
     act(() => (options["error-callback"] as () => void)());
+    fillAndSubmit();
 
     await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
-      "The bot check could not load. Please try again or check your connection.",
+      "The bot check could not load. Please refresh the page and try again.",
+    ));
+  });
+
+  it("does not submit when the widget error is already present", () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const { result } = renderHook(() => useWaitlist({
+      turnstileRequired: true,
+      turnstileError: "The bot check could not load. Please refresh the page and try again.",
+    }));
+
+    act(() => result.current.setEmail("person@gmail.com"));
+    act(() => result.current.submit({ preventDefault: jest.fn() } as unknown as React.FormEvent));
+
+    expect(result.current.errorMessage).toBe(
+      "The bot check could not load. Please refresh the page and try again.",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stops waiting when the widget errors during a pending submit", async () => {
+    const { renderWidget } = enableTurnstile();
+    render(<WaitlistForm />);
+    await waitFor(() => expect(renderWidget).toHaveBeenCalled());
+    fillAndSubmit();
+    await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
+      "One moment...",
+    ));
+
+    const options = renderWidget.mock.calls[0][1] as Record<string, unknown>;
+    act(() => (options["error-callback"] as () => void)());
+
+    await waitFor(() => expect(screen.getByTestId("waitlist-status")).toHaveTextContent(
+      "The bot check could not load. Please refresh the page and try again.",
     ));
   });
 

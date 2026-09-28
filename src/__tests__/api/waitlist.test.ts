@@ -145,7 +145,7 @@ describe("POST /api/waitlist", () => {
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 
-  it("succeeds when Turnstile is configured but no token is sent (widget not wired up client-side yet)", async () => {
+  it("succeeds when only the Turnstile secret is configured and no token is sent", async () => {
     process.env.TURNSTILE_SECRET_KEY = "secret";
     fromQueue = [rateLimitBuilder(0), existenceBuilder(null), insertBuilder(null)];
     await POST(makeRequest({ body: { email: "person@gmail.com" } }));
@@ -164,10 +164,23 @@ describe("POST /api/waitlist", () => {
   });
 
   it("proceeds when Turnstile is configured and the token verifies", async () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret";
-    global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: true }) }) as unknown as typeof fetch;
-    fromQueue = [rateLimitBuilder(0), existenceBuilder(null), insertBuilder(null)];
+    const fetchMock = jest.fn().mockResolvedValue({
+      json: async () => ({ success: true }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const insert = insertBuilder(null);
+    fromQueue = [rateLimitBuilder(0), existenceBuilder(null), insert];
     await POST(makeRequest({ body: { email: "person@gmail.com", turnstileToken: "tok" } }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const verifyBody = (fetchMock.mock.calls[0][1] as RequestInit).body as URLSearchParams;
+    expect(verifyBody.get("secret")).toBe("secret");
+    expect(verifyBody.get("response")).toBe("tok");
+    expect(insert.insert).toHaveBeenCalled();
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 

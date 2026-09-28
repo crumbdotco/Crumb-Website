@@ -200,6 +200,14 @@ describe("middleware — referer check for POST", () => {
     expect(mockNext).toHaveBeenCalled();
   });
 
+  it("allows POST from www.crumbify.co.uk referer", () => {
+    middleware(makeRequest({
+      method: "POST",
+      referer: "https://www.crumbify.co.uk/waitlist",
+    }));
+    expect(mockNext).toHaveBeenCalled();
+  });
+
   it("allows POST from a Vercel preview referer only in preview", () => {
     process.env.VERCEL_ENV = "preview";
     middleware(makeRequest({
@@ -223,6 +231,12 @@ describe("middleware — referer check for POST", () => {
     "https://localhost.evil.com/waitlist",
   ])("rejects deceptive referer %s", (referer) => {
     middleware(makeRequest({ method: "POST", referer }));
+    expect(mockJson).toHaveBeenCalledWith({ success: true }, { status: 200 });
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed referer", () => {
+    middleware(makeRequest({ method: "POST", referer: "not a URL" }));
     expect(mockJson).toHaveBeenCalledWith({ success: true }, { status: 200 });
     expect(mockNext).not.toHaveBeenCalled();
   });
