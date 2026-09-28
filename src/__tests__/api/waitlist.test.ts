@@ -26,7 +26,11 @@ function existenceBuilder(data: { email: string } | null) {
   return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data }) }) }) };
 }
 function insertBuilder(error: { message: string } | null) {
-  return { insert: jest.fn((_payload: Record<string, unknown>) => Promise.resolve({ error })) };
+  const insert = jest.fn((...args: [Record<string, unknown>]) => {
+    void args;
+    return Promise.resolve({ error });
+  });
+  return { insert };
 }
 
 // --- Next.js mock ---
@@ -40,6 +44,7 @@ jest.mock("next/server", () => ({
 }));
 import { NextResponse } from "next/server";
 const mockJson = NextResponse.json as jest.Mock;
+const originalFetch = global.fetch;
 
 import { POST } from "../../app/api/waitlist/route";
 
@@ -82,6 +87,7 @@ describe("POST /api/waitlist", () => {
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
     delete process.env.TURNSTILE_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete process.env.VERCEL_ENV;
     (process.env as Record<string, string | undefined>).NODE_ENV = "test";
   });
@@ -91,7 +97,9 @@ describe("POST /api/waitlist", () => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     delete process.env.TURNSTILE_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     delete process.env.VERCEL_ENV;
+    global.fetch = originalFetch;
   });
 
   it("rejects an unknown origin with 403", async () => {
@@ -144,6 +152,17 @@ describe("POST /api/waitlist", () => {
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 
+  it("returns a visible 400 and writes nothing when both Turnstile keys are set without a token", async () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    await POST(makeRequest({ body: { email: "person@gmail.com" } }));
+    expect(mockJson).toHaveBeenCalledWith(
+      { error: "Please complete the bot check, then try again." },
+      { status: 400 },
+    );
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
   it("proceeds when Turnstile is configured and the token verifies", async () => {
     process.env.TURNSTILE_SECRET_KEY = "secret";
     global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: true }) }) as unknown as typeof fetch;
@@ -152,13 +171,52 @@ describe("POST /api/waitlist", () => {
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 
-  it("silently fake-succeeds when Turnstile verification fails", async () => {
+  it("returns a visible 400 and writes nothing when Turnstile verification fails", async () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
     process.env.TURNSTILE_SECRET_KEY = "secret";
     global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ success: false }) }) as unknown as typeof fetch;
     await POST(makeRequest({ body: { email: "person@gmail.com", turnstileToken: "bad" } }));
-    expect(mockJson).toHaveBeenCalledWith({ success: true });
+    expect(mockJson).toHaveBeenCalledWith(
+      { error: "The bot check could not be verified. Please try again." },
+      { status: 400 },
+    );
     expect(mockFrom).not.toHaveBeenCalled();
   });
+
+  it("does not call siteverify for a rejected email domain", async () => {
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    global.fetch = jest.fn() as unknown as typeof fetch;
+    await POST(makeRequest({ body: { email: "person@example.com", turnstileToken: "tok" } }));
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockJson).toHaveBeenCalledWith(
+      { error: "Please use a personal email like Gmail, iCloud or Outlook. Student emails work too." },
+      { status: 400 },
+    );
+  });
+
+  it("allows the signup through and logs no email when siteverify times out", async () => {
+    jest.useFakeTimers();
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    process.env.TURNSTILE_SECRET_KEY = "secret";
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    global.fetch = jest.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+      }),
+    ) as unknown as typeof fetch;
+    fromQueue = [rateLimitBuilder(0), existenceBuilder(null), insertBuilder(null)];
+
+    const responsePromise = POST(makeRequest({ body: { email: "person@gmail.com", turnstileToken: "tok" } }));
+    await jest.advanceTimersByTimeAsync(5_000);
+    await responsePromise;
+
+    expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
+    expect(warnSpy).toHaveBeenCalledWith("Turnstile verification unavailable; allowing signup to continue");
+    expect(warnSpy.mock.calls.flat().join(" ")).not.toContain("person@gmail.com");
+    warnSpy.mockRestore();
+    jest.useRealTimers();
+  }, 15_000);
 
   it("rejects an invalid email with 400", async () => {
     await POST(makeRequest({ body: { email: "not-an-email" } }));

@@ -31,13 +31,17 @@ let mockNext: jest.Mock;
 let mockJson: jest.Mock;
 
 beforeAll(() => {
-  const { NextResponse } = require("next/server");
+  const { NextResponse } = jest.requireMock("next/server") as {
+    NextResponse: { next: jest.Mock; json: jest.Mock };
+  };
   mockNext = NextResponse.next as jest.Mock;
   mockJson = NextResponse.json as jest.Mock;
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+  delete process.env.VERCEL_ENV;
   // Restore default implementations after clearAllMocks
   mockNext.mockReturnValue({ type: "next", status: 200, _next: true });
   mockJson.mockImplementation((body: unknown, init?: { status?: number }) => ({
@@ -58,7 +62,7 @@ function makeRequest(opts: {
   ua?: string | null;
   acceptLang?: string | null;
   referer?: string | null;
-}): any {
+}): Parameters<typeof middleware>[0] {
   const {
     pathname = "/api/waitlist",
     method = "POST",
@@ -78,7 +82,7 @@ function makeRequest(opts: {
     headers: {
       get: (key: string) => headers[key.toLowerCase()] ?? null,
     },
-  };
+  } as unknown as Parameters<typeof middleware>[0];
 }
 
 // ---------------------------------------------------------------------------
@@ -188,11 +192,39 @@ describe("middleware — referer check for POST", () => {
   });
 
   it("allows POST from localhost referer (development)", () => {
+    (process.env as Record<string, string | undefined>).NODE_ENV = "development";
     middleware(makeRequest({
       method: "POST",
       referer: "http://localhost:3000",
     }));
     expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("allows POST from a Vercel preview referer only in preview", () => {
+    process.env.VERCEL_ENV = "preview";
+    middleware(makeRequest({
+      method: "POST",
+      referer: "https://crumb-website-git-fix-28.vercel.app/waitlist",
+    }));
+    expect(mockNext).toHaveBeenCalled();
+  });
+
+  it("rejects a Vercel preview referer in production", () => {
+    middleware(makeRequest({
+      method: "POST",
+      referer: "https://crumb-website-git-fix-28.vercel.app/waitlist",
+    }));
+    expect(mockJson).toHaveBeenCalledWith({ success: true }, { status: 200 });
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "https://evil.example/?crumbify.co.uk",
+    "https://localhost.evil.com/waitlist",
+  ])("rejects deceptive referer %s", (referer) => {
+    middleware(makeRequest({ method: "POST", referer }));
+    expect(mockJson).toHaveBeenCalledWith({ success: true }, { status: 200 });
+    expect(mockNext).not.toHaveBeenCalled();
   });
 
   it("does NOT block GET requests with no referer", () => {
