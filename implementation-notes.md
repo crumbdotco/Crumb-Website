@@ -439,3 +439,21 @@ Decision for item 4: the hand-rolled model was deleted. The replacement drives t
 Automation-as-infrastructure answer for this round: the HIGH finding's automation is the corrected regex itself plus an acceptance table pinned to the real PostgREST rendering rules (fraction optional, numeric offset, no `Z` requirement) rather than to `toISOString()`'s output shape, so a future change to the regex is checked against the actual database contract, not a JS convenience method. The loop-bound guard (item 3) is itself the automation for the "unbounded test loop" class the fix-plan flagged - the `exitedByIntendedCondition` flag makes a future regression fail fast instead of hanging a worker again. The pair-or-nothing fix (item 5) and its `toStrictEqual`-based tests are the automation for the "toHaveBeenCalledWith hides undefined keys" class documented in this repo's testing rules.
 
 Verify (this round): `npx tsc --noEmit` -> clean, zero output. `npx eslint` on the four changed source/test files -> clean, zero output. `npx jest --testTimeout=20000 src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-page.test.tsx` -> 2 suites / 112 tests passed. Coverage on the two touched source files: `moderation.ts` 98.96% lines / 98.93% branches (up from 98.94 / 98.90); `page.tsx` 100% lines / 90.69% branches (unchanged) - neither regressed.
+
+## #20 fix/20-founding-count-unavailable (2026-09-28, lane: Codex luna writer, opus reviewer)
+
+Decisions:
+
+- FoundingSection now starts with null data, renders no count or progress bar until a validated numeric count arrives, and retries non-OK, non-JSON, and missing-count responses three times with 1 second then 3 second backoff. An AbortController and active flag prevent state updates after unmount. After the final failure it keeps the CTA and renders the exact `.fremain` copy `Live count unavailable right now.`.
+- The founding route destructures `error` and omits `count` when Supabase returns an error, null, non-finite, or non-numeric count. The webhook also destructures `error`; a count-read error logs, skips payment-link deactivation, and still returns `{ received: true }` to Stripe. The existing cap-read catch remains fail-safe in the same way.
+- All Supabase count reads in `src/` now either destructure `count` and `error` directly or pass through the error-aware `readCount` helper. A static guard has offending and innocent fixtures plus a real-tree scan.
+- `.fcount` now uses `var(--ink)`. A broad gold-text CSS guard was measured against the stylesheet and would flag many existing gold text selectors, including links, headings, metrics, and index labels, so no broad guard was shipped.
+
+Deviations:
+
+- `gh issue view 20` could not reach GitHub because the sandbox denied the network socket. The checked-out branch, local common brief, source, and tests were used as the available specification.
+- The required coverage command passed all 38 suites and 608 tests but failed the existing global floor at 73.68% statements, 68.56% branches, 70.66% functions, and 75.17% lines. The full lint command reached four unrelated existing errors in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`, plus existing warnings. The build was blocked by offline Google Fonts fetches for four existing `next/font` imports. Changed-file TypeScript and lint checks were clean apart from one pre-existing warning in the touched webhook test.
+
+Owner decisions still open: none.
+
+What recurring class did this work expose, and what automation now guards it? Silent fallback of unavailable remote counts into plausible zero values. The component regression tests guard the user-visible loading, retry, unavailable, success, and unmount states. The route and webhook tests guard error-shaped Supabase responses, and the real-tree static guard prevents future count reads from omitting their error result.
