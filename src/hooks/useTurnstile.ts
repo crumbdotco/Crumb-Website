@@ -12,7 +12,7 @@ declare global {
 }
 
 const SCRIPT_ERROR_MESSAGE =
-  "The bot check could not load. Please try again or check your connection.";
+  "The bot check could not load. Please refresh the page and try again.";
 
 export function useTurnstile(theme: "light" | "dark" = "light") {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -40,7 +40,6 @@ export function useTurnstile(theme: "light" | "dark" = "light") {
       "error-callback": () => {
         setToken(null);
         setErrorMessage(SCRIPT_ERROR_MESSAGE);
-        widgetIdRef.current = null;
       },
     });
   }, [hasTurnstile, siteKey, theme]);

@@ -25,14 +25,23 @@ export function WaitlistForm() {
     handleScriptError,
     reset,
   } = useTurnstile("light");
-  const { email, setEmail, status, errorMessage, submit, honeypotId } = useWaitlist({
+  const {
+    email,
+    setEmail,
+    status,
+    errorMessage,
+    submit,
+    honeypotId,
+    waitingForTurnstile,
+    turnstileWaitingMessage,
+  } = useWaitlist({
     turnstileToken: token,
     turnstileRequired: hasTurnstile,
     turnstileError,
     resetTurnstile: reset,
   });
 
-  const isSubmitting = status === "submitting";
+  const isSubmitting = status === "submitting" && !turnstileError;
 
   let statusMessage = "";
   if (status === "success") {
@@ -43,6 +52,8 @@ export function WaitlistForm() {
     statusMessage = errorMessage ?? "Something went wrong, please try again.";
   } else if (turnstileError) {
     statusMessage = turnstileError;
+  } else if (waitingForTurnstile) {
+    statusMessage = turnstileWaitingMessage;
   }
 
   const isDone = status === "success" || status === "alreadyExists";
@@ -68,7 +79,7 @@ export function WaitlistForm() {
           inputMode="email"
           placeholder="you@example.com"
           required
-          disabled={isSubmitting || isDone}
+          disabled={isSubmitting || isDone || Boolean(turnstileError)}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -84,9 +95,9 @@ export function WaitlistForm() {
           type="submit"
           data-testid="waitlist-submit"
           className="waitlist-submit"
-          disabled={isSubmitting || isDone}
+          disabled={isSubmitting || isDone || Boolean(turnstileError)}
         >
-          {isSubmitting ? "Joining..." : "Join the waitlist"}
+          {waitingForTurnstile ? "One moment..." : isSubmitting ? "Joining..." : "Join the waitlist"}
         </button>
       </div>
       {hasTurnstile && (
@@ -103,6 +114,7 @@ export function WaitlistForm() {
             ref={containerRef}
             className="waitlist-turnstile"
             data-testid="waitlist-turnstile"
+            role="group"
             aria-label="Bot check"
           />
         </>
