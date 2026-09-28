@@ -19,6 +19,11 @@ const DB_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const DB_RATE_LIMIT_MAX = 60;
 const IN_MEMORY_RATE_LIMIT_MAX = 20;
 const IN_MEMORY_RATE_LIMIT_WINDOW_MS = 60_000;
+const TURNSTILE_TIMEOUT_MS = 5_000;
+const TURNSTILE_REQUIRED_MESSAGE = "Please complete the bot check, then try again.";
+const TURNSTILE_FAILED_MESSAGE = "The bot check could not be verified. Please try again.";
+
+type TurnstileVerification = "verified" | "failed" | "unavailable";
 
 function getSupabase(): AdminClient {
   const url = process.env.SUPABASE_URL;
@@ -58,7 +63,14 @@ async function isDbRateLimited(supabase: AdminClient, ip: string): Promise<boole
   }
 }
 
-async function verifyTurnstile(token: string, secret: string, ip: string): Promise<boolean> {
+async function verifyTurnstile(
+  token: string,
+  secret: string,
+  ip: string,
+): Promise<TurnstileVerification> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TURNSTILE_TIMEOUT_MS);
+
   try {
     const verifyRes = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
@@ -70,12 +82,15 @@ async function verifyTurnstile(token: string, secret: string, ip: string): Promi
           response: token,
           remoteip: ip,
         }),
+        signal: controller.signal,
       },
     );
     const verification = (await verifyRes.json()) as { success: boolean };
-    return verification.success === true;
+    return verification.success === true ? "verified" : "failed";
   } catch {
-    return false;
+    return "unavailable";
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -136,23 +151,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    // ---------------------------------------------------------------
-    // Layer 3.5: Cloudflare Turnstile verification (optional, best-effort).
-    // The hero form does not currently load the Turnstile script, so no
-    // token is ever sent - a token is verified when present but never
-    // REQUIRED. Enforcement (rejecting a missing token when a secret is
-    // configured) returns once the widget script is actually wired up
-    // client-side (follow-up).
-    // ---------------------------------------------------------------
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret && turnstileToken) {
-      const verified = await verifyTurnstile(String(turnstileToken), turnstileSecret, ip);
-      if (!verified) {
-        // Failed verification - bot with a fake/expired token. Silent reject.
-        return NextResponse.json({ success: true });
-      }
-    }
-
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: "Valid email required" }, { status: 400 });
     }
@@ -172,6 +170,26 @@ export async function POST(request: Request) {
     // ---------------------------------------------------------------
     if (!isAllowedEmailDomain(normalised)) {
       return NextResponse.json({ error: NON_ALLOWED_DOMAIN_MESSAGE }, { status: 400 });
+    }
+
+    // ---------------------------------------------------------------
+    // Layer 3.5: Turnstile verification. It is enforced only after the
+    // email checks so a rejected address never burns a one-time token.
+    // ---------------------------------------------------------------
+    const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (turnstileSiteKey && turnstileSecret) {
+      if (typeof turnstileToken !== "string" || !turnstileToken) {
+        return NextResponse.json({ error: TURNSTILE_REQUIRED_MESSAGE }, { status: 400 });
+      }
+
+      const verification = await verifyTurnstile(turnstileToken, turnstileSecret, ip);
+      if (verification === "failed") {
+        return NextResponse.json({ error: TURNSTILE_FAILED_MESSAGE }, { status: 400 });
+      }
+      if (verification === "unavailable") {
+        console.warn("Turnstile verification unavailable; allowing signup to continue");
+      }
     }
 
     const supabase = getSupabase();

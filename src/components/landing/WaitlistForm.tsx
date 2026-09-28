@@ -1,13 +1,13 @@
 "use client";
+import Script from "next/script";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { useTurnstile } from "@/hooks/useTurnstile";
 
 /**
  * Compact hero waitlist signup form. Above-the-fold email capture for the
  * event QR-code flow: type=email input, one submit button, one aria-live
- * status line. Honeypot field for bots. No Turnstile widget is rendered yet
- * (the script is not wired up client-side) - the API route verifies a
- * Turnstile token only when one is actually sent, so this form works today
- * with no widget and will keep working once the widget is added later.
+ * status line. Honeypot field for bots. Turnstile is only rendered when its
+ * public site key is present in the build.
  *
  * Brand rules enforced: no em/en dashes, no letter-spacing, no all-caps
  * spaced labels, gold never used as a text colour, no glow/spotlight effect,
@@ -16,7 +16,21 @@ import { useWaitlist } from "@/hooks/useWaitlist";
  * testIDs: waitlist-form, waitlist-email-input, waitlist-submit, waitlist-status
  */
 export function WaitlistForm() {
-  const { email, setEmail, status, errorMessage, submit, honeypotId } = useWaitlist();
+  const {
+    token,
+    containerRef,
+    hasTurnstile,
+    errorMessage: turnstileError,
+    handleScriptLoad,
+    handleScriptError,
+    reset,
+  } = useTurnstile("light");
+  const { email, setEmail, status, errorMessage, submit, honeypotId } = useWaitlist({
+    turnstileToken: token,
+    turnstileRequired: hasTurnstile,
+    turnstileError,
+    resetTurnstile: reset,
+  });
 
   const isSubmitting = status === "submitting";
 
@@ -27,6 +41,8 @@ export function WaitlistForm() {
     statusMessage = "You're already on the list.";
   } else if (status === "error") {
     statusMessage = errorMessage ?? "Something went wrong, please try again.";
+  } else if (turnstileError) {
+    statusMessage = turnstileError;
   }
 
   const isDone = status === "success" || status === "alreadyExists";
@@ -73,6 +89,24 @@ export function WaitlistForm() {
           {isSubmitting ? "Joining..." : "Join the waitlist"}
         </button>
       </div>
+      {hasTurnstile && (
+        <>
+          <Script
+            id="cf-turnstile-script"
+            data-testid="turnstile-script"
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            strategy="afterInteractive"
+            onLoad={handleScriptLoad}
+            onError={handleScriptError}
+          />
+          <div
+            ref={containerRef}
+            className="waitlist-turnstile"
+            data-testid="waitlist-turnstile"
+            aria-label="Bot check"
+          />
+        </>
+      )}
       <p className="waitlist-status" data-testid="waitlist-status" aria-live="polite">
         {statusMessage || "Be first to know when Crumbify opens."}
       </p>

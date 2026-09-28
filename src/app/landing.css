@@ -96,6 +96,7 @@
 .landing .waitlist-submit{flex:0 0 auto;height:48px;padding:0 22px;border:none;border-radius:14px;font-family:var(--body);font-weight:700;font-size:15px;cursor:pointer;background:var(--ink);color:var(--cream);box-shadow:0 5px 0 #000;transition:transform .08s,box-shadow .08s}
 .landing .waitlist-submit:active{transform:translateY(4px);box-shadow:0 1px 0 #000}
 .landing .waitlist-submit:disabled{cursor:not-allowed;opacity:.65;box-shadow:0 5px 0 #000}
+.landing .waitlist-turnstile{min-height:0;margin-top:10px;max-width:100%}
 .landing .waitlist-status{min-height:20px;margin:10px 0 0;font-size:14px;color:var(--ink-2);font-weight:500}
 
 .landing .scrollcue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:12;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink-3);font-size:12px;font-weight:700;text-transform:uppercase}

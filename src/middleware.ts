@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isAllowedOrigin } from '@/lib/waitlist-guards';
 
 /**
  * Vercel Edge Middleware — runs BEFORE any API route or page.
@@ -53,11 +54,21 @@ export function middleware(request: NextRequest) {
   }
 
   // Referer must be from our domain (browsers always send this for same-origin fetch)
+  let refererOrigin = '';
+  if (referer) {
+    try {
+      refererOrigin = new URL(referer).origin;
+    } catch {
+      refererOrigin = '';
+    }
+  }
   if (
     request.method === 'POST' &&
     referer &&
-    !referer.includes('crumbify.co.uk') &&
-    !referer.includes('localhost')
+    !isAllowedOrigin(refererOrigin, {
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    })
   ) {
     return NextResponse.json({ success: true }, { status: 200 });
   }
