@@ -137,10 +137,11 @@ describe("POST /api/waitlist", () => {
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 
-  it("rejects with 400 when Turnstile is configured and no token is sent", async () => {
+  it("succeeds when Turnstile is configured but no token is sent (widget not wired up client-side yet)", async () => {
     process.env.TURNSTILE_SECRET_KEY = "secret";
+    fromQueue = [rateLimitBuilder(0), existenceBuilder(null), insertBuilder(null)];
     await POST(makeRequest({ body: { email: "person@gmail.com" } }));
-    expect(mockJson).toHaveBeenCalledWith({ error: "Verification required" }, { status: 400 });
+    expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
   });
 
   it("proceeds when Turnstile is configured and the token verifies", async () => {

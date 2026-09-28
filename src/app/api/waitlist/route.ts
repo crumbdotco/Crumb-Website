@@ -137,13 +137,15 @@ export async function POST(request: Request) {
     }
 
     // ---------------------------------------------------------------
-    // Layer 3.5: Cloudflare Turnstile verification (optional).
+    // Layer 3.5: Cloudflare Turnstile verification (optional, best-effort).
+    // The hero form does not currently load the Turnstile script, so no
+    // token is ever sent - a token is verified when present but never
+    // REQUIRED. Enforcement (rejecting a missing token when a secret is
+    // configured) returns once the widget script is actually wired up
+    // client-side (follow-up).
     // ---------------------------------------------------------------
     const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-    if (turnstileSecret) {
-      if (!turnstileToken) {
-        return NextResponse.json({ error: "Verification required" }, { status: 400 });
-      }
+    if (turnstileSecret && turnstileToken) {
       const verified = await verifyTurnstile(String(turnstileToken), turnstileSecret, ip);
       if (!verified) {
         // Failed verification - bot with a fake/expired token. Silent reject.

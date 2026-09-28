@@ -115,9 +115,4 @@ describe("WaitlistForm", () => {
       );
     });
   });
-
-  it("does not render the Turnstile widget when no site key is configured", () => {
-    render(<WaitlistForm />);
-    expect(screen.queryByTestId("waitlist-turnstile")).not.toBeInTheDocument();
-  });
 });

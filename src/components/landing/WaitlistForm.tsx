@@ -4,8 +4,10 @@ import { useWaitlist } from "@/hooks/useWaitlist";
 /**
  * Compact hero waitlist signup form. Above-the-fold email capture for the
  * event QR-code flow: type=email input, one submit button, one aria-live
- * status line. Honeypot field for bots; Turnstile is opt-in via
- * NEXT_PUBLIC_TURNSTILE_SITE_KEY and otherwise fully absent from the form.
+ * status line. Honeypot field for bots. No Turnstile widget is rendered yet
+ * (the script is not wired up client-side) - the API route verifies a
+ * Turnstile token only when one is actually sent, so this form works today
+ * with no widget and will keep working once the widget is added later.
  *
  * Brand rules enforced: no em/en dashes, no letter-spacing, no all-caps
  * spaced labels, gold never used as a text colour, no glow/spotlight effect,
@@ -15,7 +17,6 @@ import { useWaitlist } from "@/hooks/useWaitlist";
  */
 export function WaitlistForm() {
   const { email, setEmail, status, errorMessage, submit, honeypotId } = useWaitlist();
-  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const isSubmitting = status === "submitting";
 
@@ -75,13 +76,6 @@ export function WaitlistForm() {
       <p className="waitlist-status" data-testid="waitlist-status" aria-live="polite">
         {statusMessage || "Be first to know when Crumbify opens."}
       </p>
-      {turnstileSiteKey ? (
-        <div
-          className="cf-turnstile"
-          data-sitekey={turnstileSiteKey}
-          data-testid="waitlist-turnstile"
-        />
-      ) : null}
     </form>
   );
 }
