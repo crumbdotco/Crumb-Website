@@ -26,7 +26,7 @@ function existenceBuilder(data: { email: string } | null) {
   return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data }) }) }) };
 }
 function insertBuilder(error: { message: string } | null) {
-  return { insert: jest.fn(() => Promise.resolve({ error })) };
+  return { insert: jest.fn((_payload: Record<string, unknown>) => Promise.resolve({ error })) };
 }
 
 // --- Next.js mock ---
