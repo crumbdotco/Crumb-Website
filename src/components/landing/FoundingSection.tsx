@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * FoundingSection — Founding member offer, redesigned in the handoff cream language.
+ * FoundingSection - Founding member offer, redesigned in the handoff cream language.
  * Placed between Groups and CTA.
  * Fetches /api/waitlist/founding for live spot count.
  * Stripe link: NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK (fallback: /founding-member).
@@ -42,17 +42,19 @@ export function FoundingSection() {
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     const waitForRetry = (delay: number) =>
-      new Promise<void>((resolve) => {
-        retryTimer = setTimeout(resolve, delay);
-      });
+      new Promise<void>((resolve) => setTimeout(resolve, delay));
 
     const loadFoundingData = async () => {
       for (let attempt = 0; attempt < 3; attempt += 1) {
+        const attemptController = new AbortController();
+        const abortAttempt = () => attemptController.abort();
+        controller.signal.addEventListener("abort", abortAttempt, { once: true });
+        const timeoutId = setTimeout(() => attemptController.abort(), 8000);
+
         try {
-          const response = await fetch("/api/waitlist/founding", { signal: controller.signal });
+          const response = await fetch("/api/waitlist/founding", { signal: attemptController.signal });
           if (!response.ok) throw new Error("Founding count request failed");
 
           const data: unknown = await response.json();
@@ -69,6 +71,9 @@ export function FoundingSection() {
           }
           await waitForRetry(attempt === 0 ? 1000 : 3000);
           if (!active || controller.signal.aborted) return;
+        } finally {
+          clearTimeout(timeoutId);
+          controller.signal.removeEventListener("abort", abortAttempt);
         }
       }
     };
@@ -78,7 +83,6 @@ export function FoundingSection() {
     return () => {
       active = false;
       controller.abort();
-      if (retryTimer !== undefined) clearTimeout(retryTimer);
     };
   }, []);
 

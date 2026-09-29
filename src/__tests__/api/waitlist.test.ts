@@ -19,8 +19,14 @@ jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({ from: mockFrom })),
 }));
 
-function rateLimitBuilder(count: number | null) {
-  return { select: () => ({ eq: () => ({ gte: () => Promise.resolve({ count }) }) }) };
+function rateLimitBuilder(
+  count: number | null,
+  error: { code?: string; message?: string } | null = null,
+  status = 200,
+) {
+  return {
+    select: () => ({ eq: () => ({ gte: () => Promise.resolve({ count, error, status }) }) }),
+  };
 }
 function existenceBuilder(data: { email: string } | null) {
   return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data }) }) }) };
@@ -221,6 +227,47 @@ describe("POST /api/waitlist", () => {
     fromQueue = [rateLimitBuilder(59), existenceBuilder(null), insertBuilder(null)];
     await POST(makeRequest({ body: { email: "person@gmail.com" } }));
     expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
+  });
+
+  it("logs a failed DB rate-limit read and still allows the signup", async () => {
+    fromQueue = [
+      rateLimitBuilder(null, { code: "42501", message: "permission denied" }, 500),
+      existenceBuilder(null),
+      insertBuilder(null),
+    ];
+
+    await POST(makeRequest({ body: { email: "person@gmail.com" } }));
+
+    expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Waitlist DB rate-limit read unavailable:",
+      { status: 500, code: "42501" },
+    );
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("permission denied");
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("person@gmail.com");
+  });
+
+  it("logs a thrown DB rate-limit read and still allows the signup", async () => {
+    fromQueue = [
+      {
+        select: () => ({
+          eq: () => ({
+            gte: () => Promise.reject(new Error("network response included person@gmail.com")),
+          }),
+        }),
+      },
+      existenceBuilder(null),
+      insertBuilder(null),
+    ];
+
+    await POST(makeRequest({ body: { email: "person@gmail.com" } }));
+
+    expect(mockJson).toHaveBeenCalledWith({ success: true, alreadyExists: false });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Waitlist DB rate-limit read unavailable:",
+      { status: 0, code: "FETCH_ERROR" },
+    );
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("person@gmail.com");
   });
 
   it("returns 429 from the in-memory limiter before touching the database", async () => {

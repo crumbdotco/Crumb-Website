@@ -113,6 +113,18 @@ describe("GET /api/waitlist/founding", () => {
     expect(init?.status ?? 200).toBe(200);
   });
 
+  it("omits count when the read has no error but also no count", async () => {
+    mockEq.mockResolvedValue({ count: null, error: null, status: 200 });
+
+    await GET();
+
+    expect(mockJson).toHaveBeenCalledWith({ capAvailable: false });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Founding availability unavailable: waitlist count read failed:",
+      { status: 200, code: "COUNT_UNAVAILABLE" },
+    );
+  });
+
   it("returns 200 with capAvailable:false and no `count`, `remaining`, or `closed` when Supabase env vars are missing", async () => {
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -124,6 +136,19 @@ describe("GET /api/waitlist/founding", () => {
     const [body, init] = mockJson.mock.calls[0];
     expect(body).not.toHaveProperty("closed");
     expect(init?.status ?? 200).toBe(200);
+  });
+
+  it("returns 200 and logs a redacted failure when the waitlist count read rejects", async () => {
+    mockEq.mockRejectedValue(new Error("network response included an email"));
+
+    await GET();
+
+    expect(mockJson).toHaveBeenCalledWith({ capAvailable: false });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Founding availability unavailable: waitlist count read failed:",
+      { status: 0, code: "FETCH_ERROR" },
+    );
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("network response");
   });
 
   it("never fabricates `closed` (present and === true only on the success path, absent on every degraded path)", async () => {

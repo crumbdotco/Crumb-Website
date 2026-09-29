@@ -1,3 +1,12 @@
+/**
+ * FoundingSection behavior tests.
+ *
+ * The card starts with no count, retries unavailable responses up to three
+ * times, aborts in-flight work on unmount, and only renders numbers from a
+ * validated live response. A failed read keeps the CTA usable and shows the
+ * existing unavailable copy instead of inventing a count.
+ */
+
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FoundingSection } from "@/components/landing/FoundingSection";
 
@@ -7,6 +16,7 @@ describe("FoundingSection", () => {
   afterEach(() => {
     jest.useRealTimers();
     global.fetch = originalFetch;
+    delete process.env.NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK;
     jest.restoreAllMocks();
   });
 
@@ -87,6 +97,37 @@ describe("FoundingSection", () => {
     expect(screen.queryByText(/100 spots remaining/)).not.toBeInTheDocument();
   });
 
+  it("treats null and non-object JSON bodies as failures", async () => {
+    jest.useFakeTimers();
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        json: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce("not an object")
+          .mockResolvedValueOnce([]),
+      }) as unknown as typeof fetch;
+
+    render(<FoundingSection />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+      await Promise.resolve();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(screen.getByText("Live count unavailable right now.")).toBeInTheDocument();
+  });
+
   it("shows the real count when the second attempt succeeds", async () => {
     jest.useFakeTimers();
     global.fetch = jest
@@ -112,6 +153,24 @@ describe("FoundingSection", () => {
     expect(screen.getByText("58 spots remaining")).toBeInTheDocument();
   });
 
+  it("uses the configured Stripe link and singular spot copy", async () => {
+    process.env.NEXT_PUBLIC_STRIPE_FOUNDING_MEMBER_LINK = "https://checkout.stripe.test/founding";
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ count: 1, remaining: 1, closed: false }),
+    }) as unknown as typeof fetch;
+    const openSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+
+    render(<FoundingSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 / 100")).toBeInTheDocument();
+    });
+    expect(screen.getByText("1 spot remaining")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Become a founding member/i }));
+    expect(openSpy).toHaveBeenCalledWith("https://checkout.stripe.test/founding", "_blank");
+  });
+
   it("aborts a pending retry after unmount", async () => {
     jest.useFakeTimers();
     global.fetch = jest.fn().mockResolvedValue({ ok: false, json: jest.fn() }) as unknown as typeof fetch;
@@ -130,6 +189,82 @@ describe("FoundingSection", () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not set state when unmounted after JSON resolves", async () => {
+    let resolveJson: (value: unknown) => void = () => {};
+    const json = jest.fn(
+      () => new Promise<unknown>((resolve) => {
+        resolveJson = resolve;
+      }),
+    );
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json }) as unknown as typeof fetch;
+
+    const { unmount } = render(<FoundingSection />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(json).toHaveBeenCalledTimes(1);
+
+    resolveJson({ count: 42, remaining: 58 });
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText("42 / 100")).not.toBeInTheDocument();
+  });
+
+  it("aborts an in-flight fetch when unmounted", async () => {
+    let resolveFetch: (value: Response) => void = () => {};
+    global.fetch = jest.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+          init?.signal?.addEventListener("abort", () => undefined);
+        }),
+    ) as typeof fetch;
+
+    const { unmount } = render(<FoundingSection />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const signal = (global.fetch as jest.Mock).mock.calls[0][1].signal as AbortSignal;
+
+    unmount();
+    expect(signal.aborted).toBe(true);
+    resolveFetch({ ok: true, json: () => Promise.resolve({ count: 42, remaining: 58 }) } as Response);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.queryByText("42 / 100")).not.toBeInTheDocument();
+  });
+
+  it("retries a request that is still pending after the per-attempt timeout", async () => {
+    jest.useFakeTimers();
+    global.fetch = jest.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+    ) as typeof fetch;
+
+    render(<FoundingSection />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it("renders the CTA and no closed message when the cap is unreadable (closed key absent, not a fabricated false)", async () => {

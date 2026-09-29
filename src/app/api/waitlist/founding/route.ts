@@ -30,18 +30,22 @@ export async function GET() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase = createClient<any>(url, key);
-    const { count, error } = await supabase
+    const { count, error, status } = await supabase
       .from("waitlist")
       .select("*", { count: "exact", head: true })
       .eq("tier", "founding_member");
     if (error || typeof count !== "number" || !Number.isFinite(count)) {
-      throw new Error(error?.message ?? "waitlist count unavailable");
+      console.error("Founding availability unavailable: waitlist count read failed:", {
+        status: status ?? 0,
+        code: error?.code ?? "COUNT_UNAVAILABLE",
+      });
+      return NextResponse.json({ capAvailable: false });
     }
     safeCount = count;
-  } catch (err) {
+  } catch {
     console.error(
       "Founding availability unavailable: waitlist count read failed:",
-      err instanceof Error ? err.message : "unknown error"
+      { status: 0, code: "FETCH_ERROR" },
     );
     return NextResponse.json({ capAvailable: false });
   }
@@ -52,10 +56,10 @@ export async function GET() {
     const closed = safeCount >= cap;
 
     return NextResponse.json({ count: safeCount, remaining, closed, capAvailable: true });
-  } catch (err) {
+  } catch {
     console.error(
       "Founding availability degraded: cap unavailable:",
-      err instanceof Error ? err.message : "unknown error"
+      { status: 0, code: "CAP_UNAVAILABLE" },
     );
     return NextResponse.json({ count: safeCount, capAvailable: false });
   }

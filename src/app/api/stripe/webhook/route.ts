@@ -84,7 +84,7 @@ export async function POST(request: Request) {
       // Belt-and-suspenders: deactivate the payment link once the cap is reached.
       // Primary cutoff is the Stripe Payment Link's built-in completed-sessions limit.
       try {
-        const { count, error } = await getSupabase()
+        const { count, error, status } = await getSupabase()
           .from('waitlist')
           .select('*', { count: 'exact', head: true })
           .eq('tier', 'founding_member');
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         if (error || typeof count !== 'number' || !Number.isFinite(count)) {
           console.error(
             'Founding cap check skipped: waitlist count read failed:',
-            error?.message ?? 'unknown error',
+            { status: status ?? 0, code: error?.code ?? 'COUNT_UNAVAILABLE' },
           );
         } else {
           const linkId = process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID;
@@ -101,8 +101,8 @@ export async function POST(request: Request) {
             await getStripe().paymentLinks.update(linkId, { active: false });
           }
         }
-      } catch (capErr) {
-        console.error('Founding cap check failed:', capErr);
+      } catch {
+        console.error('Founding cap check failed:', { status: 0, code: 'FETCH_ERROR' });
       }
     }
   }
