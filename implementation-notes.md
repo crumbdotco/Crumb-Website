@@ -460,3 +460,10 @@ Fix round 1: addressed the opus review findings without changing the committed f
 - Deviations: the repository-wide coverage command completed all 39 suites and 622 tests, but the configured global floor still failed at 75.15% statements, 68.18% branches, 71.36% functions, and 76.27% lines because unrelated existing modules are collected with zero coverage. Changed runtime files remained covered at the file-level figures reported in the handoff. Watchman was unavailable due local permission errors, so the command used `--watchman=false`.
 - Owner decisions still open: approve the existing privacy wording, set both Turnstile environment variables in the intended Vercel environments, redeploy, and exercise a real Cloudflare challenge before launch. No header CTA was added.
 - What recurring class did this work expose, and what automation now guards it? Client bot checks can lose their live widget handle or strand a pending submission when asynchronous recovery is not modelled. Hook and form tests cover error, recovery, reset, script failure, pending wait, timeout, and non-success response; the parity guard catches both comment-only wiring and a dead conditional. The middleware tests also pin apex, www, preview, malformed, and deceptive referers.
+
+### #28 fix round 2
+
+- Decisions: modelled waitlist state as a discriminated union so an error state always carries a message, then removed the form fallback while preserving all visible messages.
+- Deviations: repository-wide coverage still misses the configured global floor because unrelated existing modules are collected with zero coverage. Targeted coverage for the changed files is reported in the final handoff. Build was skipped as instructed. Watchman required `--watchman=false` because its local log path is not writable.
+- Owner decisions still open: none for this fix round.
+- What recurring class did this work expose, and what automation now guards it? Parallel status and error fields allow impossible UI states. The hook state union and regression test now guard the error-message invariant.

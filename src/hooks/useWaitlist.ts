@@ -5,6 +5,13 @@ const isBrowser = typeof window !== "undefined";
 
 export type WaitlistStatus = "idle" | "submitting" | "success" | "alreadyExists" | "error";
 
+type WaitlistState =
+  | { status: "idle" }
+  | { status: "submitting" }
+  | { status: "success" }
+  | { status: "alreadyExists" }
+  | { status: "error"; errorMessage: string };
+
 interface UseWaitlistOptions {
   turnstileToken?: string | null;
   turnstileRequired?: boolean;
@@ -26,10 +33,10 @@ export function useWaitlist({
   honeypotId = "crumb-hp",
 }: UseWaitlistOptions = {}) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<WaitlistStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [state, setState] = useState<WaitlistState>({ status: "idle" });
   const [waitingForTurnstile, setWaitingForTurnstile] = useState(false);
   const waitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const status: WaitlistStatus = state.status;
 
   const clearTurnstileWait = useCallback(() => {
     if (waitTimeoutRef.current) {
@@ -41,8 +48,7 @@ export function useWaitlist({
   const submitRequest = useCallback(async () => {
     clearTurnstileWait();
     setWaitingForTurnstile(false);
-    setStatus("submitting");
-    setErrorMessage(null);
+    setState({ status: "submitting" });
 
     try {
       const honeypotValue = isBrowser
@@ -65,17 +71,15 @@ export function useWaitlist({
         : {};
 
       if (res.ok && parsed.success) {
-        setStatus(parsed.alreadyExists ? "alreadyExists" : "success");
+        setState({ status: parsed.alreadyExists ? "alreadyExists" : "success" });
         return;
       }
 
       resetTurnstile?.();
-      setErrorMessage(parsed.error ?? GENERIC_ERROR);
-      setStatus("error");
+      setState({ status: "error", errorMessage: parsed.error ?? GENERIC_ERROR });
     } catch {
       resetTurnstile?.();
-      setErrorMessage(GENERIC_ERROR);
-      setStatus("error");
+      setState({ status: "error", errorMessage: GENERIC_ERROR });
     }
   }, [email, turnstileToken, resetTurnstile, honeypotId, clearTurnstileWait]);
 
@@ -103,20 +107,17 @@ export function useWaitlist({
       if (status === "submitting") return;
       if (!email.includes("@")) return;
       if (turnstileError) {
-        setErrorMessage(turnstileError);
-        setStatus("error");
+        setState({ status: "error", errorMessage: turnstileError });
         return;
       }
       if (turnstileRequired && !turnstileToken) {
         clearTurnstileWait();
-        setErrorMessage(null);
-        setStatus("submitting");
+        setState({ status: "submitting" });
         setWaitingForTurnstile(true);
         waitTimeoutRef.current = setTimeout(() => {
           waitTimeoutRef.current = null;
           setWaitingForTurnstile(false);
-          setErrorMessage(TURNSTILE_WAIT_TIMEOUT_MESSAGE);
-          setStatus("error");
+          setState({ status: "error", errorMessage: TURNSTILE_WAIT_TIMEOUT_MESSAGE });
         }, TURNSTILE_WAIT_TIMEOUT_MS);
         return;
       }
@@ -138,7 +139,7 @@ export function useWaitlist({
     email,
     setEmail,
     status,
-    errorMessage,
+    errorMessage: state.status === "error" ? state.errorMessage : "",
     submit,
     honeypotId,
     waitingForTurnstile,

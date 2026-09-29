@@ -49,7 +49,7 @@ export function WaitlistForm() {
   } else if (status === "alreadyExists") {
     statusMessage = "You're already on the list.";
   } else if (status === "error") {
-    statusMessage = errorMessage ?? "Something went wrong, please try again.";
+    statusMessage = errorMessage;
   } else if (turnstileError) {
     statusMessage = turnstileError;
   } else if (waitingForTurnstile) {
