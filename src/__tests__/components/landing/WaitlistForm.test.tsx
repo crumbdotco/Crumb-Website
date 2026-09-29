@@ -7,8 +7,6 @@
  */
 
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
-import fs from "node:fs";
-import path from "node:path";
 import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { useWaitlist } from "@/hooks/useWaitlist";
 
@@ -56,15 +54,6 @@ describe("WaitlistForm", () => {
     fireEvent.change(screen.getByTestId("waitlist-email-input"), { target: { value: email } });
     fireEvent.click(screen.getByTestId("waitlist-submit"));
   }
-
-  it("makes the error message invariant explicit in the hook and form", () => {
-    const formSource = fs.readFileSync(path.join(process.cwd(), "src/components/landing/WaitlistForm.tsx"), "utf8");
-    const hookSource = fs.readFileSync(path.join(process.cwd(), "src/hooks/useWaitlist.ts"), "utf8");
-
-    expect(formSource).not.toContain('errorMessage ?? "Something went wrong, please try again."');
-    expect(hookSource).toContain("type WaitlistState");
-    expect(hookSource).toContain('{ status: "error"; errorMessage: string }');
-  });
 
   it("renders the idle state with the default status line", () => {
     render(<WaitlistForm />);

@@ -5,6 +5,8 @@ const isBrowser = typeof window !== "undefined";
 
 export type WaitlistStatus = "idle" | "submitting" | "success" | "alreadyExists" | "error";
 
+// The type is the guard for "error always carries a message": tsc enforces it, so no
+// runtime fallback exists by design.
 type WaitlistState =
   | { status: "idle" }
   | { status: "submitting" }

@@ -467,3 +467,9 @@ Fix round 1: addressed the opus review findings without changing the committed f
 - Deviations: repository-wide coverage still misses the configured global floor because unrelated existing modules are collected with zero coverage. Targeted coverage for the changed files is reported in the final handoff. Build was skipped as instructed. Watchman required `--watchman=false` because its local log path is not writable.
 - Owner decisions still open: none for this fix round.
 - What recurring class did this work expose, and what automation now guards it? Parallel status and error fields allow impossible UI states. The hook state union and regression test now guard the error-message invariant.
+
+
+### #28 fix round 3
+- Removed the static test that read source text for one fallback string in WaitlistForm.tsx and two literals in useWaitlist.ts: it was a string-presence check that stayed green on `|| fallback` or an `as string` cast and went red on a Prettier reformat.
+- The real guard is the `WaitlistState` discriminated union (tsc enforces that status error carries a message), plus the behavioural error-path tests, which are kept.
+- Recurring class (string-presence tests posing as guards): guarded by review; tsc guards this invariant.
