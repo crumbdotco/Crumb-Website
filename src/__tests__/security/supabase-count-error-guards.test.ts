@@ -24,28 +24,67 @@ type CountRead = {
   headBeforeCount: boolean;
   binding: ts.ObjectBindingPattern | null;
   declarationEnd: number;
+  detail: string;
 };
+
+const MSG_NOT_CHECKED = "count read error is not checked before count is used";
+const MSG_BRANCH_NO_EXIT = "count read error branch does not exit before count is used";
+const MSG_NOT_A_GUARD = "count read error is only read in an expression that cannot stop count use";
+const MSG_FALLBACK = "count must not fall back to a literal";
+const MSG_HELPER_UNCHECKED = "readCount helper must check error and exit before count is used";
+const MSG_HELPER_FALLBACK = "readCount helper must not fall back to a literal count";
 
 function isIdentifier(node: ts.Node, name: string): node is ts.Identifier {
   return ts.isIdentifier(node) && node.text === name;
 }
 
-function hasExactCountOption(node: ts.CallExpression): boolean {
-  const options = node.arguments[1];
-  if (!options || !ts.isObjectLiteralExpression(options)) return false;
+type ResolvedOptions = { options: ts.ObjectLiteralExpression; viaVariable: boolean };
 
-  return options.properties.some(
-    (property) =>
-      ts.isPropertyAssignment(property) &&
-      isIdentifier(property.name, "count") &&
-      ts.isStringLiteral(property.initializer) &&
-      property.initializer.text === "exact",
-  );
+// The options object is either an inline literal or a same-scope const object.
+function resolveOptions(node: ts.CallExpression): ResolvedOptions | null {
+  const argument = node.arguments[1];
+  if (!argument) return null;
+  if (ts.isObjectLiteralExpression(argument)) return { options: argument, viaVariable: false };
+  if (!ts.isIdentifier(argument)) return null;
+
+  let scope: ts.Node | undefined = node.parent;
+  while (scope) {
+    if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
+      for (const statement of scope.statements) {
+        if (!ts.isVariableStatement(statement)) continue;
+        for (const declaration of statement.declarationList.declarations) {
+          if (
+            ts.isIdentifier(declaration.name) &&
+            declaration.name.text === argument.text &&
+            declaration.initializer &&
+            ts.isObjectLiteralExpression(declaration.initializer)
+          ) {
+            return { options: declaration.initializer, viaVariable: true };
+          }
+        }
+      }
+    }
+    scope = scope.parent;
+  }
+  return null;
 }
 
-function hasHeadBeforeCount(node: ts.CallExpression): boolean {
-  const options = node.arguments[1];
-  if (!options || !ts.isObjectLiteralExpression(options)) return false;
+// Returns the count option value ("exact", "estimated", "<dynamic>") or null when absent.
+function countOptionMode(options: ts.ObjectLiteralExpression): string | null {
+  for (const property of options.properties) {
+    if (
+      (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
+      isIdentifier(property.name, "count")
+    ) {
+      return ts.isPropertyAssignment(property) && ts.isStringLiteral(property.initializer)
+        ? property.initializer.text
+        : "<dynamic>";
+    }
+  }
+  return null;
+}
+
+function hasHeadBeforeCount(options: ts.ObjectLiteralExpression): boolean {
   const names = options.properties.flatMap((property) => {
     if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) return [];
     return [property.name.text];
@@ -113,26 +152,6 @@ function hasBinding(binding: ts.ObjectBindingPattern, name: string): boolean {
   );
 }
 
-function isErrorCheckIdentifier(node: ts.Identifier): boolean {
-  let current: ts.Node = node.parent;
-  while (current) {
-    if (
-      ts.isIfStatement(current) ||
-      ts.isConditionalExpression(current) ||
-      ts.isWhileStatement(current) ||
-      ts.isDoStatement(current) ||
-      ts.isForStatement(current) ||
-      ts.isSwitchStatement(current) ||
-      ts.isThrowStatement(current)
-    ) {
-      return true;
-    }
-    if (ts.isStatement(current)) return false;
-    current = current.parent;
-  }
-  return false;
-}
-
 function helperThrows(sourceFile: ts.SourceFile, helperName: string): boolean {
   let throws = false;
   const visit = (node: ts.Node) => {
@@ -165,50 +184,130 @@ function isPassedToThrowingHelper(node: ts.Identifier, sourceFile: ts.SourceFile
   );
 }
 
-function isErrorCheckedBeforeCount(
+function statementExits(statement: ts.Statement | undefined): boolean {
+  if (!statement) return false;
+  if (ts.isReturnStatement(statement) || ts.isThrowStatement(statement)) return true;
+  if (ts.isBlock(statement)) return statement.statements.some(statementExits);
+  if (ts.isIfStatement(statement)) {
+    return statementExits(statement.thenStatement) && statementExits(statement.elseStatement);
+  }
+  return false;
+}
+
+// A real reference to a binding, not a property name such as `{ count: x }` or `a.error`.
+function isReference(node: ts.Identifier): boolean {
+  const parent = node.parent;
+  if (ts.isPropertyAssignment(parent) && parent.name === node) return false;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
+  return true;
+}
+
+// The if statement whose CONDITION contains this identifier, if any.
+function conditionIf(node: ts.Identifier): ts.IfStatement | null {
+  let child: ts.Node = node;
+  let current: ts.Node | undefined = node.parent;
+  while (current) {
+    if (ts.isIfStatement(current) && current.expression === child) return current;
+    if (ts.isStatement(current)) return null;
+    child = current;
+    current = current.parent;
+  }
+  return null;
+}
+
+function isInside(node: ts.Node, container: ts.Node | undefined): boolean {
+  return !!container && node.getStart() >= container.getStart() && node.getEnd() <= container.getEnd();
+}
+
+// The error branch must leave, or every count use must sit in the success branch
+// (or in the condition itself, as in `error || typeof count !== "number"`).
+function ifGuardsCount(error: ts.Identifier, counts: ts.Identifier[]): boolean {
+  const statement = conditionIf(error);
+  if (!statement) return false;
+  const negated =
+    ts.isPrefixUnaryExpression(error.parent) &&
+    error.parent.operator === ts.SyntaxKind.ExclamationToken;
+  const errorBranch = negated ? statement.elseStatement : statement.thenStatement;
+  const okBranch = negated ? statement.thenStatement : statement.elseStatement;
+  if (statementExits(errorBranch)) return true;
+  return (
+    !!okBranch &&
+    counts.every((count) => isInside(count, statement.expression) || isInside(count, okBranch))
+  );
+}
+
+function isLiteralFallback(node: ts.Expression): boolean {
+  return (
+    ts.isNumericLiteral(node) ||
+    ts.isStringLiteral(node) ||
+    node.kind === ts.SyntaxKind.NullKeyword ||
+    node.kind === ts.SyntaxKind.TrueKeyword ||
+    node.kind === ts.SyntaxKind.FalseKeyword ||
+    (ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand))
+  );
+}
+
+function bindingNames(binding: ts.ObjectBindingPattern, key: string): Set<string> {
+  return new Set(
+    binding.elements
+      .filter((element) => bindingName(element) === key)
+      .map((element) => (ts.isIdentifier(element.name) ? element.name.text : key)),
+  );
+}
+
+// Returns null when the binding's error is checked by an exiting branch and count never
+// falls back to a literal; otherwise the finding message.
+function bindingProblem(
   sourceFile: ts.SourceFile,
   read: Pick<CountRead, "binding" | "declarationEnd">,
-): boolean {
+): string | null {
   if (!read.binding || !hasBinding(read.binding, "error") || !hasBinding(read.binding, "count")) {
-    return false;
+    return MSG_NOT_CHECKED;
   }
-
-  const errorNames = new Set(
-    read.binding.elements
-      .filter((element): element is ts.BindingElement => ts.isBindingElement(element))
-      .filter((element) => bindingName(element) === "error")
-      .map((element) => (ts.isIdentifier(element.name) ? element.name.text : "error")),
-  );
-  const countNames = new Set(
-    read.binding.elements
-      .filter((element): element is ts.BindingElement => ts.isBindingElement(element))
-      .filter((element) => bindingName(element) === "count")
-      .map((element) => (ts.isIdentifier(element.name) ? element.name.text : "count")),
-  );
+  const errorNames = bindingNames(read.binding, "error");
+  const countNames = bindingNames(read.binding, "count");
 
   const errors: ts.Identifier[] = [];
   const counts: ts.Identifier[] = [];
+  let fallback = false;
   const visit = (node: ts.Node) => {
-    if (node.getStart() > read.declarationEnd && ts.isIdentifier(node)) {
-      if (errorNames.has(node.text)) errors.push(node);
-      if (countNames.has(node.text)) counts.push(node);
+    if (node.getStart() > read.declarationEnd) {
+      if (ts.isIdentifier(node) && isReference(node)) {
+        if (errorNames.has(node.text)) errors.push(node);
+        if (countNames.has(node.text)) counts.push(node);
+      }
+      if (
+        ts.isBinaryExpression(node) &&
+        (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
+          node.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
+        ts.isIdentifier(node.left) &&
+        countNames.has(node.left.text) &&
+        isLiteralFallback(node.right)
+      ) {
+        fallback = true;
+      }
     }
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
 
-  const firstCountUse = counts.sort((a, b) => a.getStart() - b.getStart())[0];
-  if (!firstCountUse) return false;
-  return errors.some(
-    (error) =>
-      error.getStart() < firstCountUse.getStart() &&
-      (isErrorCheckIdentifier(error) || isPassedToThrowingHelper(error, sourceFile)),
+  counts.sort((a, b) => a.getStart() - b.getStart());
+  const firstCountUse = counts[0];
+  if (!firstCountUse) return MSG_NOT_CHECKED;
+  const before = errors.filter((error) => error.getStart() < firstCountUse.getStart());
+  const guarded = before.some(
+    (error) => ifGuardsCount(error, counts) || isPassedToThrowingHelper(error, sourceFile),
   );
+  if (!guarded) {
+    if (before.length === 0) return MSG_NOT_CHECKED;
+    return before.some((error) => conditionIf(error)) ? MSG_BRANCH_NO_EXIT : MSG_NOT_A_GUARD;
+  }
+  return fallback ? MSG_FALLBACK : null;
 }
 
-function readCountHelperIsChecked(sourceFile: ts.SourceFile): boolean {
+function readCountHelperProblem(sourceFile: ts.SourceFile): string | null {
   let helperFound = false;
-  let helperChecked = false;
+  const problems: Array<string | null> = [];
 
   const visit = (node: ts.Node) => {
     if (
@@ -222,10 +321,9 @@ function readCountHelperIsChecked(sourceFile: ts.SourceFile): boolean {
         if (ts.isVariableDeclaration(child) && ts.isObjectBindingPattern(child.name)) {
           const binding = child.name;
           if (hasBinding(binding, "count") && hasBinding(binding, "error")) {
-            helperChecked ||= isErrorCheckedBeforeCount(sourceFile, {
-              binding,
-              declarationEnd: child.parent.getEnd(),
-            });
+            problems.push(
+              bindingProblem(sourceFile, { binding, declarationEnd: child.parent.getEnd() }),
+            );
           }
         }
         ts.forEachChild(child, findBinding);
@@ -236,7 +334,9 @@ function readCountHelperIsChecked(sourceFile: ts.SourceFile): boolean {
   };
 
   visit(sourceFile);
-  return helperFound && helperChecked;
+  if (!helperFound || problems.length === 0) return "readCount helper must check error";
+  if (problems.some((problem) => problem === null)) return null;
+  return problems[0] === MSG_FALLBACK ? MSG_HELPER_FALLBACK : MSG_HELPER_UNCHECKED;
 }
 
 function inspectSource(source: string, fileName = "fixture.ts"): string[] {
@@ -253,19 +353,28 @@ function inspectSource(source: string, fileName = "fixture.ts"): string[] {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.text === "select" &&
-      hasExactCountOption(node)
+      node.expression.name.text === "select"
     ) {
-      const direct = getDirectBinding(node);
-      reads.push({
-        node,
-        line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
-        wrapped: isInsideReadCount(node),
-        inPromiseAll: isInsideNamedCall(node, "Promise", "all"),
-        headBeforeCount: hasHeadBeforeCount(node),
-        binding: direct?.binding ?? null,
-        declarationEnd: direct?.declarationEnd ?? node.getEnd(),
-      });
+      const resolved = resolveOptions(node);
+      const mode = resolved ? countOptionMode(resolved.options) : null;
+      if (resolved && mode !== null) {
+        const direct = getDirectBinding(node);
+        const detail = resolved.viaVariable
+          ? " (options via variable)"
+          : mode === "exact"
+            ? ""
+            : ` (count: ${mode})`;
+        reads.push({
+          node,
+          line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+          wrapped: isInsideReadCount(node),
+          inPromiseAll: isInsideNamedCall(node, "Promise", "all"),
+          headBeforeCount: hasHeadBeforeCount(resolved.options),
+          binding: direct?.binding ?? null,
+          declarationEnd: direct?.declarationEnd ?? node.getEnd(),
+          detail,
+        });
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -273,19 +382,109 @@ function inspectSource(source: string, fileName = "fixture.ts"): string[] {
 
   return reads.flatMap((read) => {
     const location = `${fileName}:${read.line}`;
-    if (read.wrapped && readCountHelperIsChecked(sourceFile)) return [];
-    if (read.wrapped) return [`${location} readCount helper must check error`];
-    if (read.inPromiseAll) return [`${location} count read in Promise.all must use readCount`];
+    const finding = (message: string) => [`${location} ${message}${read.detail}`];
+    if (read.wrapped) {
+      const problem = readCountHelperProblem(sourceFile);
+      return problem ? finding(problem) : [];
+    }
+    if (read.inPromiseAll) return finding("count read in Promise.all must use readCount");
     if (!read.binding || !hasBinding(read.binding, "error")) {
-      if (read.headBeforeCount) return [`${location} key-order count read must destructure error`];
-      return [`${location} count read must destructure error`];
+      if (read.headBeforeCount) return finding("key-order count read must destructure error");
+      return finding("count read must destructure error");
     }
-    if (!isErrorCheckedBeforeCount(sourceFile, read)) {
-      return [`${location} count read error is not checked before count is used`];
-    }
-    return [];
+    const problem = bindingProblem(sourceFile, read);
+    return problem ? finding(problem) : [];
   });
 }
+
+const EXACT_READ = `supabase.from("waitlist").select("*", { count: "exact", head: true })`;
+const HELPER_HEAD = `async function readCount(query: PromiseLike<unknown>) { const { count, error } = await query;`;
+const WRAPPED_READ = `await readCount(supabase.from("waitlist").select("id", { count: "exact", head: true }));`;
+
+// Round 2 mutants: each stayed green before the exiting-branch and fallback rules.
+const ROUND2_MUTANTS: Array<[string, string, string]> = [
+  [
+    "A founding route logs the error but falls through to count ?? 0",
+    `const { count, error, status } = await ${EXACT_READ};\nif (error) console.error("x", { status, code: error.code });\nconst safeCount = count ?? 0;`,
+    MSG_BRANCH_NO_EXIT,
+  ],
+  [
+    "C readCount helper logs the error but returns count ?? 0",
+    `${HELPER_HEAD} if (error) console.error("x"); return count ?? 0; }\nconst value = ${WRAPPED_READ}`,
+    MSG_HELPER_UNCHECKED,
+  ],
+  [
+    "E error only feeds a ternary, count ?? 0 still runs",
+    `const { count, error } = await ${EXACT_READ};\nconst note = error ? "e" : "ok";\nconst safeCount = count ?? 0;`,
+    MSG_NOT_A_GUARD,
+  ],
+  [
+    "B estimated count with no error destructure",
+    `const { count } = await supabase.from("waitlist").select("id", { count: "estimated", head: true });\nconst safeCount = count ?? 0;`,
+    'count read must destructure error (count: estimated)',
+  ],
+  [
+    "D options hoisted into a const",
+    `const opts = { count: "exact", head: true };\nconst { count } = await supabase.from("waitlist").select("*", opts);\nconst safeCount = count;`,
+    "count read must destructure error (options via variable)",
+  ],
+  [
+    "F guarded read still falls back with ??",
+    `const { count, error } = await ${EXACT_READ};\nif (error) throw error;\nconst safeCount = count ?? 0;`,
+    MSG_FALLBACK,
+  ],
+  [
+    "G guarded read still falls back with ||",
+    `const { count, error } = await ${EXACT_READ};\nif (error) return;\nconst safeCount = count || 0;`,
+    MSG_FALLBACK,
+  ],
+  [
+    "H readCount helper checks error but falls back to a literal",
+    `${HELPER_HEAD} if (error) throw error; return count ?? 0; }\nconst value = ${WRAPPED_READ}`,
+    MSG_HELPER_FALLBACK,
+  ],
+  [
+    "I negated check whose exit is on the success side",
+    `const { count, error } = await ${EXACT_READ};\nif (!error) return;\nconst safeCount = count;`,
+    MSG_BRANCH_NO_EXIT,
+  ],
+];
+
+// Correct shapes that must stay green (no false alarm).
+const INNOCENT_SHAPES: Array<[string, string]> = [
+  [
+    "founding route: error or bad count returns before count is used",
+    `const { count, error, status } = await ${EXACT_READ};\nif (error || typeof count !== "number" || !Number.isFinite(count)) { console.error("x", { status: status ?? 0, code: error?.code ?? "COUNT_UNAVAILABLE" }); return null; }\nconst safeCount = count;\nreturn { count: safeCount };`,
+  ],
+  [
+    "webhook: non-exiting error branch, count used only in the else branch",
+    `const { count, error, status } = await ${EXACT_READ};\nif (error || typeof count !== "number") { console.error("x", { status }); } else { if (count >= 3) { go(); } }`,
+  ],
+  [
+    "negated check: count used only in the success branch",
+    `const { count, error } = await ${EXACT_READ};\nif (!error) { use(count); } else { console.error("x"); }`,
+  ],
+  [
+    "negated check with an exiting else",
+    `const { count, error } = await ${EXACT_READ};\nif (!error) { use(count); } else { throw error; }`,
+  ],
+  [
+    "readCount helper that returns before count is used",
+    `${HELPER_HEAD} if (error || typeof count !== "number") { console.error("x"); return null; } return count; }\nconst value = ${WRAPPED_READ}`,
+  ],
+  [
+    "hoisted options with a checked error",
+    `const opts = { count: "exact", head: true };\nconst { count, error } = await supabase.from("waitlist").select("*", opts);\nif (error) throw error;\nconst safeCount = count;`,
+  ],
+  [
+    "select without a count option is not a count read",
+    `const { data } = await supabase.from("waitlist").select("id", { head: true });\nconst total = data ?? 0;`,
+  ],
+  [
+    "count property names and non-count fallbacks are ignored",
+    `const { count, error } = await ${EXACT_READ};\nif (error) return null;\nconst label = other ?? 0;\nreturn { count: count, note: { error: "none" } };`,
+  ],
+];
 
 describe("security: every Supabase count read checks its own error result", () => {
   it.each([
@@ -334,6 +533,23 @@ describe("security: every Supabase count read checks its own error result", () =
     const findings = fixtures.map((source) => inspectSource(source)[0]).filter(Boolean);
     expect(findings).toHaveLength(4);
     expect(new Set(findings.map((finding) => finding.replace(/fixture\.ts:\d+ /, ""))).size).toBe(4);
+  });
+
+  it.each(ROUND2_MUTANTS)("round 2 mutant %s is red", (_label, source, expectedMessage) => {
+    const findings = inspectSource(source);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toContain(expectedMessage);
+  });
+
+  it("round 2 mutants A-E carry five distinct diagnostics", () => {
+    const messages = ROUND2_MUTANTS.slice(0, 5).map(
+      ([, source]) => inspectSource(source)[0].replace(/fixture\.ts:\d+ /, ""),
+    );
+    expect(new Set(messages).size).toBe(5);
+  });
+
+  it.each(INNOCENT_SHAPES)("innocent shape stays green: %s", (_label, source) => {
+    expect(inspectSource(source)).toEqual([]);
   });
 
   it("does not let a previous guarded read bless a later unguarded read", () => {
