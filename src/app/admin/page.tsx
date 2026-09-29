@@ -23,10 +23,15 @@ export default async function AdminPage() {
   const userId = await requireAdmin();
   if (!userId) redirect('/admin/signin?error=unauthorized');
 
-  // Fetch in parallel — each source caches independently via fetch()
+  // Fetch in parallel - each source caches independently via fetch()
   // revalidate, so a failure in one doesn't block the others.
   const [supabase, rc, asc, sentry, referrals] = await Promise.all([
-    fetchSupabaseAdminMetrics().catch(() => null),
+    fetchSupabaseAdminMetrics().catch((error: unknown) => {
+      console.error('Supabase admin metrics failed:', {
+        code: error instanceof Error ? error.name : 'UNKNOWN',
+      });
+      return null;
+    }),
     RC_PROJECT_ID
       ? fetchRcMetrics(RC_PROJECT_ID).catch(() => null)
       : Promise.resolve(null),
@@ -72,8 +77,16 @@ export default async function AdminPage() {
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <HeroStat label="Signed up" value={supabase?.profilesCount} />
-        <HeroStat label="Premium" value={supabase?.premiumCount} />
+        <HeroStat
+          label="Signed up"
+          value={supabase?.profilesCount}
+          unavailable={supabase?.profilesCount == null}
+        />
+        <HeroStat
+          label="Premium"
+          value={supabase?.premiumCount}
+          unavailable={supabase?.premiumCount == null}
+        />
         <HeroStat
           label="MRR"
           value={rc?.mrr}
@@ -101,11 +114,34 @@ export default async function AdminPage() {
           connected={supabase != null}
           unavailableReason="Supabase service-role metrics failed to load. Check SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL."
         >
-          <StatCard label="Waitlist" value={supabase?.waitlistCount} delta={supabase?.newWaitlistLast7d} />
-          <StatCard label="Signed up" value={supabase?.profilesCount} delta={supabase?.newProfilesLast7d} />
-          <StatCard label="Onboarded" value={supabase?.onboardedCount} />
-          <StatCard label="Premium" value={supabase?.premiumCount} />
-          <StatCard label="Reviews" value={supabase?.reviewsCount} delta={supabase?.reviewsLast7d} />
+          <StatCard
+            label="Waitlist"
+            value={supabase?.waitlistCount}
+            delta={supabase?.newWaitlistLast7d}
+            unavailable={supabase?.waitlistCount == null}
+          />
+          <StatCard
+            label="Signed up"
+            value={supabase?.profilesCount}
+            delta={supabase?.newProfilesLast7d}
+            unavailable={supabase?.profilesCount == null}
+          />
+          <StatCard
+            label="Onboarded"
+            value={supabase?.onboardedCount}
+            unavailable={supabase?.onboardedCount == null}
+          />
+          <StatCard
+            label="Premium"
+            value={supabase?.premiumCount}
+            unavailable={supabase?.premiumCount == null}
+          />
+          <StatCard
+            label="Reviews"
+            value={supabase?.reviewsCount}
+            delta={supabase?.reviewsLast7d}
+            unavailable={supabase?.reviewsCount == null}
+          />
         </DashboardSection>
 
         <DashboardSection

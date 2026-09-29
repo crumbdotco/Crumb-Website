@@ -13,25 +13,43 @@ function adminClient() {
 }
 
 async function readCount(
-  query: PromiseLike<{ count: number | null; error: { message: string } | null }>,
-): Promise<number> {
-  const { count, error } = await query;
-  if (error) throw new Error(`Supabase count read failed: ${error.message}`);
-  if (typeof count !== 'number' || !Number.isFinite(count)) {
-    throw new Error('Supabase count read returned no count');
+  query: PromiseLike<{
+    count: number | null;
+    error: { code?: string | null } | null;
+    status?: number;
+  }>,
+  metric: string,
+): Promise<number | null> {
+  try {
+    const { count, error, status } = await query;
+    if (error || typeof count !== 'number' || !Number.isFinite(count)) {
+      console.error('Supabase count read unavailable:', {
+        metric,
+        status: status ?? 0,
+        code: error?.code ?? 'COUNT_UNAVAILABLE',
+      });
+      return null;
+    }
+    return count;
+  } catch {
+    console.error('Supabase count read unavailable:', {
+      metric,
+      status: 0,
+      code: 'FETCH_ERROR',
+    });
+    return null;
   }
-  return count;
 }
 
 export interface SupabaseAdminMetrics {
-  waitlistCount: number;
-  profilesCount: number;
-  onboardedCount: number;
-  premiumCount: number;
-  reviewsCount: number;
-  reviewsLast7d: number;
-  newProfilesLast7d: number;
-  newWaitlistLast7d: number;
+  waitlistCount: number | null;
+  profilesCount: number | null;
+  onboardedCount: number | null;
+  premiumCount: number | null;
+  reviewsCount: number | null;
+  reviewsLast7d: number | null;
+  newProfilesLast7d: number | null;
+  newWaitlistLast7d: number | null;
 }
 
 export async function fetchSupabaseAdminMetrics(): Promise<SupabaseAdminMetrics> {
@@ -48,42 +66,48 @@ export async function fetchSupabaseAdminMetrics(): Promise<SupabaseAdminMetrics>
     newProfilesLast7dCount,
     newWaitlistLast7dCount,
   ] = await Promise.all([
-    readCount(supabase.from('waitlist').select('id', { count: 'exact', head: true })),
-    readCount(supabase.from('profiles').select('id', { count: 'exact', head: true })),
+    readCount(supabase.from('waitlist').select('id', { count: 'exact', head: true }), 'waitlistCount'),
+    readCount(supabase.from('profiles').select('id', { count: 'exact', head: true }), 'profilesCount'),
     readCount(
       supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('is_onboarded', true),
+        .eq('onboarding_complete', true),
+      'onboardedCount',
     ),
     readCount(
       supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('is_premium', true),
+      'premiumCount',
     ),
     readCount(
       supabase
         .from('restaurant_reviews')
         .select('id', { count: 'exact', head: true }),
+      'reviewsCount',
     ),
     readCount(
       supabase
         .from('restaurant_reviews')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', sevenDaysAgo),
+      'reviewsLast7d',
     ),
     readCount(
       supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', sevenDaysAgo),
+      'newProfilesLast7d',
     ),
     readCount(
       supabase
         .from('waitlist')
         .select('id', { count: 'exact', head: true })
         .gte('created_at', sevenDaysAgo),
+      'newWaitlistLast7d',
     ),
   ]);
 
