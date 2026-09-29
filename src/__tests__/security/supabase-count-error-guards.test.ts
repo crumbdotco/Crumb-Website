@@ -30,7 +30,8 @@ type CountRead = {
 const MSG_NOT_CHECKED = "count read error is not checked before count is used";
 const MSG_BRANCH_NO_EXIT = "count read error branch does not exit before count is used";
 const MSG_NOT_A_GUARD = "count read error is only read in an expression that cannot stop count use";
-const MSG_FALLBACK = "count must not fall back to a literal";
+const MSG_EXIT_NOT_DOMINATING = "count read error exit does not dominate count use";
+const MSG_FALLBACK = "count must not fall back to another value";
 const MSG_HELPER_UNCHECKED = "readCount helper must check error and exit before count is used";
 const MSG_HELPER_FALLBACK = "readCount helper must not fall back to a literal count";
 
@@ -40,14 +41,24 @@ function isIdentifier(node: ts.Node, name: string): node is ts.Identifier {
 
 type ResolvedOptions = { options: ts.ObjectLiteralExpression; viaVariable: boolean };
 
-// The options object is either an inline literal or a same-scope const object.
-function resolveOptions(node: ts.CallExpression): ResolvedOptions | null {
-  const argument = node.arguments[1];
-  if (!argument) return null;
-  if (ts.isObjectLiteralExpression(argument)) return { options: argument, viaVariable: false };
-  if (!ts.isIdentifier(argument)) return null;
+// Strips parentheses, `as X`, `<X>`, `satisfies X` and `!` so wrapped values are seen through.
+function unwrap(node: ts.Expression): ts.Expression {
+  let current = node;
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isAsExpression(current) ||
+    ts.isTypeAssertionExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isNonNullExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
 
-  let scope: ts.Node | undefined = node.parent;
+// The initializer of the nearest enclosing-scope (block or module) const/let with this name.
+function findInitializer(name: string, from: ts.Node): ts.Expression | null {
+  let scope: ts.Node | undefined = from.parent;
   while (scope) {
     if (ts.isBlock(scope) || ts.isSourceFile(scope)) {
       for (const statement of scope.statements) {
@@ -55,11 +66,10 @@ function resolveOptions(node: ts.CallExpression): ResolvedOptions | null {
         for (const declaration of statement.declarationList.declarations) {
           if (
             ts.isIdentifier(declaration.name) &&
-            declaration.name.text === argument.text &&
-            declaration.initializer &&
-            ts.isObjectLiteralExpression(declaration.initializer)
+            declaration.name.text === name &&
+            declaration.initializer
           ) {
-            return { options: declaration.initializer, viaVariable: true };
+            return declaration.initializer;
           }
         }
       }
@@ -69,19 +79,49 @@ function resolveOptions(node: ts.CallExpression): ResolvedOptions | null {
   return null;
 }
 
+// Follows wrappers and identifier hops (same scope or module scope) to an object literal.
+function resolveObject(
+  expression: ts.Expression,
+  depth = 0,
+): { object: ts.ObjectLiteralExpression; viaVariable: boolean } | null {
+  const node = unwrap(expression);
+  if (ts.isObjectLiteralExpression(node)) return { object: node, viaVariable: false };
+  if (!ts.isIdentifier(node) || depth > 5) return null;
+  const initializer = findInitializer(node.text, node);
+  const resolved = initializer ? resolveObject(initializer, depth + 1) : null;
+  return resolved ? { object: resolved.object, viaVariable: true } : null;
+}
+
+// The options object is an inline literal or a const object (wrapped or spread) in scope.
+function resolveOptions(node: ts.CallExpression): ResolvedOptions | null {
+  const argument = node.arguments[1];
+  if (!argument) return null;
+  const resolved = resolveObject(argument);
+  if (!resolved) return null;
+  const spreads = resolved.object.properties.some(ts.isSpreadAssignment);
+  return { options: resolved.object, viaVariable: resolved.viaVariable || spreads };
+}
+
 // Returns the count option value ("exact", "estimated", "<dynamic>") or null when absent.
-function countOptionMode(options: ts.ObjectLiteralExpression): string | null {
+// A spread of an object that resolves in scope is followed; the last writer wins.
+function countOptionMode(options: ts.ObjectLiteralExpression, depth = 0): string | null {
+  let mode: string | null = null;
   for (const property of options.properties) {
-    if (
+    if (ts.isSpreadAssignment(property) && depth <= 5) {
+      const spread = resolveObject(property.expression);
+      const inner = spread ? countOptionMode(spread.object, depth + 1) : null;
+      if (inner !== null) mode = inner;
+    } else if (
       (ts.isPropertyAssignment(property) || ts.isShorthandPropertyAssignment(property)) &&
       isIdentifier(property.name, "count")
     ) {
-      return ts.isPropertyAssignment(property) && ts.isStringLiteral(property.initializer)
-        ? property.initializer.text
-        : "<dynamic>";
+      mode =
+        ts.isPropertyAssignment(property) && ts.isStringLiteral(unwrap(property.initializer))
+          ? (unwrap(property.initializer) as ts.StringLiteral).text
+          : "<dynamic>";
     }
   }
-  return null;
+  return mode;
 }
 
 function hasHeadBeforeCount(options: ts.ObjectLiteralExpression): boolean {
@@ -174,13 +214,41 @@ function helperThrows(sourceFile: ts.SourceFile, helperName: string): boolean {
   return throws;
 }
 
-function isPassedToThrowingHelper(node: ts.Identifier, sourceFile: ts.SourceFile): boolean {
+// A same-body statement, before the use, calling a throwing helper with the error.
+function isThrowingHelperStatement(
+  node: ts.Identifier,
+  use: ts.Node,
+  sourceFile: ts.SourceFile,
+): boolean {
   const call = node.parent;
+  const statement = call.parent;
   return (
     ts.isCallExpression(call) &&
     call.arguments.some((argument) => argument === node) &&
     ts.isIdentifier(call.expression) &&
-    helperThrows(sourceFile, call.expression.text)
+    helperThrows(sourceFile, call.expression.text) &&
+    ts.isExpressionStatement(statement) &&
+    dominates(statement, use)
+  );
+}
+
+function enclosingFunction(node: ts.Node): ts.Node {
+  let current: ts.Node = node.parent;
+  while (!ts.isSourceFile(current) && !ts.isFunctionLike(current)) current = current.parent;
+  return current;
+}
+
+// The statement is a direct child of a block (or module) that also contains the use, in the
+// same function body, and ends before the use starts. Approximates control-flow dominance:
+// a check in a nested block, callback or never-called function does not qualify.
+function dominates(statement: ts.Node, use: ts.Node): boolean {
+  const container = statement.parent;
+  return (
+    (ts.isBlock(container) || ts.isSourceFile(container)) &&
+    isInside(use, container) &&
+    enclosingFunction(statement) === enclosingFunction(use) &&
+    (statement.getEnd() <= use.getStart() ||
+      (ts.isIfStatement(statement) && isInside(use, statement.expression)))
   );
 }
 
@@ -215,6 +283,15 @@ function conditionIf(node: ts.Identifier): ts.IfStatement | null {
   return null;
 }
 
+function exitsButDoesNotDominate(error: ts.Identifier): boolean {
+  const statement = conditionIf(error);
+  if (!statement) return false;
+  const negated =
+    ts.isPrefixUnaryExpression(error.parent) &&
+    error.parent.operator === ts.SyntaxKind.ExclamationToken;
+  return statementExits(negated ? statement.elseStatement : statement.thenStatement);
+}
+
 function isInside(node: ts.Node, container: ts.Node | undefined): boolean {
   return !!container && node.getStart() >= container.getStart() && node.getEnd() <= container.getEnd();
 }
@@ -229,21 +306,23 @@ function ifGuardsCount(error: ts.Identifier, counts: ts.Identifier[]): boolean {
     error.parent.operator === ts.SyntaxKind.ExclamationToken;
   const errorBranch = negated ? statement.elseStatement : statement.thenStatement;
   const okBranch = negated ? statement.thenStatement : statement.elseStatement;
-  if (statementExits(errorBranch)) return true;
-  return (
+  const confined =
     !!okBranch &&
-    counts.every((count) => isInside(count, statement.expression) || isInside(count, okBranch))
-  );
+    counts.every((count) => isInside(count, statement.expression) || isInside(count, okBranch));
+  return confined || (statementExits(errorBranch) && dominates(statement, counts[0]));
 }
 
-function isLiteralFallback(node: ts.Expression): boolean {
+// Any fallback on a count binding (`count ?? x`, `count || x`, wrapped in parentheses or a cast).
+function isCountFallback(node: ts.BinaryExpression, countNames: Set<string>): boolean {
+  const kind = node.operatorToken.kind;
+  const left = unwrap(node.left);
   return (
-    ts.isNumericLiteral(node) ||
-    ts.isStringLiteral(node) ||
-    node.kind === ts.SyntaxKind.NullKeyword ||
-    node.kind === ts.SyntaxKind.TrueKeyword ||
-    node.kind === ts.SyntaxKind.FalseKeyword ||
-    (ts.isPrefixUnaryExpression(node) && ts.isNumericLiteral(node.operand))
+    (kind === ts.SyntaxKind.QuestionQuestionToken ||
+      kind === ts.SyntaxKind.BarBarToken ||
+      kind === ts.SyntaxKind.QuestionQuestionEqualsToken ||
+      kind === ts.SyntaxKind.BarBarEqualsToken) &&
+    ts.isIdentifier(left) &&
+    countNames.has(left.text)
   );
 }
 
@@ -276,16 +355,7 @@ function bindingProblem(
         if (errorNames.has(node.text)) errors.push(node);
         if (countNames.has(node.text)) counts.push(node);
       }
-      if (
-        ts.isBinaryExpression(node) &&
-        (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken ||
-          node.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
-        ts.isIdentifier(node.left) &&
-        countNames.has(node.left.text) &&
-        isLiteralFallback(node.right)
-      ) {
-        fallback = true;
-      }
+      if (ts.isBinaryExpression(node) && isCountFallback(node, countNames)) fallback = true;
     }
     ts.forEachChild(node, visit);
   };
@@ -296,10 +366,11 @@ function bindingProblem(
   if (!firstCountUse) return MSG_NOT_CHECKED;
   const before = errors.filter((error) => error.getStart() < firstCountUse.getStart());
   const guarded = before.some(
-    (error) => ifGuardsCount(error, counts) || isPassedToThrowingHelper(error, sourceFile),
+    (error) => ifGuardsCount(error, counts) || isThrowingHelperStatement(error, firstCountUse, sourceFile),
   );
   if (!guarded) {
     if (before.length === 0) return MSG_NOT_CHECKED;
+    if (before.some((error) => exitsButDoesNotDominate(error))) return MSG_EXIT_NOT_DOMINATING;
     return before.some((error) => conditionIf(error)) ? MSG_BRANCH_NO_EXIT : MSG_NOT_A_GUARD;
   }
   return fallback ? MSG_FALLBACK : null;
@@ -450,6 +521,74 @@ const ROUND2_MUTANTS: Array<[string, string, string]> = [
   ],
 ];
 
+// Round 3 mutants: each stayed green before the dominance, unwrap and fallback-anywhere rules.
+const READ_WITH_ERROR = `const { count, error } = await ${EXACT_READ};`;
+const NO_ERROR_READ = (options: string) =>
+  `const { count } = await supabase.from("waitlist").select("*", ${options});\nconst safeCount = count;`;
+const MSG_OPTIONS_VIA_VARIABLE = "count read must destructure error (options via variable)";
+const ROUND3_MUTANTS: Array<[string, string, string]> = [
+  [
+    "N4 error exit nested in an unrelated if block",
+    `${READ_WITH_ERROR}\nif (url.length > 999) { if (error) { return null; } }\nconst safeCount = count;`,
+    MSG_EXIT_NOT_DOMINATING,
+  ],
+  [
+    "N5 return inside a forEach callback",
+    `${READ_WITH_ERROR}\n[1].forEach(() => { if (error) return; });\nconst safeCount = count;`,
+    MSG_EXIT_NOT_DOMINATING,
+  ],
+  [
+    "N6 return inside a nested arrow function",
+    `${READ_WITH_ERROR}\nconst check = () => { if (error) { return; } };\ncheck();\nconst safeCount = count;`,
+    MSG_EXIT_NOT_DOMINATING,
+  ],
+  [
+    "N16 throw inside a never-called function",
+    `${READ_WITH_ERROR}\nfunction never() { if (error) throw error; }\nconst safeCount = count;`,
+    MSG_EXIT_NOT_DOMINATING,
+  ],
+  [
+    "N3 count ?? a variable",
+    `${READ_WITH_ERROR}\nconst fallback = 0;\nif (error) return null;\nconst safeCount = count ?? fallback;`,
+    MSG_FALLBACK,
+  ],
+  [
+    "N7 cast around count ?? undefined",
+    `${READ_WITH_ERROR}\nif (error) return null;\nconst safeCount = (count ?? undefined) as number;`,
+    MSG_FALLBACK,
+  ],
+  [
+    "N8 parenthesised cast count || 0",
+    `${READ_WITH_ERROR}\nif (error) return null;\nconst safeCount = (count as number) || 0;`,
+    MSG_FALLBACK,
+  ],
+  [
+    "hoisted options with as const (same scope)",
+    `const opts = { count: "exact", head: true } as const;\n${NO_ERROR_READ("opts")}`,
+    MSG_OPTIONS_VIA_VARIABLE,
+  ],
+  [
+    "hoisted options with as const (module scope)",
+    `const opts = { count: "exact", head: true } as const;\nasync function run() {\n${NO_ERROR_READ("opts")}\n}`,
+    MSG_OPTIONS_VIA_VARIABLE,
+  ],
+  [
+    "hoisted options with satisfies",
+    `const opts = { count: "exact", head: true } satisfies object;\n${NO_ERROR_READ("opts")}`,
+    MSG_OPTIONS_VIA_VARIABLE,
+  ],
+  [
+    "hoisted options behind a non-null assertion and parentheses",
+    `const opts = { count: "exact", head: true };\n${NO_ERROR_READ("(opts!)")}`,
+    MSG_OPTIONS_VIA_VARIABLE,
+  ],
+  [
+    "N10 spread options carry the count option",
+    `const base = { count: "exact" } as const;\n${NO_ERROR_READ("{ ...base, head: true }")}`,
+    MSG_OPTIONS_VIA_VARIABLE,
+  ],
+];
+
 // Correct shapes that must stay green (no false alarm).
 const INNOCENT_SHAPES: Array<[string, string]> = [
   [
@@ -483,6 +622,26 @@ const INNOCENT_SHAPES: Array<[string, string]> = [
   [
     "count property names and non-count fallbacks are ignored",
     `const { count, error } = await ${EXACT_READ};\nif (error) return null;\nconst label = other ?? 0;\nreturn { count: count, note: { error: "none" } };`,
+  ],
+  [
+    "hoisted as const options with a checked error",
+    `const opts = { count: "exact", head: true } as const;\nconst { count, error } = await supabase.from("waitlist").select("*", opts);\nif (error) throw error;\nconst safeCount = count;`,
+  ],
+  [
+    "spread options with a checked error",
+    `const base = { count: "exact" } as const;\nconst { count, error } = await supabase.from("waitlist").select("*", { ...base, head: true });\nif (error) throw error;\nconst safeCount = count;`,
+  ],
+  [
+    "exit in an enclosing block, count used in a nested block",
+    `const { count, error } = await ${EXACT_READ};\nif (error) { return null; }\nif (ready) { use(count); }`,
+  ],
+  [
+    "exit and count inside the same try block",
+    `try { const { count, error } = await ${EXACT_READ};\nif (error) { return null; }\nuse(count); } catch { return null; }`,
+  ],
+  [
+    "throwing helper statement in the same body",
+    `function throwOnError(error: unknown) { if (error) throw error; }\nasync function run() { const { count, error } = await ${EXACT_READ};\nthrowOnError(error);\nreturn count; }`,
   ],
 ];
 
@@ -546,6 +705,19 @@ describe("security: every Supabase count read checks its own error result", () =
       ([, source]) => inspectSource(source)[0].replace(/fixture\.ts:\d+ /, ""),
     );
     expect(new Set(messages).size).toBe(5);
+  });
+
+  it.each(ROUND3_MUTANTS)("round 3 mutant %s is red", (_label, source, expectedMessage) => {
+    const findings = inspectSource(source);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toContain(expectedMessage);
+  });
+
+  it("round 3 rules each carry a distinct diagnostic", () => {
+    const messages = [ROUND3_MUTANTS[0], ROUND3_MUTANTS[4], ROUND3_MUTANTS[7]].map(([, source]) =>
+      inspectSource(source)[0].replace(/fixture\.ts:\d+ /, ""),
+    );
+    expect(new Set(messages).size).toBe(3);
   });
 
   it.each(INNOCENT_SHAPES)("innocent shape stays green: %s", (_label, source) => {
