@@ -3,7 +3,7 @@
  * Ported from the app repo's supabase/functions/_shared/redact.ts semantics.
  */
 
-import { redactForLog, MAX_LOG_LENGTH, MAX_INPUT_LENGTH } from "@/lib/redact-log";
+import { redactForLog, EMAIL_RE, MAX_LOG_LENGTH, MAX_INPUT_LENGTH } from "@/lib/redact-log";
 
 describe("redactForLog: emails", () => {
   it.each([
@@ -128,8 +128,30 @@ describe("redactForLog: emails the site accepts (isValidEmail)", () => {
     expect(redactForLog(input)).toBe(expected);
   });
 
-  it("redacts the literal JSON escape user\u0040example.com", () => {
-    expect(redactForLog(String.raw`{"m":"user@example.com"}`)).toBe('{"m":"[redacted-email]"}');
+  it("redacts the literal JSON escape (backslash u 0040)", () => {
+    expect(redactForLog(String.raw`{"m":"user\u0040example.com"}`)).toBe('{"m":"[redacted-email]"}');
+  });
+
+  it.each([
+    ["ampersand", "alice&@gmail.com"],
+    ["equals", "alice=@gmail.com"],
+    ["question mark", "alice?@gmail.com"],
+    ["slash", "alice/@gmail.com"],
+    ["close paren", "alice)@gmail.com"],
+    ["comma", "alice,@gmail.com"],
+    ["emoji", "alice\u{1F600}@gmail.com"],
+    ["nfd combining mark then a non-local char", "jose\u0301&@gmail.com"],
+    ["bare separator", "@gmail.com"],
+  ])("drops the domain when the local part ends in %s", (_name, addr) => {
+    const out = redactForLog(`failed for ${addr} today`);
+    expect(out).not.toContain("gmail");
+    expect(out).not.toContain(addr);
+    expect(out).toContain("[redacted-email]");
+    expect(out.endsWith(" today")).toBe(true);
+  });
+
+  it("keeps a combining-mark local part whole", () => {
+    expect(redactForLog("jose\u0301@gmail.com x")).toBe("[redacted-email] x");
   });
 
   it("does not redact ordinary text without an @", () => {
@@ -160,6 +182,18 @@ describe("redactForLog: bounded input and linear time", () => {
     ["unicode run", "é".repeat(50_000)],
   ])("finishes well under 100 ms on 50k of %s", (_name, input) => {
     expect(timed(input)).toBeLessThan(100);
+  });
+
+  it.each([
+    ["a run with no @", "a".repeat(50_000)],
+    ["a run ending in @", "a".repeat(50_000) + "@"],
+    ["dotted run", "a.".repeat(25_000)],
+    ["percent run", "%".repeat(50_000) + "@a"],
+    ["unicode run", "é".repeat(50_000)],
+  ])("the email regex alone is linear on 50k uncapped chars of %s", (_name, input) => {
+    const start = performance.now();
+    input.replace(EMAIL_RE, "x");
+    expect(performance.now() - start).toBeLessThan(100);
   });
 
   it("caps the raw input before the regexes run", () => {

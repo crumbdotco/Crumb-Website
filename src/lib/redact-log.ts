@@ -32,13 +32,17 @@ const CREDENTIAL_PARAM_RE =
  * stay OUT of the local class so "email=a@b.io" keeps its "email=" context.
  * The lookbehind anchors an unquoted match to the start of a local run, which
  * keeps the scan linear on long runs with no @ (no per-position rescans). A
- * quoted local part is bounded to 64 characters for the same reason.
+ * quoted local part is bounded to 64 characters for the same reason. The
+ * unquoted run may be empty, so an address whose local part ends in a
+ * character outside the class (alice&@x.com) still loses its domain; only the
+ * prefix before that character can leak.
  * Separators: @, %40 (URL encoded) and the literal six characters backslash-
  * u-0040 (how a JSON string spells @).
  */
-const LOCAL_CHARS = String.raw`\p{L}\p{N}._%+!#$*'^` + "`" + String.raw`{|}~-`;
-const EMAIL_RE = new RegExp(
-  String.raw`(?:"[^"\s@]{1,64}"|(?<![${LOCAL_CHARS}])[${LOCAL_CHARS}]+)` +
+const LOCAL_CHARS = String.raw`\p{L}\p{M}\p{N}._%+!#$*'^` + "`" + String.raw`{|}~-`;
+/** Exported so the timing test can run it on uncapped input. */
+export const EMAIL_RE = new RegExp(
+  String.raw`(?:"[^"\s@]{1,64}"|(?<![${LOCAL_CHARS}])[${LOCAL_CHARS}]*)` +
     String.raw`(?:@|%40|\\u0040)[\p{L}\p{N}.-]+\.\p{L}{2,}`,
   "gu",
 );
