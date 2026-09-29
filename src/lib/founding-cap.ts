@@ -21,6 +21,8 @@
  * only ever returns a real, usable cap or throws.
  */
 
+import { redactForLog } from "@/lib/redact-log";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<any> };
 
@@ -49,20 +51,20 @@ export async function getFoundingCap(supabase: SupabaseLike): Promise<number> {
   try {
     result = await supabase.rpc("get_founding_cap");
   } catch (err) {
-    const reason = err instanceof Error ? err.message : "unknown error";
-    console.error("get_founding_cap RPC threw, refusing to guess the cap:", reason);
-    throw new FoundingCapUnavailableError(`get_founding_cap RPC threw: ${reason}`);
+    const detail = redactForLog(err);
+    console.error("get_founding_cap RPC threw, refusing to guess the cap:", detail);
+    throw new FoundingCapUnavailableError(`get_founding_cap RPC threw: ${detail}`);
   }
 
   const { data, error } = result;
 
   if (error) {
-    console.error("get_founding_cap RPC returned an error, refusing to guess the cap:", error.message);
-    throw new FoundingCapUnavailableError(`get_founding_cap RPC error: ${error.message}`);
+    console.error("get_founding_cap RPC returned an error, refusing to guess the cap:", redactForLog(error.message));
+    throw new FoundingCapUnavailableError(`get_founding_cap RPC error: ${redactForLog(error.message)}`);
   }
 
   if (!isValidCap(data)) {
-    const unusable = describeUnusableValue(data);
+    const unusable = redactForLog(describeUnusableValue(data));
     console.error("get_founding_cap RPC returned an unusable value, refusing to guess the cap:", unusable);
     throw new FoundingCapUnavailableError(`get_founding_cap RPC returned an unusable value: ${unusable}`);
   }

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isValidReferralCode } from "@/lib/referral-code";
+import { redactForLog } from "@/lib/redact-log";
 
 export const dynamic = "force-dynamic";
 
@@ -73,10 +74,10 @@ export async function GET(request: Request) {
         { onConflict: "code,ip_hash", ignoreDuplicates: true }
       );
       if (error) {
-        console.error("referral_clicks upsert failed:", error);
+        console.error("referral_clicks upsert failed:", redactForLog(error));
       }
     } catch (err) {
-      console.error("referral_clicks upsert threw:", err);
+      console.error("referral_clicks upsert threw:", redactForLog(err));
     }
   }
 
