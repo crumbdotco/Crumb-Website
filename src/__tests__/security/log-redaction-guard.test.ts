@@ -316,11 +316,30 @@ function taintCallbackParams(cb: ts.Expression | undefined, ctx: Ctx): void {
   }
 }
 
+/** Array iteration methods mapped to how many leading callback parameters carry data (index is not data). */
+const ITERATION_PARAMS: ReadonlyMap<string, number> = new Map([
+  ["forEach", 1], ["map", 1], ["filter", 1], ["some", 1], ["every", 1],
+  ["find", 1], ["findLast", 1], ["flatMap", 1], ["reduce", 2], ["reduceRight", 2],
+]);
+
+/** `[err.message].forEach((k) => ...)`: the callback parameters carry the tainted receiver. */
+function taintIterationCallback(
+  callee: ts.PropertyAccessExpression,
+  cb: ts.Expression | undefined,
+  ctx: Ctx,
+): void {
+  const count = ITERATION_PARAMS.get(callee.name.text);
+  if (!count || !cb || !(ts.isArrowFunction(cb) || ts.isFunctionExpression(cb))) return;
+  if (!inspect(callee.expression, ctx)) return;
+  cb.parameters.slice(0, count).forEach((p) => taintBindings(ctx, cb, p.name, "derived"));
+}
+
 function taintCall(node: ts.CallExpression, ctx: Ctx): void {
   const callee = node.expression;
   if (ts.isPropertyAccessExpression(callee)) {
     if (callee.name.text === "catch") taintCallbackParams(node.arguments[0], ctx);
     if (callee.name.text === "then") taintCallbackParams(node.arguments[1], ctx);
+    taintIterationCallback(callee, node.arguments[0], ctx);
   }
   if (!ts.isIdentifier(callee) || ctx.helperNames.has(callee.text)) return;
   const fn = ctx.functions.get(callee.text);
@@ -491,6 +510,9 @@ describe("log redaction guard: fixtures flag offending shapes", () => {
     ["for-of over a tainted array", wrap(`for (const k of [err.message]) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
     ["for-of over a tainted local", wrap(`const msgs = [err.message]; for (const k of msgs) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
     ["for-in over a tainted value", wrap(`for (const k in err) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
+    ["forEach over a tainted array", wrap(`[err.message].forEach((k) => console.error("x", k));`), 'local "k" derived from an error logged unredacted'],
+    ["map over a tainted array", wrap(`[err.message].map((k) => console.error("x", k));`), 'local "k" derived from an error logged unredacted'],
+    ["reduce item over a tainted array", wrap(`[err.message].reduce((a, k) => { console.error("x", k); return a; }, "");`), 'local "k" derived from an error logged unredacted'],
     ["for-of into an existing variable", wrap(`let k = ""; for (k of [err.message]) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
     ["local of a local", wrap(`const a = err.message; const b = a; console.error("x", b);`), 'local "b" derived from an error logged unredacted'],
     ["destructured local of a tainted value", wrap(`const { message } = err; console.error("x", message);`), 'local "message" derived from an error logged unredacted'],
@@ -590,6 +612,7 @@ describe("log redaction guard: fixtures pass innocent shapes", () => {
     ["a helper that only receives fixed values", `function logIt(x: string){ console.error("x", x); } logIt("fixed");`],
     ["a helper that redacts its parameter", withImport(`function logIt(x: unknown){ console.error("x", redactForLog(x)); } function f(){ try { g(); } catch (err) { logIt(err); } }`)],
     ["a same-file helper that returns only a code", `function code(x: {code: string}){ return x.code; } function f(){ try { g(); } catch (err) { const c = code(err); console.error("x", c); } }`],
+    ["forEach over a clean array", wrap(`["a", "b"].forEach((k) => console.error("x", k));`)],
     ["for-of over a clean array", wrap(`for (const k of ["a", "b"]) console.error("x", k);`)],
     ["a taint that stays in its own function", `function a(){ try { g(); } catch (err) { const m = err.message; h(m); } } function b(m: string){ console.error("x", m); }`],
   ])("passes %s", (_name, source) => {
