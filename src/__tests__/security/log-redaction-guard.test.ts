@@ -1,25 +1,49 @@
 /**
  * Static-analysis guard (Crumb-Website#18): every console.* argument in
  * non-test source that carries an error must go through redactForLog
- * (src/lib/redact-log.ts). Supabase errors on email-keyed tables echo the
- * address, and Vercel logs have a wider audience than customer emails
- * should reach.
+ * (src/lib/redact-log.ts, imported from that module). Supabase errors on
+ * email-keyed tables echo the address, and Vercel logs have a wider audience
+ * than customer emails should reach.
+ *
+ * A console call is: console.x(...), console["x"](...), globalThis.console.x,
+ * window/self/global.console.x, an alias (`const log = console.error`,
+ * `const c = console`, `const { error: logE } = console`, `.bind(console)`),
+ * and any of those through .call / .apply.
+ *
+ * TAINTED names (per function scope, followed to a fixpoint):
+ *   - every name bound by a catch clause, including destructured ones
+ *   - every parameter of a `.catch(cb)` / `.then(_, cb)` callback
+ *   - a local const/let/var, or an assignment target, whose initializer would
+ *     itself be flagged (`const message = err.message`), and a destructured
+ *     name whose property is error-named (`const { error: dbFail } = ...`)
+ *   - a same-file function parameter that a call site feeds a flagged
+ *     argument (a forwarding helper is flagged at its own console call)
  *
  * FLAGGED argument shapes (walked through templates, spreads, object and
- * array literals, conditionals, binary expressions, casts and non-redact
- * calls):
- *   - a caught variable (catch clause binding) or any identifier named
- *     like an error (err, error, e, fooErr, fooError, reason, exception,
- *     cause), bare, in a `{ error }` shorthand, in `${err}`, or spread
- *   - a `.message`, `.details`, `.hint`, `.stack` or `.cause` property access
+ * array literals, conditionals, binary expressions, casts, `satisfies`,
+ * `<T>x`, `new X(...)` and non-redact calls):
+ *   - a tainted name, or any identifier named like an error (err, error, e,
+ *     fooErr, fooError, reason, exception, cause), bare, in a `{ error }`
+ *     shorthand, in `${err}`, or spread
+ *   - a `.message`, `.details`, `.hint`, `.stack` or `.cause` access, dotted
+ *     or as `x["message"]`
  *   - a property access whose own name looks like an error (`result.error`)
- * PASSING: `redactForLog(...)` (never inspected further), string literals,
- * numbers, and property reads such as `error.code` / `status`.
+ * PASSING: `redactForLog(...)` (never inspected further; only counts when the
+ * name is imported from src/lib/redact-log and not redeclared in the file),
+ * string literals, numbers, and property reads such as `error.code`.
  * Comments are never counted (AST based).
+ *
+ * A call to a same-file function is flagged only when one of that function's
+ * return expressions is (its parameters are tainted by call sites instead).
+ *
+ * KNOWN LIMITS (logged in implementation-notes.md): a `.catch(namedFn)` with
+ * an identifier callback, aliasing through object properties, and secrets that
+ * are not errors (Bearer tokens, JWTs) are not tracked.
  *
  * RATCHET: ALLOWLIST holds sites another unmerged branch rewrites. An entry
  * that no longer matches a violation FAILS the suite, so the list is cleaned
- * the moment the rewrite lands.
+ * the moment the rewrite lands. Entries match file + first string literal of
+ * the call (not a count).
  */
 
 import { readFileSync, readdirSync } from "fs";
@@ -30,84 +54,318 @@ const SRC_ROOT = path.resolve(__dirname, "..", "..");
 const ERROR_NAME_RE = /^(e|err|error|exception|reason|cause|.*Err|.*Error)$/;
 const UNSAFE_PROPS = new Set(["message", "details", "hint", "stack", "cause"]);
 const HELPER = "redactForLog";
+const HELPER_MODULE_RE = /(^|\/)redact-log$/;
+const GLOBAL_OBJECTS = new Set(["globalThis", "window", "self", "global"]);
+const ASSIGN_OPS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.EqualsToken,
+  ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ts.SyntaxKind.BarBarEqualsToken,
+  ts.SyntaxKind.PlusEqualsToken,
+]);
 
 type Violation = { readonly message: string; readonly text: string };
 type Found = { file: string; key: string; message: string };
+type Kind = "caught" | "derived" | "param";
+type FnLike = ts.FunctionLikeDeclaration;
 
-function collectCaughtNames(sf: ts.SourceFile): Set<string> {
-  const names = new Set<string>();
-  const visit = (node: ts.Node): void => {
-    if (ts.isCatchClause(node) && node.variableDeclaration) {
-      const name = node.variableDeclaration.name;
-      if (ts.isIdentifier(name)) names.add(name.text);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
-  return names;
+interface Ctx {
+  readonly taint: Map<ts.Node, Map<string, Kind>>;
+  readonly helperNames: Set<string>;
+  readonly consoleFns: Set<string>;
+  readonly consoleObjs: Set<string>;
+  readonly functions: Map<string, FnLike>;
+  readonly inFlight: Set<FnLike>;
+  changed: boolean;
 }
 
-function isConsoleCall(node: ts.CallExpression): boolean {
-  const callee = node.expression;
+function boundNames(name: ts.BindingName): string[] {
+  if (ts.isIdentifier(name)) return [name.text];
+  return name.elements.flatMap((el) => (ts.isOmittedExpression(el) ? [] : boundNames(el.name)));
+}
+
+const isScopeNode = (n: ts.Node): boolean =>
+  ts.isFunctionLike(n) || ts.isCatchClause(n) || ts.isSourceFile(n);
+
+/** Nearest function or file: where a declaration's name lives. */
+function fnScopeOf(node: ts.Node): ts.Node {
+  let p: ts.Node = node.parent;
+  while (!ts.isSourceFile(p) && !ts.isFunctionLike(p)) p = p.parent;
+  return p;
+}
+
+function lookup(name: string, at: ts.Node, ctx: Ctx): Kind | undefined {
+  for (let n: ts.Node | undefined = at; n; n = n.parent) {
+    if (isScopeNode(n)) {
+      const kind = ctx.taint.get(n)?.get(name);
+      if (kind) return kind;
+    }
+  }
+  return undefined;
+}
+
+function addTaint(ctx: Ctx, scope: ts.Node, name: string, kind: Kind): void {
+  const names = ctx.taint.get(scope) ?? new Map<string, Kind>();
+  if (!names.has(name)) {
+    names.set(name, kind);
+    ctx.taint.set(scope, names);
+    ctx.changed = true;
+  }
+}
+
+function addTo(set: Set<string>, name: string, ctx: Ctx): void {
+  if (!set.has(name)) {
+    set.add(name);
+    ctx.changed = true;
+  }
+}
+
+const unwrap = (e: ts.Expression): ts.Expression =>
+  ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) ? unwrap(e.expression) : e;
+
+function isConsoleObj(raw: ts.Expression, ctx: Ctx): boolean {
+  const e = unwrap(raw);
+  if (ts.isIdentifier(e)) return e.text === "console" || ctx.consoleObjs.has(e.text);
   return (
-    ts.isPropertyAccessExpression(callee) &&
-    ts.isIdentifier(callee.expression) &&
-    callee.expression.text === "console"
+    ts.isPropertyAccessExpression(e) &&
+    e.name.text === "console" &&
+    ts.isIdentifier(e.expression) &&
+    GLOBAL_OBJECTS.has(e.expression.text)
   );
 }
 
-function describeName(name: string, caught: Set<string>): string | null {
-  if (caught.has(name)) return `caught variable "${name}" logged unredacted`;
+function isConsoleFn(raw: ts.Expression, ctx: Ctx): boolean {
+  const e = unwrap(raw);
+  if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) {
+    return isConsoleObj(e.expression, ctx);
+  }
+  if (ts.isIdentifier(e)) return ctx.consoleFns.has(e.text);
+  return (
+    ts.isCallExpression(e) &&
+    ts.isPropertyAccessExpression(e.expression) &&
+    e.expression.name.text === "bind" &&
+    isConsoleFn(e.expression.expression, ctx)
+  );
+}
+
+function isConsoleCall(node: ts.CallExpression, ctx: Ctx): boolean {
+  const callee = node.expression;
+  if (isConsoleFn(callee, ctx)) return true;
+  return (
+    ts.isPropertyAccessExpression(callee) &&
+    (callee.name.text === "call" || callee.name.text === "apply") &&
+    isConsoleFn(callee.expression, ctx)
+  );
+}
+
+function describeName(name: string, at: ts.Node, ctx: Ctx): string | null {
+  const kind = lookup(name, at, ctx);
+  if (kind === "caught") return `caught variable "${name}" logged unredacted`;
+  if (kind === "derived") return `local "${name}" derived from an error logged unredacted`;
+  if (kind === "param") return `parameter "${name}" receives an error at a call site and is logged unredacted`;
   if (ERROR_NAME_RE.test(name)) return `error-named value "${name}" logged unredacted`;
   return null;
 }
 
-function describeAccess(node: ts.PropertyAccessExpression): string | null {
-  const prop = node.name.text;
+function describeProp(prop: string): string | null {
   if (UNSAFE_PROPS.has(prop)) return `".${prop}" of a value logged unredacted`;
   if (ERROR_NAME_RE.test(prop)) return `error-named property ".${prop}" logged unredacted`;
   return null;
 }
 
-function firstOf(nodes: ReadonlyArray<ts.Node>, caught: Set<string>): string | null {
+function firstOf(nodes: ReadonlyArray<ts.Node>, ctx: Ctx): string | null {
   for (const n of nodes) {
-    const found = inspect(n, caught);
+    const found = inspect(n, ctx);
     if (found) return found;
   }
   return null;
 }
 
-function inspectCall(node: ts.CallExpression, caught: Set<string>): string | null {
-  if (ts.isIdentifier(node.expression) && node.expression.text === HELPER) return null;
-  const own = ts.isPropertyAccessExpression(node.expression)
-    ? inspect(node.expression.expression, caught)
-    : null;
-  return own ?? firstOf(node.arguments, caught);
+function returnExpressions(fn: FnLike): ts.Expression[] {
+  if (!fn.body) return [];
+  if (!ts.isBlock(fn.body)) return [fn.body];
+  const out: ts.Expression[] = [];
+  const visit = (n: ts.Node): void => {
+    if (ts.isReturnStatement(n) && n.expression) out.push(n.expression);
+    if (!ts.isFunctionLike(n)) ts.forEachChild(n, visit);
+  };
+  fn.body.statements.forEach(visit);
+  return out;
 }
 
-function inspect(node: ts.Node, caught: Set<string>): string | null {
-  if (ts.isCallExpression(node)) return inspectCall(node, caught);
-  if (ts.isIdentifier(node)) return describeName(node.text, caught);
-  if (ts.isPropertyAccessExpression(node)) return describeAccess(node);
-  if (ts.isShorthandPropertyAssignment(node)) return describeName(node.name.text, caught);
-  if (ts.isPropertyAssignment(node)) return inspect(node.initializer, caught);
-  if (ts.isSpreadAssignment(node) || ts.isSpreadElement(node)) return inspect(node.expression, caught);
-  if (ts.isObjectLiteralExpression(node)) return firstOf(node.properties, caught);
-  if (ts.isArrayLiteralExpression(node)) return firstOf(node.elements, caught);
-  if (ts.isTemplateExpression(node)) return firstOf(node.templateSpans.map((s) => s.expression), caught);
+/** A same-file function taints its result only when a return expression is flagged. */
+function inspectLocalCall(fn: FnLike, ctx: Ctx): string | null {
+  if (ctx.inFlight.has(fn)) return null;
+  ctx.inFlight.add(fn);
+  const found = firstOf(returnExpressions(fn), ctx);
+  ctx.inFlight.delete(fn);
+  return found;
+}
+
+function inspectCall(node: ts.CallExpression, ctx: Ctx): string | null {
+  const callee = node.expression;
+  if (ts.isIdentifier(callee) && ctx.helperNames.has(callee.text)) return null;
+  const local = ts.isIdentifier(callee) ? ctx.functions.get(callee.text) : undefined;
+  if (local) return inspectLocalCall(local, ctx);
+  const own =
+    ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee)
+      ? inspect(callee.expression, ctx)
+      : null;
+  return own ?? firstOf(node.arguments, ctx);
+}
+
+function inspectAccess(node: ts.ElementAccessExpression, ctx: Ctx): string | null {
+  const key = node.argumentExpression;
+  if (ts.isStringLiteralLike(key)) return describeProp(key.text);
+  return inspect(node.expression, ctx);
+}
+
+function inspect(node: ts.Node, ctx: Ctx): string | null {
+  if (ts.isCallExpression(node)) return inspectCall(node, ctx);
+  if (ts.isNewExpression(node)) return firstOf(node.arguments ?? [], ctx);
+  if (ts.isIdentifier(node)) return describeName(node.text, node, ctx);
+  if (ts.isPropertyAccessExpression(node)) return describeProp(node.name.text);
+  if (ts.isElementAccessExpression(node)) return inspectAccess(node, ctx);
+  if (ts.isShorthandPropertyAssignment(node)) return describeName(node.name.text, node, ctx);
+  if (ts.isPropertyAssignment(node)) return inspect(node.initializer, ctx);
+  if (ts.isSpreadAssignment(node) || ts.isSpreadElement(node)) return inspect(node.expression, ctx);
+  if (ts.isObjectLiteralExpression(node)) return firstOf(node.properties, ctx);
+  if (ts.isArrayLiteralExpression(node)) return firstOf(node.elements, ctx);
+  if (ts.isTemplateExpression(node)) return firstOf(node.templateSpans.map((s) => s.expression), ctx);
+  if (ts.isTaggedTemplateExpression(node)) return inspect(node.template, ctx);
   if (ts.isConditionalExpression(node)) {
-    return firstOf([node.condition, node.whenTrue, node.whenFalse], caught);
+    return firstOf([node.condition, node.whenTrue, node.whenFalse], ctx);
   }
-  if (ts.isBinaryExpression(node)) return firstOf([node.left, node.right], caught);
+  if (ts.isBinaryExpression(node)) return firstOf([node.left, node.right], ctx);
   if (
     ts.isParenthesizedExpression(node) ||
     ts.isAsExpression(node) ||
+    ts.isTypeAssertionExpression(node) ||
+    ts.isSatisfiesExpression(node) ||
     ts.isNonNullExpression(node) ||
     ts.isAwaitExpression(node)
   ) {
-    return inspect(node.expression, caught);
+    return inspect(node.expression, ctx);
   }
   return null;
+}
+
+/** Names of redactForLog imported from the redact-log module and not redeclared in the file. */
+function collectHelperNames(sf: ts.SourceFile): Set<string> {
+  const imported = new Set<string>();
+  const declared = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportSpecifier(node) && (node.propertyName ?? node.name).text === HELPER) {
+      const spec = node.parent.parent.parent.moduleSpecifier;
+      if (ts.isStringLiteral(spec) && HELPER_MODULE_RE.test(spec.text)) imported.add(node.name.text);
+    }
+    if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
+      boundNames(node.name).forEach((n) => declared.add(n));
+    }
+    if (ts.isFunctionDeclaration(node) && node.name) declared.add(node.name.text);
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return new Set([...imported].filter((n) => !declared.has(n)));
+}
+
+function collectFunctions(sf: ts.SourceFile): Map<string, FnLike> {
+  const fns = new Map<string, FnLike>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isFunctionDeclaration(node) && node.name) fns.set(node.name.text, node);
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
+    ) {
+      fns.set(node.name.text, node.initializer);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return fns;
+}
+
+function taintBindings(ctx: Ctx, scope: ts.Node, name: ts.BindingName, kind: Kind): void {
+  boundNames(name).forEach((n) => addTaint(ctx, scope, n, kind));
+}
+
+function taintDeclaration(node: ts.VariableDeclaration, ctx: Ctx): void {
+  const scope = fnScopeOf(node);
+  if (ts.isObjectBindingPattern(node.name)) {
+    for (const el of node.name.elements) {
+      if (el.propertyName && ts.isIdentifier(el.propertyName) && ERROR_NAME_RE.test(el.propertyName.text)) {
+        taintBindings(ctx, scope, el.name, "derived");
+      }
+    }
+  }
+  const init = node.initializer;
+  if (!init) return;
+  if (inspect(init, ctx)) taintBindings(ctx, scope, node.name, "derived");
+  if (ts.isIdentifier(node.name)) {
+    if (isConsoleFn(init, ctx)) addTo(ctx.consoleFns, node.name.text, ctx);
+    if (isConsoleObj(init, ctx)) addTo(ctx.consoleObjs, node.name.text, ctx);
+  } else if (ts.isObjectBindingPattern(node.name) && isConsoleObj(init, ctx)) {
+    boundNames(node.name).forEach((n) => addTo(ctx.consoleFns, n, ctx));
+  }
+}
+
+function taintCallbackParams(cb: ts.Expression | undefined, ctx: Ctx): void {
+  if (cb && (ts.isArrowFunction(cb) || ts.isFunctionExpression(cb))) {
+    cb.parameters.forEach((p) => taintBindings(ctx, cb, p.name, "caught"));
+  }
+}
+
+function taintCall(node: ts.CallExpression, ctx: Ctx): void {
+  const callee = node.expression;
+  if (ts.isPropertyAccessExpression(callee)) {
+    if (callee.name.text === "catch") taintCallbackParams(node.arguments[0], ctx);
+    if (callee.name.text === "then") taintCallbackParams(node.arguments[1], ctx);
+  }
+  if (!ts.isIdentifier(callee) || ctx.helperNames.has(callee.text)) return;
+  const fn = ctx.functions.get(callee.text);
+  if (!fn) return;
+  node.arguments.forEach((arg, i) => {
+    const param = fn.parameters[i];
+    if (param && inspect(arg, ctx)) taintBindings(ctx, fn, param.name, "param");
+  });
+}
+
+function taintNode(node: ts.Node, ctx: Ctx): void {
+  if (ts.isCatchClause(node) && node.variableDeclaration) {
+    taintBindings(ctx, node, node.variableDeclaration.name, "caught");
+  }
+  if (ts.isVariableDeclaration(node)) taintDeclaration(node, ctx);
+  if (ts.isCallExpression(node)) taintCall(node, ctx);
+  if (
+    ts.isBinaryExpression(node) &&
+    ASSIGN_OPS.has(node.operatorToken.kind) &&
+    ts.isIdentifier(node.left) &&
+    inspect(node.right, ctx)
+  ) {
+    addTaint(ctx, fnScopeOf(node), node.left.text, "derived");
+  }
+}
+
+function buildContext(sf: ts.SourceFile): Ctx {
+  const ctx: Ctx = {
+    taint: new Map(),
+    helperNames: collectHelperNames(sf),
+    consoleFns: new Set(),
+    consoleObjs: new Set(),
+    functions: collectFunctions(sf),
+    inFlight: new Set(),
+    changed: true,
+  };
+  while (ctx.changed) {
+    ctx.changed = false;
+    const visit = (node: ts.Node): void => {
+      taintNode(node, ctx);
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return ctx;
 }
 
 /** First string literal argument: the stable key used by the allowlist. */
@@ -121,11 +379,11 @@ function callKey(call: ts.CallExpression): string {
 
 function findViolations(source: string, fileName = "fixture.ts"): Violation[] {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true);
-  const caught = collectCaughtNames(sf);
+  const ctx = buildContext(sf);
   const out: Violation[] = [];
   const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && isConsoleCall(node)) {
-      const found = firstOf(node.arguments, caught);
+    if (ts.isCallExpression(node) && isConsoleCall(node, ctx)) {
+      const found = firstOf(node.arguments, ctx);
       if (found) out.push({ message: found, text: callKey(node) });
     }
     ts.forEachChild(node, visit);
@@ -183,8 +441,10 @@ function applyAllowlist(
   };
 }
 
+const IMPORT = `import { redactForLog } from "@/lib/redact-log";\n`;
 const wrap = (body: string) =>
-  `function f(){ try { g(); } catch (err) { ${body} } }`;
+  `${IMPORT}function f(){ try { g(); } catch (err) { ${body} } }`;
+const withImport = (source: string) => `${IMPORT}${source}`;
 
 describe("log redaction guard: fixtures flag offending shapes", () => {
   it.each([
@@ -203,6 +463,70 @@ describe("log redaction guard: fixtures flag offending shapes", () => {
     ["method call on error", wrap(`console.error("x", err.toString());`), 'caught variable "err" logged unredacted'],
     ["string concatenation", wrap(`console.error("x" + err);`), 'caught variable "err" logged unredacted'],
     ["cast", wrap(`console.error("x", err as Error);`), 'caught variable "err" logged unredacted'],
+    ["satisfies", wrap(`console.error("x", err satisfies unknown);`), 'caught variable "err" logged unredacted'],
+    ["angle-bracket assertion", wrap(`console.error("x", <Error>err);`), 'caught variable "err" logged unredacted'],
+    ["new Error(String(err))", wrap(`console.error("x", new Error(String(err)));`), 'caught variable "err" logged unredacted'],
+    ["tagged template", wrap("console.error(String.raw`x ${err}`);"), 'caught variable "err" logged unredacted'],
+    ["element access .message", wrap(`console.error("x", err["message"]);`), '".message" of a value logged unredacted'],
+    ["element access of an error-named key", `console.error("x", res["error"]);`, 'error-named property ".error" logged unredacted'],
+    ["destructured catch parameter", `try { g(); } catch ({ message }) { console.error("x", message); }`, 'caught variable "message" logged unredacted'],
+    ["nested destructured catch parameter", `try { g(); } catch ({ a: { b } }) { console.error("x", b); }`, 'caught variable "b" logged unredacted'],
+    ["promise .catch callback parameter", `p.catch((x) => console.error("x", x));`, 'caught variable "x" logged unredacted'],
+    ["promise .then rejection callback", `p.then((ok) => ok, function (x) { console.error("x", x); });`, 'caught variable "x" logged unredacted'],
+    ["local copy of err.message", wrap(`const msg = err.message; console.error("x", msg);`), 'local "msg" derived from an error logged unredacted'],
+    ["reassigned local", wrap(`let m = ""; m = err.message; console.error("x", m);`), 'local "m" derived from an error logged unredacted'],
+    ["local of a local", wrap(`const a = err.message; const b = a; console.error("x", b);`), 'local "b" derived from an error logged unredacted'],
+    ["destructured local of a tainted value", wrap(`const { message } = err; console.error("x", message);`), 'local "message" derived from an error logged unredacted'],
+    ["renamed error destructure", `async function f(){ const { error: dbFail } = await q(); console.error("x", dbFail); }`, 'local "dbFail" derived from an error logged unredacted'],
+    ["console[\"error\"]", wrap(`console["error"]("x", err);`), 'caught variable "err" logged unredacted'],
+    ["console method alias", wrap(`const log = console.error; log("x", err);`), 'caught variable "err" logged unredacted'],
+    ["console bind alias", wrap(`const log = console.error.bind(console); log("x", err);`), 'caught variable "err" logged unredacted'],
+    ["console object alias", wrap(`const c = console; c.error("x", err);`), 'caught variable "err" logged unredacted'],
+    ["destructured console alias", wrap(`const { warn: w } = console; w("x", err);`), 'caught variable "err" logged unredacted'],
+    ["globalThis.console", wrap(`globalThis.console.error("x", err);`), 'caught variable "err" logged unredacted'],
+    ["window.console", wrap(`window.console.warn("x", err);`), 'caught variable "err" logged unredacted'],
+    ["console.error.call", wrap(`console.error.call(console, "x", err);`), 'caught variable "err" logged unredacted'],
+    ["console.error.apply", wrap(`console.error.apply(console, ["x", err]);`), 'caught variable "err" logged unredacted'],
+    [
+      "forwarding helper (flagged at its console call)",
+      `function logIt(x: unknown){ console.error("x", x); } function f(){ try { g(); } catch (err) { logIt(err); } }`,
+      'parameter "x" receives an error at a call site and is logged unredacted',
+    ],
+    [
+      "forwarding arrow helper",
+      `const logIt = (x: unknown) => console.error("x", x); function f(error: unknown){ logIt(error.message); }`,
+      'parameter "x" receives an error at a call site and is logged unredacted',
+    ],
+    [
+      "same-file helper that returns the message",
+      `function pick(x: {message: string}){ return x.message; } function f(){ try { g(); } catch (err) { const m = pick(err); console.error("x", m); } }`,
+      'local "m" derived from an error logged unredacted',
+    ],
+    [
+      "PERMANENT: pre-fix waitlist line",
+      `async function f(){ const { error: insertError } = await q(); if (insertError) { const message = insertError.message ?? ""; console.error("Waitlist insert error:", message); } }`,
+      'local "message" derived from an error logged unredacted',
+    ],
+    [
+      "PERMANENT: pre-fix waitlist line, verbatim",
+      `const message = insertError.message ?? ""; console.error("Waitlist insert error:", message);`,
+      'local "message" derived from an error logged unredacted',
+    ],
+    [
+      "locally shadowed redactForLog (no import)",
+      `function f(){ try { g(); } catch (err) { const redactForLog = (v: unknown) => v; console.error("x", redactForLog(err)); } }`,
+      'parameter "v" receives an error at a call site and is logged unredacted',
+    ],
+    [
+      "redactForLog imported from somewhere else",
+      `import { redactForLog } from "./other"; function f(){ try { g(); } catch (err) { console.error("x", redactForLog(err)); } }`,
+      'caught variable "err" logged unredacted',
+    ],
+    [
+      "imported redactForLog shadowed by a local declaration",
+      `${IMPORT}function f(){ try { g(); } catch (err) { const redactForLog = (v: unknown) => v; console.error("x", redactForLog(err)); } }`,
+      'parameter "v" receives an error at a call site and is logged unredacted',
+    ],
   ])("flags %s", (_name, source, message) => {
     const violations = findViolations(source);
     expect(violations).toHaveLength(1);
@@ -215,6 +539,8 @@ describe("log redaction guard: fixtures flag offending shapes", () => {
       findViolations(`console.error(res.message);`)[0].message,
       findViolations(`console.error(res.details);`)[0].message,
       findViolations(`console.error(res.error);`)[0].message,
+      findViolations(wrap(`const m = err.message; console.error(m);`))[0].message,
+      findViolations(`function l(x: unknown){ console.error(x); } l(res.error);`)[0].message,
     ];
     expect(new Set(messages).size).toBe(messages.length);
   });
@@ -223,16 +549,31 @@ describe("log redaction guard: fixtures flag offending shapes", () => {
 describe("log redaction guard: fixtures pass innocent shapes", () => {
   it.each([
     ["redactForLog(err)", wrap(`console.error("x", redactForLog(err));`)],
-    ["redactForLog(error.message)", `function f(error: {message:string}){ console.error("x", redactForLog(error.message)); }`],
+    ["redactForLog(error.message)", withImport(`function f(error: {message:string}){ console.error("x", redactForLog(error.message)); }`)],
     ["redacted inside an object", wrap(`console.error("x", { reason: redactForLog(err) });`)],
+    ["aliased import of the helper", `import { redactForLog as safe } from "@/lib/redact-log"; function f(){ try { g(); } catch (err) { console.error("x", safe(err)); } }`],
+    ["relative import of the helper", `import { redactForLog } from "./redact-log"; function f(){ try { g(); } catch (err) { console.error("x", redactForLog(err)); } }`],
     ["fixed strings", `console.error("Founding availability unavailable");`],
     ["status and code reads", `function f(error: {code:string}, status: number){ console.error("x", { status, code: error.code }); }`],
+    ["element access to a safe key", wrap(`console.error("x", err["code"]);`)],
     ["numbers and identifiers", `console.warn("x", paymentId, event.type, 5);`],
     ["a comment mentioning err.message", `// console.error(err.message)\n/* console.error(err) */\nconsole.info("ok");`],
     ["non-console calls", wrap(`logger.error(err); handle(err.message);`)],
     ["template without errors", "console.error(`count ${count} of ${total}`);"],
     ["a string literal that says err", `console.error("err", 'error.message');`],
     ["a function reference argument", `console.error("x", () => 1);`],
+    ["a redacted local", wrap(`const msg = redactForLog(err); console.error("x", msg);`)],
+    ["a local that is not derived from an error", `const message = "hello"; console.error("x", message);`],
+    ["a status copied from an error", wrap(`const status = err.status; console.error("x", status);`)],
+    ["a console alias with fixed text", `const log = console.error; log("fixed");`],
+    ["a redacted destructured error", withImport(`async function f(){ const { error: dbFail } = await q(); console.error("x", redactForLog(dbFail)); }`)],
+    ["a redacted destructured catch", withImport(`try { g(); } catch ({ message }) { console.error("x", redactForLog(message)); }`)],
+    ["a redacted promise catch", withImport(`p.catch((x) => console.error("x", redactForLog(x)));`)],
+    ["a promise catch that ignores the reason", `p.catch(() => null); p.then((v) => v, () => console.error("failed"));`],
+    ["a helper that only receives fixed values", `function logIt(x: string){ console.error("x", x); } logIt("fixed");`],
+    ["a helper that redacts its parameter", withImport(`function logIt(x: unknown){ console.error("x", redactForLog(x)); } function f(){ try { g(); } catch (err) { logIt(err); } }`)],
+    ["a same-file helper that returns only a code", `function code(x: {code: string}){ return x.code; } function f(){ try { g(); } catch (err) { const c = code(err); console.error("x", c); } }`],
+    ["a taint that stays in its own function", `function a(){ try { g(); } catch (err) { const m = err.message; h(m); } } function b(m: string){ console.error("x", m); }`],
   ])("passes %s", (_name, source) => {
     expect(findViolations(source)).toEqual([]);
   });
