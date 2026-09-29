@@ -457,3 +457,29 @@ Deviations:
 Owner decisions still open: none.
 
 What recurring class did this work expose, and what automation now guards it? Silent fallback of unavailable remote counts into plausible zero values. The component regression tests guard the user-visible loading, retry, unavailable, success, and unmount states. The route and webhook tests guard error-shaped Supabase responses, and the real-tree static guard prevents future count reads from omitting their error result.
+
+## #20 fix/20-founding-count-unavailable (2026-09-28, lane: Codex luna writer, opus reviewer)
+
+Decisions:
+
+- Fixed the admin schema contradiction by using `profiles.onboarding_complete` for the onboarded metric. The owner must confirm that this boolean is the intended meaning of "onboarded" before deployment.
+- Admin count reads now return `number | null` independently. One failed read is logged with metric, response status, and error code while the other seven metrics remain real. The admin page marks only the failed stat unavailable and logs a redacted source failure instead of silently discarding it.
+- FoundingSection now gives each attempt its own 8 second AbortController timeout, keeps the unmount guard across retries and JSON parsing, and removes the dead retry-timer cleanup branch. The explanatory test header was restored with the new no-fabricated-count behavior.
+- Waitlist, founding, and webhook count-read logs now use status and error code only. A waitlist rate-limit read failure is logged and continues to allow the signup. The webhook still returns `{ received: true }` and skips payment-link deactivation when its count is unknown, preserving its fail-safe behavior.
+- Replaced the count-read regex guard with a TypeScript AST per-call guard. It detects option-key order independently, requires error checking before count use or a helper that throws, keeps calls independent inside `Promise.all`, uses identifier boundaries, and reports file:line locations. Fixtures cover M1-M4 as distinct red diagnostics, M6 as green, helper-throw handling, the cross-call case, and the real source tree.
+
+Deviations:
+
+- `gh issue view 20 --repo crumbdotco/Crumb-Website` was attempted from the worktree but the sandbox denied the GitHub network socket. The local common brief, checked-out source, existing tests, and reviewer findings were the available specification.
+- `npm run test:coverage -- --runInBand --watchman=false` ran 40 suites and 627 tests successfully but exited non-zero because the existing global floor remained below threshold: 75.90% statements, 71.09% branches, 72.68% functions, and 76.86% lines. Changed source coverage was: FoundingSection 100 / 95.74 / 100 / 100; waitlist route 93.42 / 77.61 / 100 / 94.59; founding route 90.47 / 100 / 100 / 90.47; webhook 100 / 96.15 / 100 / 100; admin Supabase metrics 100 / 92.30 / 100 / 100, in statements / branches / functions / lines order. Admin page remains excluded by the repository coverage config.
+- `npm run lint` completed with four pre-existing errors in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`, plus existing warnings. No new lint errors came from these changes. `npm run build` passed, with only existing middleware and metadata warnings.
+
+Owner decisions still open: confirm that `profiles.onboarding_complete` is the intended onboarded definition in the live schema. No real Cloudflare, Vercel, Stripe, or Supabase network behavior was exercised in this sandbox.
+
+What recurring class did this work expose, and what automation now guards it? Remote count reads can fail with an error object, a missing count, a rejected request, or a request that never settles, and each shape can otherwise become a plausible zero or an endless loading state. Component fake-timer tests guard retries, timeout, JSON validation, unmount aborts, unavailable copy, and CTA behavior. Route tests guard omission and fail-safe behavior. The AST guard now enforces checked error handling per count-read call across the real `src/` tree.
+
+## Resume verification correction (2026-09-29)
+
+- Re-ran `npm.cmd run test:coverage -- --runInBand --watchman=false`: 40 suites and 629 tests passed. The command exited non-zero only because the existing global thresholds remained below the configured floor: 76.09% statements, 71.46% branches, 72.68% functions, and 77.07% lines.
+- Re-ran `npm.cmd run lint`: the same four pre-existing errors remain in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`; no changed-file errors were reported.
+- Per the brief, `npm run build` was skipped because the sandbox cannot fetch Google Fonts; the orchestrator must run it in its networked environment.
