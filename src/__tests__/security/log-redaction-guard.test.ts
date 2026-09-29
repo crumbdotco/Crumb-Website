@@ -331,11 +331,24 @@ function taintCall(node: ts.CallExpression, ctx: Ctx): void {
   });
 }
 
+/** `for (const k of [err.message])`: the loop variable carries the tainted expression. */
+function taintLoopVariable(node: ts.ForOfStatement | ts.ForInStatement, ctx: Ctx): void {
+  const init = node.initializer;
+  if (ts.isVariableDeclarationList(init)) {
+    init.declarations.forEach((d) => taintBindings(ctx, fnScopeOf(d), d.name, "derived"));
+  } else if (ts.isIdentifier(init)) {
+    addTaint(ctx, fnScopeOf(node), init.text, "derived");
+  }
+}
+
 function taintNode(node: ts.Node, ctx: Ctx): void {
   if (ts.isCatchClause(node) && node.variableDeclaration) {
     taintBindings(ctx, node, node.variableDeclaration.name, "caught");
   }
   if (ts.isVariableDeclaration(node)) taintDeclaration(node, ctx);
+  if ((ts.isForOfStatement(node) || ts.isForInStatement(node)) && inspect(node.expression, ctx)) {
+    taintLoopVariable(node, ctx);
+  }
   if (ts.isCallExpression(node)) taintCall(node, ctx);
   if (
     ts.isBinaryExpression(node) &&
@@ -475,6 +488,10 @@ describe("log redaction guard: fixtures flag offending shapes", () => {
     ["promise .then rejection callback", `p.then((ok) => ok, function (x) { console.error("x", x); });`, 'caught variable "x" logged unredacted'],
     ["local copy of err.message", wrap(`const msg = err.message; console.error("x", msg);`), 'local "msg" derived from an error logged unredacted'],
     ["reassigned local", wrap(`let m = ""; m = err.message; console.error("x", m);`), 'local "m" derived from an error logged unredacted'],
+    ["for-of over a tainted array", wrap(`for (const k of [err.message]) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
+    ["for-of over a tainted local", wrap(`const msgs = [err.message]; for (const k of msgs) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
+    ["for-in over a tainted value", wrap(`for (const k in err) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
+    ["for-of into an existing variable", wrap(`let k = ""; for (k of [err.message]) console.error("x", k);`), 'local "k" derived from an error logged unredacted'],
     ["local of a local", wrap(`const a = err.message; const b = a; console.error("x", b);`), 'local "b" derived from an error logged unredacted'],
     ["destructured local of a tainted value", wrap(`const { message } = err; console.error("x", message);`), 'local "message" derived from an error logged unredacted'],
     ["renamed error destructure", `async function f(){ const { error: dbFail } = await q(); console.error("x", dbFail); }`, 'local "dbFail" derived from an error logged unredacted'],
@@ -573,6 +590,7 @@ describe("log redaction guard: fixtures pass innocent shapes", () => {
     ["a helper that only receives fixed values", `function logIt(x: string){ console.error("x", x); } logIt("fixed");`],
     ["a helper that redacts its parameter", withImport(`function logIt(x: unknown){ console.error("x", redactForLog(x)); } function f(){ try { g(); } catch (err) { logIt(err); } }`)],
     ["a same-file helper that returns only a code", `function code(x: {code: string}){ return x.code; } function f(){ try { g(); } catch (err) { const c = code(err); console.error("x", c); } }`],
+    ["for-of over a clean array", wrap(`for (const k of ["a", "b"]) console.error("x", k);`)],
     ["a taint that stays in its own function", `function a(){ try { g(); } catch (err) { const m = err.message; h(m); } } function b(m: string){ console.error("x", m); }`],
   ])("passes %s", (_name, source) => {
     expect(findViolations(source)).toEqual([]);
