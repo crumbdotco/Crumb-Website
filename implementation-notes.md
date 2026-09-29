@@ -505,3 +505,9 @@ Lane: Claude sonnet writer, opus reviewer.
 - Deviation (conservative approximation, no full control-flow analysis): dominance is "direct statement of an enclosing block, same function, before the use". A check inside a bare `{ }` block or a nested if is red even when it happens to dominate. The real tree stays green.
 - Known gap left open: `Number(count)` coercion (N9) is still green; it was not in this round's rules.
 - What recurring class did this expose, and what automation now guards it? An error check that does not dominate the count use (nested, callback, unreachable) and a wrapped or aliased fallback re-create "failed read looks like zero". The AST guard now requires a dominating exit and bans any count fallback, with red fixtures for each rule.
+
+### #20 review close-out (round 5, orchestrator adjudication 2026-09-29)
+- ACCEPTED-DEVIATION 1: `Number(count)`-style coercion (N9) is not caught statically; a guard cannot enumerate coercions. Check run (round 5 reviewer): the error path is blocked by the dominance rule in all four files; the null-count/no-error path has an outcome test for the founding route (waitlist-founding.test.ts:116-124), the webhook (stripe-webhook-extended.test.ts:520-532) and the admin helper (supabase-admin.test.ts:90-97).
+- ACCEPTED-DEVIATION 2: the waitlist route's isDbRateLimited (src/app/api/waitlist/route.ts:54) has no null-count test. Check: that read fails open by design and a coerced 0 also means allow, so the user-visible outcome is identical; only the COUNT_UNAVAILABLE log line would be lost.
+- ACCEPTED-DEVIATION 3: the dominance rule is stricter than real control flow (N15, and a use in the else branch of an exiting if). It fails closed and the real tree uses neither shape.
+- Review rounds: 5 of 5 (cap). Lane: Codex luna writer (rounds 0-1), Claude sonnet writer (rounds 2-3), Claude opus reviewer.
