@@ -391,7 +391,7 @@ describe("POST /api/stripe/webhook - extended coverage", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Founding cap check failed:",
-        { status: 0, code: "FETCH_ERROR" },
+        { stage: "count_read", status: 0, code: "FETCH_ERROR" },
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
     });
@@ -411,9 +411,97 @@ describe("POST /api/stripe/webhook - extended coverage", () => {
       expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
         "Founding cap check failed:",
-        { status: 0, code: "FETCH_ERROR" },
+        { stage: "cap_read", status: 0, code: "CAP_UNAVAILABLE" },
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    describe("payment link deactivation failure is distinguishable from a read failure", () => {
+      async function runAtCapWithStripeFailure(failure: unknown) {
+        process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+        mockEq.mockResolvedValue({ count: 100 });
+        mockPaymentLinksUpdate.mockRejectedValue(failure);
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+      }
+
+      it("logs the deactivate stage with the Stripe error type and code, never the message", async () => {
+        await runAtCapWithStripeFailure(
+          Object.assign(new Error("secret detail founder@example.com"), {
+            type: "StripeInvalidRequestError",
+            code: "resource_missing",
+          }),
+        );
+
+        expect(mockPaymentLinksUpdate).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith("Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+          stripeType: "StripeInvalidRequestError",
+          stripeCode: "resource_missing",
+        });
+        expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("secret detail");
+        expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("founder@example.com");
+        expect(mockJson).toHaveBeenCalledWith({ received: true });
+      });
+
+      it("logs only stage and code when the Stripe error carries no type or code", async () => {
+        await runAtCapWithStripeFailure(new Error("boom"));
+
+        expect(consoleSpy).toHaveBeenCalledWith("Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+        expect(mockJson).toHaveBeenCalledWith({ received: true });
+      });
+
+      it("ignores non-string type or code values and non-object rejections", async () => {
+        await runAtCapWithStripeFailure({ type: 500, code: null });
+        await runAtCapWithStripeFailure("plain string rejection");
+
+        expect(consoleSpy).toHaveBeenNthCalledWith(1, "Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+        expect(consoleSpy).toHaveBeenNthCalledWith(2, "Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+      });
+
+      it("gives the three failure stages three different log details", async () => {
+        const details: unknown[] = [];
+
+        process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+        mockEq.mockRejectedValueOnce(new Error("db"));
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("a@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        mockEq.mockResolvedValueOnce({ count: 999 });
+        mockRpc.mockResolvedValueOnce({ data: null, error: { message: "denied" } });
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("b@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        mockEq.mockResolvedValueOnce({ count: 999 });
+        mockPaymentLinksUpdate.mockRejectedValueOnce(new Error("stripe"));
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("c@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        expect(new Set(details.map((detail) => JSON.stringify(detail))).size).toBe(3);
+        expect(details.map((detail) => (detail as { stage: string }).stage)).toEqual([
+          "count_read",
+          "cap_read",
+          "payment_link_deactivate",
+        ]);
+      });
     });
 
     it("does NOT deactivate and still returns 200 when the count read returns a Supabase error", async () => {
