@@ -29,10 +29,10 @@ describe("StoreBadges", () => {
       delete process.env.NEXT_PUBLIC_PLAY_STORE_URL;
     });
 
-    it("renders exactly two anchors, never a disabled/non-interactive element", () => {
+    it("renders exactly one anchor (App Store); Google Play is a non-link badge", () => {
       render(<StoreBadges />);
       const links = screen.getAllByRole("link");
-      expect(links).toHaveLength(2);
+      expect(links).toHaveLength(1);
     });
 
     it('the App Store badge falls back to the working /#founding CTA, never a bare "#"', () => {
@@ -48,11 +48,14 @@ describe("StoreBadges", () => {
       expect(appStoreLink).not.toHaveTextContent("Download on the");
     });
 
-    it('the Google Play badge falls back to the working /#founding CTA too, never a bare "#" or a disabled span', () => {
-      render(<StoreBadges />);
-      const playLink = screen.getByRole("link", { name: /Google Play/i });
-      expect(playLink).toHaveAttribute("href", "/#founding");
-      expect(playLink).not.toHaveAttribute("aria-disabled");
+    it("the Google Play badge without a URL renders no link, says coming soon and never mentions the waitlist", () => {
+      const { container } = render(<StoreBadges />);
+      expect(screen.queryByRole("link", { name: /Google Play/i })).not.toBeInTheDocument();
+      const badge = screen.getByLabelText("Google Play coming soon");
+      expect(badge.tagName).not.toBe("A");
+      expect(badge).not.toHaveAttribute("href");
+      expect(badge).toHaveTextContent("Coming soon");
+      expect(container.innerHTML).not.toMatch(/waitlist/i);
     });
   });
 
@@ -109,6 +112,8 @@ describe("StoreBadges", () => {
   // shipping silently.
   describe("important-flagged colour utility (F53-R3-1: guards the F53-N1 homepage regression)", () => {
     it("both badge anchors carry an important-flagged text-white utility (base + hover), each independently guarded (R4-WEB-1 fix: boundary-anchored so the hover token cannot satisfy the base assertion)", () => {
+      process.env.NEXT_PUBLIC_APP_STORE_URL = "https://apps.apple.com/app/crumbify/id123456789";
+      process.env.NEXT_PUBLIC_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=x";
       const { container } = render(<StoreBadges />);
       const anchors = container.querySelectorAll("a");
       expect(anchors).toHaveLength(2);
@@ -133,8 +138,10 @@ describe("StoreBadges", () => {
 
   describe("icon sizing (F53-R1: the raw SVGs in data.ts carry no width/height of their own)", () => {
     it("each icon is wrapped in an explicitly sized container, not left to the SVG's own (nonexistent) intrinsic size", () => {
+      delete process.env.NEXT_PUBLIC_PLAY_STORE_URL;
       const { container } = render(<StoreBadges />);
-      const iconWrappers = container.querySelectorAll("a > span:first-child");
+      // One link badge (App Store) and one non-link Play badge.
+      const iconWrappers = container.querySelectorAll("a > span:first-child, span[role='img'] > span:first-child");
       expect(iconWrappers).toHaveLength(2);
       iconWrappers.forEach((wrapper) => {
         expect(wrapper.className).toMatch(/h-\[27px\]/);
