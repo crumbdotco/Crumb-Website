@@ -20,13 +20,12 @@
  * changes, change the Tailwind classes below (single source for all three
  * mount points).
  *
- * Both badges ALWAYS resolve to a real, clickable, non-"#" anchor - never a
- * dead link and never a non-interactive disabled element (pixel-fix
- * F-53R2): when `NEXT_PUBLIC_APP_STORE_URL` / `NEXT_PUBLIC_PLAY_STORE_URL`
- * is not yet configured for a platform (pre-launch on that store), the
- * badge instead links to the site's founding-member join section
- * (`/#founding`, FoundingSection.tsx) as the working fallback CTA, so a
- * recipient without the app always has somewhere real to go.
+ * App Store badge ALWAYS resolves to a real, clickable, non-"#" anchor
+ * (pixel-fix F-53R2): when `NEXT_PUBLIC_APP_STORE_URL` is not configured it
+ * links to the site's founding-member section (`/#founding`). The Google
+ * Play badge, when `NEXT_PUBLIC_PLAY_STORE_URL` is unset (Android is not
+ * live), renders as a NON-link "Coming soon" badge (owner decision
+ * 2026-10-02: the free waitlist ended, so there is no form to point at).
  *
  * Pixel-fix F-53 fix-round r2 (F53-N1): the anchor's text colour uses the
  * `!` (important) Tailwind v4 modifier (`!text-white` / `hover:!text-white`)
@@ -84,7 +83,8 @@ export interface StoreBadgesProps {
 }
 
 interface StoreBadgeProps {
-  readonly href: string;
+  /** Omit for a non-link "coming soon" badge. */
+  readonly href?: string;
   readonly iconSvg: string;
   readonly smallLabel: string;
   readonly bigLabel: string;
@@ -92,12 +92,10 @@ interface StoreBadgeProps {
 }
 
 function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBadgeProps) {
-  return (
-    <a
-      className="inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-[560px]:flex-[1_1_auto] max-[560px]:min-w-0 max-[560px]:justify-center"
-      href={href}
-      aria-label={ariaLabel}
-    >
+  const className =
+    "inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-[560px]:flex-[1_1_auto] max-[560px]:min-w-0 max-[560px]:justify-center";
+  const content = (
+    <>
       <span
         className="flex h-[27px] w-[27px] flex-none items-center justify-center [&>svg]:block [&>svg]:h-full [&>svg]:w-full"
         dangerouslySetInnerHTML={{ __html: iconSvg }}
@@ -106,6 +104,20 @@ function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBad
         <small className="block text-[11px] font-medium opacity-90">{smallLabel}</small>
         <b className="block text-[18px] leading-[1.2] font-semibold">{bigLabel}</b>
       </span>
+    </>
+  );
+
+  if (!href) {
+    return (
+      <span className={`${className} cursor-default opacity-70`} role="img" aria-label={ariaLabel}>
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <a className={className} href={href} aria-label={ariaLabel}>
+      {content}
     </a>
   );
 }
@@ -127,18 +139,18 @@ export function StoreBadges({ className = "" }: StoreBadgesProps = {}) {
         ariaLabel={
           appStoreUrl
             ? "Download on the App Store"
-            : "App Store link coming soon - join the founding member waitlist instead"
+            : "App Store link coming soon, see founding membership instead"
         }
       />
       <StoreBadge
-        href={playStoreUrl || FALLBACK_CTA_HREF}
+        href={playStoreUrl || undefined}
         iconSvg={gplaySvg}
         smallLabel={playStoreUrl ? "Get it on" : "Coming soon"}
         bigLabel="Google Play"
         ariaLabel={
           playStoreUrl
             ? "Get it on Google Play"
-            : "Google Play link coming soon - join the founding member waitlist instead"
+            : "Google Play coming soon"
         }
       />
     </div>
