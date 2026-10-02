@@ -6,6 +6,7 @@ import { fetchAscMetrics } from '@/lib/admin/asc';
 import { fetchSentryMetrics } from '@/lib/admin/sentry';
 import { fetchReferralStats } from '@/lib/admin/referrals';
 import { requireAdmin } from '@/lib/admin/auth';
+import { redactForLog } from '@/lib/redact-log';
 import {
   DashboardSection,
   HeroStat,
@@ -28,7 +29,7 @@ export default async function AdminPage() {
   const [supabase, rc, asc, sentry, referrals] = await Promise.all([
     fetchSupabaseAdminMetrics().catch((error: unknown) => {
       console.error('Supabase admin metrics failed:', {
-        code: error instanceof Error ? error.name : 'UNKNOWN',
+        code: redactForLog(error instanceof Error ? error.name : 'UNKNOWN'),
       });
       return null;
     }),

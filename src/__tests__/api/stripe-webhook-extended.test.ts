@@ -162,7 +162,7 @@ describe("POST /api/stripe/webhook - extended coverage", () => {
       );
       expect(consoleSpy).toHaveBeenCalledWith(
         "Webhook signature verification failed:",
-        "STRIPE_WEBHOOK_SECRET environment variable is not configured",
+        "Error: STRIPE_WEBHOOK_SECRET environment variable is not configured",
       );
     });
   });
@@ -548,11 +548,11 @@ describe("POST /api/stripe/webhook - extended coverage", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Webhook signature verification failed:",
-        "No matching signature found",
+        "Error: No matching signature found",
       );
     });
 
-    it("logs 'unknown error' when constructEvent throws a non-Error value", async () => {
+    it("logs the stringified value when constructEvent throws a non-Error value", async () => {
       mockConstructEvent.mockImplementationOnce(() => {
         throw "string error"; // eslint-disable-line no-throw-literal
       });
@@ -561,7 +561,7 @@ describe("POST /api/stripe/webhook - extended coverage", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Webhook signature verification failed:",
-        "unknown error",
+        "string error",
       );
     });
   });

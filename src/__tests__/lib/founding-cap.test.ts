@@ -45,6 +45,30 @@ describe("getFoundingCap", () => {
     );
   });
 
+  it("redacts an email echoed by the RPC error in both the log and the thrown message", async () => {
+    const supabase = fakeSupabase({ data: null, error: { message: "no row for a.b+c@example.co.uk" } });
+
+    const thrown = await getFoundingCap(supabase).catch((e: Error) => e);
+
+    expect((thrown as Error).message).toBe("get_founding_cap RPC error: no row for [redacted-email]");
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("refusing to guess the cap"),
+      "no row for [redacted-email]"
+    );
+  });
+
+  it("redacts an email inside a rejected RPC call and an unusable value", async () => {
+    const rejecting = { rpc: jest.fn().mockRejectedValue(new Error("down for a@b.io")) };
+    const thrown = await getFoundingCap(rejecting).catch((e: Error) => e);
+    expect((thrown as Error).message).toBe("get_founding_cap RPC threw: Error: down for [redacted-email]");
+
+    const unusable = fakeSupabase({ data: { email: "a@b.io" }, error: null });
+    const thrownUnusable = await getFoundingCap(unusable).catch((e: Error) => e);
+    expect((thrownUnusable as Error).message).toBe(
+      'get_founding_cap RPC returned an unusable value: {"email":"[redacted-email]"}'
+    );
+  });
+
   it("throws FoundingCapUnavailableError on a null result", async () => {
     const supabase = fakeSupabase({ data: null, error: null });
     const cap = getFoundingCap(supabase);
@@ -84,7 +108,7 @@ describe("getFoundingCap", () => {
     await expect(getFoundingCap(supabase)).rejects.toBeInstanceOf(FoundingCapUnavailableError);
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("RPC threw"),
-      "network down"
+      "Error: network down"
     );
   });
 

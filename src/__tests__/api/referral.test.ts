@@ -282,4 +282,29 @@ describe("GET /referral", () => {
     expect(res.status).toBe(302);
     expect(mockUpsert).toHaveBeenCalled();
   });
+
+  it("redacts an email echoed by the upsert error and by a thrown error", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mockUpsert.mockResolvedValueOnce({ error: { message: "dup for a@b.io" } });
+      await GET(
+        buildRequest("https://crumbify.co.uk/referral?code=ABC123", { userAgent: IOS_UA, ip: "1.2.3.4" }) as unknown as Request
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        "referral_clicks upsert failed:",
+        '{"message":"dup for [redacted-email]"}'
+      );
+
+      mockUpsert.mockRejectedValueOnce(new Error("boom for c@d.io"));
+      await GET(
+        buildRequest("https://crumbify.co.uk/referral?code=ABC123", { userAgent: IOS_UA, ip: "1.2.3.4" }) as unknown as Request
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        "referral_clicks upsert threw:",
+        "Error: boom for [redacted-email]"
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });

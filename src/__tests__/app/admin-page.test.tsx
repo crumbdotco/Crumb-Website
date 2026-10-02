@@ -68,5 +68,17 @@ describe("AdminPage Supabase failure handling", () => {
     );
     expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("user@example.com");
   });
+
+  it("redacts an email carried in the error name and logs UNKNOWN for non-Error rejections", async () => {
+    const hostile = new Error("x");
+    hostile.name = "user@example.com";
+    mockFetchSupabaseAdminMetrics.mockRejectedValueOnce(hostile);
+    await AdminPage();
+    mockFetchSupabaseAdminMetrics.mockRejectedValueOnce("plain string");
+    await AdminPage();
+
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain("user@example.com");
+    expect(errorSpy).toHaveBeenLastCalledWith("Supabase admin metrics failed:", { code: "UNKNOWN" });
+  });
 });
 

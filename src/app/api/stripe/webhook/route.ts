@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 import { getFoundingCap } from '@/lib/founding-cap';
+import { redactForLog } from '@/lib/redact-log';
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     event = getStripe().webhooks.constructEvent(body, sig, getWebhookSecret());
   } catch (err) {
     // Log internally without leaking the error details externally
-    console.error('Webhook signature verification failed:', err instanceof Error ? err.message : 'unknown error');
+    console.error('Webhook signature verification failed:', redactForLog(err));
     return NextResponse.json({ error: 'Webhook signature failed' }, { status: 400 });
   }
 
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
         );
 
       if (error) {
-        console.error('Supabase upsert error in webhook:', error.message);
+        console.error('Supabase upsert error in webhook:', redactForLog(error.message));
         // Return 200 to Stripe to avoid retries for DB errors;
         // log and monitor via Supabase dashboard instead.
       }
@@ -188,7 +189,7 @@ export async function POST(request: Request) {
       .select('email');
 
     if (error) {
-      console.error('Supabase delete error in refund webhook:', error.message);
+      console.error('Supabase delete error in refund webhook:', redactForLog(error.message));
       return NextResponse.json({ received: true });
     }
 
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
       );
 
       if (demoteError) {
-        console.error('demote_refunded_founder RPC failed for a refunded waitlist row:', paymentId, demoteError.message);
+        console.error('demote_refunded_founder RPC failed for a refunded waitlist row:', paymentId, redactForLog(demoteError.message));
         continue;
       }
 
