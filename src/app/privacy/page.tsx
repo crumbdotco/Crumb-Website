@@ -49,7 +49,7 @@ const sectionStyle: React.CSSProperties = {
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" updated="24 September 2026">
+    <LegalShell title="Privacy Policy" updated="2 October 2026">
       <section style={sectionStyle}>
         <h2 style={headingStyle}>1. Introduction</h2>
         <p style={bodyStyle}>
@@ -446,7 +446,7 @@ export default function PrivacyPage() {
           <li>Pre-launch waitlist sign-up IP address and browser details: deleted 30 days after sign-up (the email itself is covered below).</li>
           <li>Trial-ending reminder scheduling records: 30 days.</li>
           <li>Founding-member emails: retained while the founding benefit exists, so the tier can be restored by verifying that email.</li>
-          <li>Pre-launch waitlist emails: kept until launch so we can send the launch notification you signed up for; contact us any time to be removed.</li>
+          <li>Pre-launch waitlist emails: kept until you ask us to delete them; contact us any time to be removed.</li>
           <li>Referral-link records: kept as a salted IP hash (never reversible to an address) for up to 12 months from the click, then deleted.</li>
           <li>Sentry session replays (masked): 90 days.</li>
           <li>
