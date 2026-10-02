@@ -432,20 +432,7 @@ function walk(dir: string): string[] {
   });
 }
 
-const REASON = "rewritten by #20 (Crumb-Website PR pending); remove when #20 merges";
-const ALLOWLIST: ReadonlyArray<{ file: string; key: string; reason: string }> = [
-  { file: "app/api/stripe/webhook/route.ts", key: "Founding cap check failed:", reason: REASON },
-  {
-    file: "app/api/waitlist/founding/route.ts",
-    key: "Founding availability unavailable: waitlist count read failed:",
-    reason: REASON,
-  },
-  {
-    file: "app/api/waitlist/founding/route.ts",
-    key: "Founding availability degraded: cap unavailable:",
-    reason: REASON,
-  },
-];
+const ALLOWLIST: ReadonlyArray<{ file: string; key: string; reason: string }> = [];
 
 function scanTree(root: string): Found[] {
   return walk(root).flatMap((full) => {
