@@ -1,6 +1,5 @@
 import { HeroMap } from "./HeroMap";
 import { StoreBadges } from "./StoreBadges";
-import { WaitlistForm } from "./WaitlistForm";
 
 export function Hero() {
   return (
@@ -18,7 +17,6 @@ export function Hero() {
             Every pin is a real spot a friend has actually been to, scored out of ten. Follow the ones
             you trust, save what looks good, go eat.
           </p>
-          <WaitlistForm />
           <StoreBadges />
         </div>
       </div>

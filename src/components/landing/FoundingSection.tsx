@@ -23,7 +23,6 @@ interface FoundingData {
 const PERKS = [
   "Founding member badge in the app",
   "Locked-in premium perks, kept as long as you stay",
-  "Early access before public launch",
 ];
 
 export function FoundingSection() {
