@@ -301,6 +301,7 @@ describe("FoundingSection", () => {
 
   it("no longer lists the early-access-before-launch perk", async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve({ count: 42, remaining: 58, closed: false }),
     }) as unknown as typeof fetch;
 
