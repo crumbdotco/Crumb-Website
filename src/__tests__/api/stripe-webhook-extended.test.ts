@@ -1,12 +1,12 @@
 /**
- * Extended Stripe webhook API route tests — targeting uncovered lines.
+ * Extended Stripe webhook API route tests - targeting uncovered lines.
  *
  * Uncovered lines from coverage report:
- *   8   — STRIPE_SECRET_KEY env var missing (getStripe throws)
- *   16  — STRIPE_WEBHOOK_SECRET env var missing (getWebhookSecret throws)
- *   25  — Supabase env vars missing (getSupabase throws)
- *   38  — request.text() throws (failed to read body)
- *   78  — Supabase upsert returns error (logs but returns 200)
+ *   8   - STRIPE_SECRET_KEY env var missing (getStripe throws)
+ *   16  - STRIPE_WEBHOOK_SECRET env var missing (getWebhookSecret throws)
+ *   25  - Supabase env vars missing (getSupabase throws)
+ *   38  - request.text() throws (failed to read body)
+ *   78  - Supabase upsert returns error (logs but returns 200)
  */
 
 // --- Supabase mock ---
@@ -70,7 +70,7 @@ function buildRequest(body: string, signature: string | null): Request {
   } as unknown as Request;
 }
 
-describe("POST /api/stripe/webhook — extended coverage", () => {
+describe("POST /api/stripe/webhook - extended coverage", () => {
   let consoleSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -100,7 +100,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Line 8: STRIPE_SECRET_KEY missing — getStripe throws inside try/catch
+  // Line 8: STRIPE_SECRET_KEY missing - getStripe throws inside try/catch
   // ---------------------------------------------------------------------------
 
   describe("Missing STRIPE_SECRET_KEY (line 8)", () => {
@@ -128,7 +128,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Line 16: STRIPE_WEBHOOK_SECRET missing — getWebhookSecret throws
+  // Line 16: STRIPE_WEBHOOK_SECRET missing - getWebhookSecret throws
   // ---------------------------------------------------------------------------
 
   describe("Missing STRIPE_WEBHOOK_SECRET (line 16)", () => {
@@ -142,11 +142,11 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
       // the throw happens before the mock is invoked.
       // However, our mock replaces Stripe constructor entirely, so getStripe()
       // returns the mock. Then .webhooks.constructEvent(body, sig, getWebhookSecret())
-      // evaluates getWebhookSecret() first — but getWebhookSecret reads from env vars
+      // evaluates getWebhookSecret() first - but getWebhookSecret reads from env vars
       // INSIDE the source code, not through our mock. Since the source code is imported
       // and the function is defined there, it should use process.env at call time.
       //
-      // Wait — the issue is that getStripe() in the source reads process.env.STRIPE_SECRET_KEY
+      // Wait - the issue is that getStripe() in the source reads process.env.STRIPE_SECRET_KEY
       // at runtime. With our mock of Stripe, `new Stripe(key)` always succeeds because
       // the mock doesn't check the key. But getStripe() checks `if (!key)` at line 7.
       // Similarly, getWebhookSecret() checks `if (!secret)` at line 15.
@@ -168,7 +168,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Line 25: Supabase env vars missing — getSupabase throws
+  // Line 25: Supabase env vars missing - getSupabase throws
   // ---------------------------------------------------------------------------
 
   describe("Missing Supabase env vars (line 25)", () => {
@@ -200,7 +200,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Line 38: request.text() throws — failed to read request body
+  // Line 38: request.text() throws - failed to read request body
   // ---------------------------------------------------------------------------
 
   describe("request.text() throws (line 38)", () => {
@@ -221,7 +221,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Line 78: Supabase upsert returns error — logs error, returns 200
+  // Line 78: Supabase upsert returns error - logs error, returns 200
   // ---------------------------------------------------------------------------
 
   describe("Supabase upsert error (line 78)", () => {
@@ -277,7 +277,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Edge: email is a non-string type (number) — typeof check fails
+  // Edge: email is a non-string type (number) - typeof check fails
   // ---------------------------------------------------------------------------
 
   describe("Non-string email in event data", () => {
@@ -391,7 +391,7 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith(
         "Founding cap check failed:",
-        expect.any(Error),
+        { stage: "count_read", status: 0, code: "FETCH_ERROR" },
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
     });
@@ -411,7 +411,124 @@ describe("POST /api/stripe/webhook — extended coverage", () => {
       expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(
         "Founding cap check failed:",
-        expect.any(Error),
+        { stage: "cap_read", status: 0, code: "CAP_UNAVAILABLE" },
+      );
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    describe("payment link deactivation failure is distinguishable from a read failure", () => {
+      async function runAtCapWithStripeFailure(failure: unknown) {
+        process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+        mockEq.mockResolvedValue({ count: 100 });
+        mockPaymentLinksUpdate.mockRejectedValue(failure);
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+      }
+
+      it("logs the deactivate stage with the Stripe error type and code, never the message", async () => {
+        await runAtCapWithStripeFailure(
+          Object.assign(new Error("secret detail founder@example.com"), {
+            type: "StripeInvalidRequestError",
+            code: "resource_missing",
+          }),
+        );
+
+        expect(mockPaymentLinksUpdate).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith("Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+          stripeType: "StripeInvalidRequestError",
+          stripeCode: "resource_missing",
+        });
+        expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("secret detail");
+        expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("founder@example.com");
+        expect(mockJson).toHaveBeenCalledWith({ received: true });
+      });
+
+      it("logs only stage and code when the Stripe error carries no type or code", async () => {
+        await runAtCapWithStripeFailure(new Error("boom"));
+
+        expect(consoleSpy).toHaveBeenCalledWith("Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+        expect(mockJson).toHaveBeenCalledWith({ received: true });
+      });
+
+      it("ignores non-string type or code values and non-object rejections", async () => {
+        await runAtCapWithStripeFailure({ type: 500, code: null });
+        await runAtCapWithStripeFailure("plain string rejection");
+
+        expect(consoleSpy).toHaveBeenNthCalledWith(1, "Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+        expect(consoleSpy).toHaveBeenNthCalledWith(2, "Founding cap check failed:", {
+          stage: "payment_link_deactivate",
+          status: 0,
+          code: "STRIPE_UPDATE_FAILED",
+        });
+      });
+
+      it("gives the three failure stages three different log details", async () => {
+        const details: unknown[] = [];
+
+        process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+        mockEq.mockRejectedValueOnce(new Error("db"));
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("a@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        mockEq.mockResolvedValueOnce({ count: 999 });
+        mockRpc.mockResolvedValueOnce({ data: null, error: { message: "denied" } });
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("b@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        mockEq.mockResolvedValueOnce({ count: 999 });
+        mockPaymentLinksUpdate.mockRejectedValueOnce(new Error("stripe"));
+        mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("c@example.com"));
+        await POST(buildRequest("{}", "valid_sig"));
+        details.push(consoleSpy.mock.calls.at(-1)?.[1]);
+
+        expect(new Set(details.map((detail) => JSON.stringify(detail))).size).toBe(3);
+        expect(details.map((detail) => (detail as { stage: string }).stage)).toEqual([
+          "count_read",
+          "cap_read",
+          "payment_link_deactivate",
+        ]);
+      });
+    });
+
+    it("does NOT deactivate and still returns 200 when the count read returns a Supabase error", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockResolvedValue({ count: null, error: { message: "permission denied" } });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockJson).toHaveBeenCalledWith({ received: true });
+    });
+
+    it("does NOT deactivate and still returns 200 when a successful count response has no count", async () => {
+      process.env.STRIPE_FOUNDING_PAYMENT_LINK_ID = "plink_test_123";
+      mockEq.mockResolvedValue({ count: null, error: null, status: 200 });
+      mockConstructEvent.mockReturnValueOnce(makeCheckoutEvent("founder@example.com"));
+
+      const req = buildRequest("{}", "valid_sig");
+      await POST(req);
+
+      expect(mockPaymentLinksUpdate).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Founding cap check skipped: waitlist count read failed:",
+        { status: 200, code: "COUNT_UNAVAILABLE" },
       );
       expect(mockJson).toHaveBeenCalledWith({ received: true });
     });
