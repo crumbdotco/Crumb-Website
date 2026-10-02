@@ -6,9 +6,9 @@
  *   wherever mounted, not dependent on an ambient `.landing` ancestor class
  *   - verified here structurally (real anchors, sized icon wrapper), since
  *   jsdom does not compute actual CSS from Tailwind classes.
- * - F53-R2: both badges must ALWAYS resolve to a real, working href - never
- *   a bare "#" and never a non-interactive disabled element - falling back
- *   to the site's founding-member join CTA when a store env var is unset.
+ * - F53-R2: a badge with a store URL is a real link with a working href
+ *   (never a bare "#"). A badge without a URL (Google Play today) is a
+ *   non-link role="img" "coming soon" element with no hover/press affordance.
  */
 
 import { render, screen } from "@testing-library/react";
@@ -56,6 +56,13 @@ describe("StoreBadges", () => {
       expect(badge).not.toHaveAttribute("href");
       expect(badge).toHaveTextContent("Coming soon");
       expect(container.innerHTML).not.toMatch(/waitlist/i);
+    });
+
+    it("the non-link Google Play badge carries no hover or press affordance classes", () => {
+      render(<StoreBadges />);
+      const badge = screen.getByLabelText("Google Play coming soon");
+      expect(badge.className).not.toMatch(/hover:-translate/);
+      expect(badge.className).not.toMatch(/active:translate/);
     });
   });
 

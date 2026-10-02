@@ -93,7 +93,9 @@ interface StoreBadgeProps {
 
 function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBadgeProps) {
   const className =
-    "inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0 max-[560px]:flex-[1_1_auto] max-[560px]:min-w-0 max-[560px]:justify-center";
+    "inline-flex items-center gap-[11px] rounded-[13px] bg-black py-[9px] pr-[18px] pl-[15px] !text-white no-underline shadow-[0_8px_26px_rgba(0,0,0,0.16)] max-[560px]:flex-[1_1_auto] max-[560px]:min-w-0 max-[560px]:justify-center";
+  const affordance =
+    " transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-[3px] hover:!text-white active:translate-y-0";
   const content = (
     <>
       <span
@@ -116,7 +118,7 @@ function StoreBadge({ href, iconSvg, smallLabel, bigLabel, ariaLabel }: StoreBad
   }
 
   return (
-    <a className={className} href={href} aria-label={ariaLabel}>
+    <a className={`${className}${affordance}`} href={href} aria-label={ariaLabel}>
       {content}
     </a>
   );
