@@ -439,3 +439,75 @@ Decision for item 4: the hand-rolled model was deleted. The replacement drives t
 Automation-as-infrastructure answer for this round: the HIGH finding's automation is the corrected regex itself plus an acceptance table pinned to the real PostgREST rendering rules (fraction optional, numeric offset, no `Z` requirement) rather than to `toISOString()`'s output shape, so a future change to the regex is checked against the actual database contract, not a JS convenience method. The loop-bound guard (item 3) is itself the automation for the "unbounded test loop" class the fix-plan flagged - the `exitedByIntendedCondition` flag makes a future regression fail fast instead of hanging a worker again. The pair-or-nothing fix (item 5) and its `toStrictEqual`-based tests are the automation for the "toHaveBeenCalledWith hides undefined keys" class documented in this repo's testing rules.
 
 Verify (this round): `npx tsc --noEmit` -> clean, zero output. `npx eslint` on the four changed source/test files -> clean, zero output. `npx jest --testTimeout=20000 src/__tests__/lib/admin/moderation.test.ts src/__tests__/app/admin-moderation-page.test.tsx` -> 2 suites / 112 tests passed. Coverage on the two touched source files: `moderation.ts` 98.96% lines / 98.93% branches (up from 98.94 / 98.90); `page.tsx` 100% lines / 90.69% branches (unchanged) - neither regressed.
+
+## #20 fix/20-founding-count-unavailable (2026-09-28, lane: Codex luna writer, opus reviewer)
+
+Decisions:
+
+- FoundingSection now starts with null data, renders no count or progress bar until a validated numeric count arrives, and retries non-OK, non-JSON, and missing-count responses three times with 1 second then 3 second backoff. An AbortController and active flag prevent state updates after unmount. After the final failure it keeps the CTA and renders the exact `.fremain` copy `Live count unavailable right now.`.
+- The founding route destructures `error` and omits `count` when Supabase returns an error, null, non-finite, or non-numeric count. The webhook also destructures `error`; a count-read error logs, skips payment-link deactivation, and still returns `{ received: true }` to Stripe. The existing cap-read catch remains fail-safe in the same way.
+- All Supabase count reads in `src/` now either destructure `count` and `error` directly or pass through the error-aware `readCount` helper. A static guard has offending and innocent fixtures plus a real-tree scan.
+- `.fcount` now uses `var(--ink)`. A broad gold-text CSS guard was measured against the stylesheet and would flag many existing gold text selectors, including links, headings, metrics, and index labels, so no broad guard was shipped.
+
+Deviations:
+
+- `gh issue view 20` could not reach GitHub because the sandbox denied the network socket. The checked-out branch, local common brief, source, and tests were used as the available specification.
+- The required coverage command passed all 38 suites and 608 tests but failed the existing global floor at 73.68% statements, 68.56% branches, 70.66% functions, and 75.17% lines. The full lint command reached four unrelated existing errors in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`, plus existing warnings. The build was blocked by offline Google Fonts fetches for four existing `next/font` imports. Changed-file TypeScript and lint checks were clean apart from one pre-existing warning in the touched webhook test.
+
+Owner decisions still open: none.
+
+What recurring class did this work expose, and what automation now guards it? Silent fallback of unavailable remote counts into plausible zero values. The component regression tests guard the user-visible loading, retry, unavailable, success, and unmount states. The route and webhook tests guard error-shaped Supabase responses, and the real-tree static guard prevents future count reads from omitting their error result.
+
+## #20 fix/20-founding-count-unavailable (2026-09-28, lane: Codex luna writer, opus reviewer)
+
+Decisions:
+
+- Fixed the admin schema contradiction by using `profiles.onboarding_complete` for the onboarded metric. The owner must confirm that this boolean is the intended meaning of "onboarded" before deployment.
+- Admin count reads now return `number | null` independently. One failed read is logged with metric, response status, and error code while the other seven metrics remain real. The admin page marks only the failed stat unavailable and logs a redacted source failure instead of silently discarding it.
+- FoundingSection now gives each attempt its own 8 second AbortController timeout, keeps the unmount guard across retries and JSON parsing, and removes the dead retry-timer cleanup branch. The explanatory test header was restored with the new no-fabricated-count behavior.
+- Waitlist, founding, and webhook count-read logs now use status and error code only. A waitlist rate-limit read failure is logged and continues to allow the signup. The webhook still returns `{ received: true }` and skips payment-link deactivation when its count is unknown, preserving its fail-safe behavior.
+- Replaced the count-read regex guard with a TypeScript AST per-call guard. It detects option-key order independently, requires error checking before count use or a helper that throws, keeps calls independent inside `Promise.all`, uses identifier boundaries, and reports file:line locations. Fixtures cover M1-M4 as distinct red diagnostics, M6 as green, helper-throw handling, the cross-call case, and the real source tree.
+
+Deviations:
+
+- `gh issue view 20 --repo crumbdotco/Crumb-Website` was attempted from the worktree but the sandbox denied the GitHub network socket. The local common brief, checked-out source, existing tests, and reviewer findings were the available specification.
+- `npm run test:coverage -- --runInBand --watchman=false` ran 40 suites and 627 tests successfully but exited non-zero because the existing global floor remained below threshold: 75.90% statements, 71.09% branches, 72.68% functions, and 76.86% lines. Changed source coverage was: FoundingSection 100 / 95.74 / 100 / 100; waitlist route 93.42 / 77.61 / 100 / 94.59; founding route 90.47 / 100 / 100 / 90.47; webhook 100 / 96.15 / 100 / 100; admin Supabase metrics 100 / 92.30 / 100 / 100, in statements / branches / functions / lines order. Admin page remains excluded by the repository coverage config.
+- `npm run lint` completed with four pre-existing errors in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`, plus existing warnings. No new lint errors came from these changes. `npm run build` passed, with only existing middleware and metadata warnings.
+
+Owner decisions still open: confirm that `profiles.onboarding_complete` is the intended onboarded definition in the live schema. No real Cloudflare, Vercel, Stripe, or Supabase network behavior was exercised in this sandbox.
+
+What recurring class did this work expose, and what automation now guards it? Remote count reads can fail with an error object, a missing count, a rejected request, or a request that never settles, and each shape can otherwise become a plausible zero or an endless loading state. Component fake-timer tests guard retries, timeout, JSON validation, unmount aborts, unavailable copy, and CTA behavior. Route tests guard omission and fail-safe behavior. The AST guard now enforces checked error handling per count-read call across the real `src/` tree.
+
+## Resume verification correction (2026-09-29)
+
+- Re-ran `npm.cmd run test:coverage -- --runInBand --watchman=false`: 40 suites and 629 tests passed. The command exited non-zero only because the existing global thresholds remained below the configured floor: 76.09% statements, 71.46% branches, 72.68% functions, and 77.07% lines.
+- Re-ran `npm.cmd run lint`: the same four pre-existing errors remain in `__mocks__/framer-motion.js`, `src/__tests__/middleware.test.ts`, and `src/components/legal/BackLink.tsx`; no changed-file errors were reported.
+- Per the brief, `npm run build` was skipped because the sandbox cannot fetch Google Fonts; the orchestrator must run it in its networked environment.
+
+### #20 fix round 2
+
+Lane: Claude sonnet writer, opus reviewer.
+
+- Count guard (`src/__tests__/security/supabase-count-error-guards.test.ts`): an error check now counts only if it sits in an `if` condition whose error branch returns or throws before `count` is used, or if every count use is confined to the success branch or the condition itself (the webhook's if/else shape). Polarity of a leading `!` is honoured. A ternary, a log-only branch, or any other read of `error` no longer counts. `count ?? <literal>` and `count || <literal>` on any count binding are banned outright, in the readCount helper too. Count reads are detected by ANY `count:` option value, and a same-scope const options object is followed. Property names such as `{ count: x }` and `a.error` are no longer counted as uses.
+- Mutants A, B, C, D, E (plus F, G, H fallback and I wrong-polarity extras) are permanent red fixtures with distinct messages; eight innocent shapes prove no false alarm. M1-M4 keep their messages, M0 and M6 stay green, the real tree is green.
+- Webhook (`src/app/api/stripe/webhook/route.ts`): the cap check moved into `checkFoundingCap()` with three stages. Count read throws log `{ stage: 'count_read', status: 0, code: 'FETCH_ERROR' }`; the cap read logs `{ stage: 'cap_read', code: 'CAP_UNAVAILABLE' }`; a failed `paymentLinks.update` logs `{ stage: 'payment_link_deactivate', code: 'STRIPE_UPDATE_FAILED' }` plus `stripeType` and `stripeCode` only when they are strings. Never a message or an email.
+- Deviation (conservative): the count read destructures `{ count: rawCount, error, status }` so the guard can verify it; the non-throwing "count read failed" skip log keeps its previous wording.
+- What recurring class did this expose, and what automation now guards it? An error check that does not stop the code path (log-only, ternary) plus a literal count fallback re-creates the "failed read looks like zero" bug. The AST guard now requires an exiting error branch and bans literal count fallbacks, with both-direction fixtures.
+
+### #20 fix round 3
+
+Lane: Claude sonnet writer, opus reviewer.
+
+- Count guard (`src/__tests__/security/supabase-count-error-guards.test.ts`): an exiting error check now counts only if the `if` is a direct statement of a block (or module) that contains the first count use, in the SAME function body, and ends before that use (or the use sits in the if condition after `error ||`). A return or throw inside a nested block, callback, arrow function or never-called function no longer counts. A throwing-helper call counts only as a direct expression statement under the same rule. The if/else shapes (count confined to the success branch) stay accepted. New message: "count read error exit does not dominate count use".
+- Options resolution now unwraps parentheses, `as X`, `<X>`, `satisfies X` and `!`, follows identifier hops through block and module scope, and follows object spreads (`{ ...base, head: true }`), so hoisted, wrapped and spread option objects are all seen as count reads.
+- Fallbacks: any `??`, `||`, `??=` or `||=` whose left side is a count binding (through parentheses or casts) is banned, whatever the right side. The message is now "count must not fall back to another value".
+- Fixtures: N3-N8, N10, N4, N5, N6, N16, `as const` (same and module scope), `satisfies` and a non-null wrapper are permanent red fixtures; five new innocent shapes stay green. Also proven red against scratch copies of the real founding route, admin helper and webhook (N1-N16 runner, all red except N9).
+- Deviation (conservative approximation, no full control-flow analysis): dominance is "direct statement of an enclosing block, same function, before the use". A check inside a bare `{ }` block or a nested if is red even when it happens to dominate. The real tree stays green.
+- Known gap left open: `Number(count)` coercion (N9) is still green; it was not in this round's rules.
+- What recurring class did this expose, and what automation now guards it? An error check that does not dominate the count use (nested, callback, unreachable) and a wrapped or aliased fallback re-create "failed read looks like zero". The AST guard now requires a dominating exit and bans any count fallback, with red fixtures for each rule.
+
+### #20 review close-out (round 5, orchestrator adjudication 2026-09-29)
+- ACCEPTED-DEVIATION 1: `Number(count)`-style coercion (N9) is not caught statically; a guard cannot enumerate coercions. Check run (round 5 reviewer): the error path is blocked by the dominance rule in all four files; the null-count/no-error path has an outcome test for the founding route (waitlist-founding.test.ts:116-124), the webhook (stripe-webhook-extended.test.ts:520-532) and the admin helper (supabase-admin.test.ts:90-97).
+- ACCEPTED-DEVIATION 2: the waitlist route's isDbRateLimited (src/app/api/waitlist/route.ts:54) has no null-count test. Check: that read fails open by design and a coerced 0 also means allow, so the user-visible outcome is identical; only the COUNT_UNAVAILABLE log line would be lost.
+- ACCEPTED-DEVIATION 3: the dominance rule is stricter than real control flow (N15, and a use in the else branch of an exiting if). It fails closed and the real tree uses neither shape.
+- Review rounds: 5 of 5 (cap). Lane: Codex luna writer (rounds 0-1), Claude sonnet writer (rounds 2-3), Claude opus reviewer.
