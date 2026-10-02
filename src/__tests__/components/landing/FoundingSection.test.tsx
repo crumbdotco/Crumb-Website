@@ -298,4 +298,18 @@ describe("FoundingSection", () => {
 
     expect(screen.queryByRole("button", { name: /Become a founding member/i })).not.toBeInTheDocument();
   });
+
+  it("no longer lists the early-access-before-launch perk", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ count: 42, remaining: 58, closed: false }),
+    }) as unknown as typeof fetch;
+
+    render(<FoundingSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("42 / 100")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Early access before public launch/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Founding member badge in the app")).toBeInTheDocument();
+  });
 });
