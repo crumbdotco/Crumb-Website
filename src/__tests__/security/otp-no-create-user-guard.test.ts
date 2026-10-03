@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from "fs";
 import path from "path";
 
 const SRC = path.resolve(__dirname, "../..");
+const NL = "\n";
 
 function walk(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -16,23 +17,66 @@ function walk(dir: string): string[] {
   });
 }
 
+/**
+ * Blanks comments and the contents of string/template literals (same length,
+ * newlines kept) so `// shouldCreateUser: false` or "shouldCreateUser: false"
+ * cannot satisfy the guard. A quoted key is therefore not accepted; write it bare.
+ */
+export function stripCommentsAndStrings(src: string): string {
+  let out = "";
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    const n = src[i + 1];
+    if (c === "/" && n === "/") {
+      while (i < src.length && src[i] !== NL) {
+        out += " ";
+        i++;
+      }
+    } else if (c === "/" && n === "*") {
+      const end = src.indexOf("*/", i + 2);
+      const stop = end === -1 ? src.length : end + 2;
+      out += src.slice(i, stop).replace(/[^\n]/g, " ");
+      i = stop;
+    } else if (c === '"' || c === "'" || c === "`") {
+      out += c;
+      i++;
+      while (i < src.length && src[i] !== c) {
+        if (src[i] === "\\") {
+          out += " ";
+          i++;
+        }
+        out += src[i] === NL ? NL : " ";
+        i++;
+      }
+      out += c;
+      i++;
+    } else {
+      out += c;
+      i++;
+    }
+  }
+  return out;
+}
+
 /** Returns one message per signInWithOtp call whose argument lacks shouldCreateUser: false. */
 export function findCreatingOtpCalls(source: string): string[] {
+  const clean = stripCommentsAndStrings(source);
   const out: string[] = [];
   const re = /signInWithOtp\s*\(/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(source))) {
+  while ((m = re.exec(clean))) {
     let depth = 1;
     let i = m.index + m[0].length;
     const start = i;
-    while (i < source.length && depth > 0) {
-      if (source[i] === "(") depth++;
-      else if (source[i] === ")") depth--;
+    while (i < clean.length && depth > 0) {
+      if (clean[i] === "(") depth++;
+      else if (clean[i] === ")") depth--;
       i++;
     }
-    const args = source.slice(start, i - 1);
-    if (!/shouldCreateUser\s*:\s*false\b/.test(args)) {
-      out.push(`signInWithOtp(${args.trim().slice(0, 60)}) lacks shouldCreateUser: false`);
+    if (!/shouldCreateUser\s*:\s*false\b/.test(clean.slice(start, i - 1))) {
+      const raw = source.slice(start, i - 1).trim().slice(0, 80);
+      out.push(`signInWithOtp(${raw}) lacks shouldCreateUser: false`);
     }
   }
   return out;
@@ -44,6 +88,17 @@ describe("signInWithOtp never creates users", () => {
     expect(
       findCreatingOtpCalls("signInWithOtp({ email, options: { shouldCreateUser: true } })"),
     ).toHaveLength(1);
+  });
+
+  it("red mutants: comment or string text cannot satisfy the guard", () => {
+    const mutants = [
+      "signInWithOtp({ email, // shouldCreateUser: false" + NL + "})",
+      "signInWithOtp({ email, /* shouldCreateUser: false */ })",
+      "signInWithOtp({ email, note: 'shouldCreateUser: false' })",
+    ];
+    const results = mutants.map((m) => findCreatingOtpCalls(m));
+    results.forEach((r) => expect(r).toHaveLength(1));
+    expect(new Set(results.map((r) => r[0])).size).toBe(mutants.length);
   });
 
   it("green fixture: shouldCreateUser: false passes", () => {
