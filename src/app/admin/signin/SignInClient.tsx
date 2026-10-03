@@ -12,8 +12,8 @@ function getSupabase() {
 
 const OTP_SEND_FAILED = 'Could not send the code. Check your connection and try again.';
 
-function isUnknownUserRefusal(err: { status?: number; code?: string }): boolean {
-  return err.status === 422 || err.code === 'otp_disabled' || err.code === 'signup_disabled';
+function isUnknownUserRefusal(err: { code?: string }): boolean {
+  return err.code === 'otp_disabled';
 }
 
 export default function SignInClient({
@@ -43,9 +43,10 @@ export default function SignInClient({
       email,
       options: { shouldCreateUser: false },
     });
-    // Supabase refuses an unknown email with 422 (otp_disabled / signup_disabled).
-    // Treat it exactly like success so the page never reveals whether an address
-    // exists or is an admin. Any other failure gets a fixed generic message.
+    // With shouldCreateUser false Supabase refuses an unknown email with code
+    // otp_disabled. Show the same copy as success (cosmetic only: the public anon
+    // key can query /auth/v1/otp directly). Any other failure, including a 422
+    // email_provider_disabled, gets a fixed generic message.
     if (otpError && !isUnknownUserRefusal(otpError)) {
       setError(OTP_SEND_FAILED);
       setStatus('error');
