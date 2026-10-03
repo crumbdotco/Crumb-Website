@@ -101,6 +101,30 @@ describe("signInWithOtp never creates users", () => {
     expect(new Set(results.map((r) => r[0])).size).toBe(mutants.length);
   });
 
+  it("red mutants: an earlier JSX apostrophe or regex literal cannot blank a bad call", () => {
+    const bad = "const r = supabase.auth.signInWithOtp({ email, options: {} });" + NL;
+    const mutants = [
+      "const T = () => <p>Don't</p>;" + NL + bad,
+      "const re = /'/;" + NL + bad,
+    ];
+    const results = mutants.map((m) => findCreatingOtpCalls(m));
+    results.forEach((r) => expect(r).toHaveLength(1));
+    expect(new Set(results.map((r) => r[0])).size).toBe(mutants.length);
+    const real = readFileSync(path.join(SRC, "app/admin/signin/SignInClient.tsx"), "utf8");
+    expect(findCreatingOtpCalls(real)).toEqual([]);
+    expect(
+      findCreatingOtpCalls("const T = () => <p>Don't</p>;" + NL + real.replace("shouldCreateUser: false", "")),
+    ).toHaveLength(1);
+  });
+
+  it("no false alarms: string values containing parens or the key name", () => {
+    expect(
+      findCreatingOtpCalls(
+        "signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: 'https://x.co/a)b' } })",
+      ),
+    ).toEqual([]);
+  });
+
   it("green fixture: shouldCreateUser: false passes", () => {
     expect(
       findCreatingOtpCalls("signInWithOtp({ email, options: { shouldCreateUser: false } })"),
