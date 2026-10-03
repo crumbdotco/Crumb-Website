@@ -78,6 +78,17 @@ describe("admin sign-in OTP request", () => {
     expect(screen.queryByText(/code is on its way/)).toBeNull();
   });
 
+  it("shows the generic error for a 429 rate limit", async () => {
+    mockSignInWithOtp.mockResolvedValue({
+      error: { message: "email rate limit exceeded", status: 429, code: "over_email_send_rate_limit" },
+    });
+    submitEmail("a@b.co");
+    expect(
+      await screen.findByText("Could not send the code. Check your connection and try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/rate limit/)).toBeNull();
+  });
+
   it("shows a generic error on a network failure without echoing the message", async () => {
     mockSignInWithOtp.mockResolvedValue({
       error: { message: "fetch failed to host x", status: 0, name: "AuthRetryableFetchError" },
