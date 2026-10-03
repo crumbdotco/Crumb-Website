@@ -58,13 +58,24 @@ describe("admin sign-in OTP request", () => {
 
   it("shows the same neutral copy when Supabase refuses an unknown email", async () => {
     mockSignInWithOtp.mockResolvedValue({
-      error: { message: "Signups not allowed for otp", status: 422 },
+      error: { message: "Signups not allowed for otp", status: 422, code: "otp_disabled" },
     });
     submitEmail("nobody@b.co");
     expect(
       await screen.findByText(/If this address has access, a code is on its way\./),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Signups not allowed/)).toBeNull();
+  });
+
+  it("shows the generic error for a 422 email_provider_disabled (a real admin gets no email)", async () => {
+    mockSignInWithOtp.mockResolvedValue({
+      error: { message: "Email logins are disabled", status: 422, code: "email_provider_disabled" },
+    });
+    submitEmail("admin@b.co");
+    expect(
+      await screen.findByText("Could not send the code. Check your connection and try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/code is on its way/)).toBeNull();
   });
 
   it("shows a generic error on a network failure without echoing the message", async () => {
