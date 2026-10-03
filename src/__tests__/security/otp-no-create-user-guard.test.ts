@@ -59,24 +59,45 @@ export function stripCommentsAndStrings(src: string): string {
   return out;
 }
 
+/**
+ * Index just past the `)` that closes a call whose arguments start at `start`.
+ * Strings and comments are skipped only INSIDE the span, so text before the
+ * call (a JSX apostrophe, a regex literal) cannot desynchronise the scan.
+ */
+function findCallEnd(src: string, start: number): number {
+  let depth = 1;
+  let i = start;
+  while (i < src.length && depth > 0) {
+    const c = src[i];
+    const n = src[i + 1];
+    if (c === "/" && n === "/") {
+      while (i < src.length && src[i] !== NL) i++;
+    } else if (c === "/" && n === "*") {
+      const end = src.indexOf("*/", i + 2);
+      i = end === -1 ? src.length : end + 2;
+    } else if (c === '"' || c === "'" || c === "`") {
+      i++;
+      while (i < src.length && src[i] !== c) i += src[i] === "\\" ? 2 : 1;
+      i++;
+    } else {
+      if (c === "(") depth++;
+      else if (c === ")") depth--;
+      i++;
+    }
+  }
+  return i;
+}
+
 /** Returns one message per signInWithOtp call whose argument lacks shouldCreateUser: false. */
 export function findCreatingOtpCalls(source: string): string[] {
-  const clean = stripCommentsAndStrings(source);
   const out: string[] = [];
   const re = /signInWithOtp\s*\(/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(clean))) {
-    let depth = 1;
-    let i = m.index + m[0].length;
-    const start = i;
-    while (i < clean.length && depth > 0) {
-      if (clean[i] === "(") depth++;
-      else if (clean[i] === ")") depth--;
-      i++;
-    }
-    if (!/shouldCreateUser\s*:\s*false\b/.test(clean.slice(start, i - 1))) {
-      const raw = source.slice(start, i - 1).trim().slice(0, 80);
-      out.push(`signInWithOtp(${raw}) lacks shouldCreateUser: false`);
+  while ((m = re.exec(source))) {
+    const start = m.index + m[0].length;
+    const span = source.slice(start, findCallEnd(source, start) - 1);
+    if (!/shouldCreateUser\s*:\s*false\b/.test(stripCommentsAndStrings(span))) {
+      out.push(`signInWithOtp(${span.trim().slice(0, 80)}) lacks shouldCreateUser: false`);
     }
   }
   return out;
@@ -102,10 +123,10 @@ describe("signInWithOtp never creates users", () => {
   });
 
   it("red mutants: an earlier JSX apostrophe or regex literal cannot blank a bad call", () => {
-    const bad = "const r = supabase.auth.signInWithOtp({ email, options: {} });" + NL;
+    const bad = (opts: string) => `const r = supabase.auth.signInWithOtp({ email, ${opts} });` + NL;
     const mutants = [
-      "const T = () => <p>Don't</p>;" + NL + bad,
-      "const re = /'/;" + NL + bad,
+      "const T = () => <p>Don't</p>;" + NL + bad("options: {}"),
+      "const re = /'/;" + NL + bad("options: { shouldCreateUser: true }"),
     ];
     const results = mutants.map((m) => findCreatingOtpCalls(m));
     results.forEach((r) => expect(r).toHaveLength(1));
@@ -113,7 +134,7 @@ describe("signInWithOtp never creates users", () => {
     const real = readFileSync(path.join(SRC, "app/admin/signin/SignInClient.tsx"), "utf8");
     expect(findCreatingOtpCalls(real)).toEqual([]);
     expect(
-      findCreatingOtpCalls("const T = () => <p>Don't</p>;" + NL + real.replace("shouldCreateUser: false", "")),
+      findCreatingOtpCalls("const T = () => <p>Don't</p>;" + NL + real.replaceAll("shouldCreateUser: false", "")),
     ).toHaveLength(1);
   });
 
