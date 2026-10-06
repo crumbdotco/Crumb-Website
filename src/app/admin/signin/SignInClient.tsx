@@ -10,6 +10,12 @@ function getSupabase() {
   return createClient(url, anon);
 }
 
+const OTP_SEND_FAILED = 'Could not send the code. Check your connection and try again.';
+
+function isUnknownUserRefusal(err: { code?: string }): boolean {
+  return err.code === 'otp_disabled';
+}
+
 export default function SignInClient({
   unauthorised = false,
 }: {
@@ -32,9 +38,17 @@ export default function SignInClient({
       return;
     }
 
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-    if (otpError) {
-      setError(otpError.message);
+    // shouldCreateUser: false so this page can never mint auth users (app#964).
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    // With shouldCreateUser false Supabase refuses an unknown email with code
+    // otp_disabled. Show the same copy as success (cosmetic only: the public anon
+    // key can query /auth/v1/otp directly). Any other failure, including a 422
+    // email_provider_disabled, gets a fixed generic message.
+    if (otpError && !isUnknownUserRefusal(otpError)) {
+      setError(OTP_SEND_FAILED);
       setStatus('error');
     } else {
       setStatus('sent');
@@ -116,7 +130,8 @@ export default function SignInClient({
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-3">
             <p className="text-sm opacity-70">
-              Enter the 6-digit code sent to <span className="font-semibold">{email}</span>.
+              If this address has access, a code is on its way. Enter the 6-digit code for{' '}
+              <span className="font-semibold">{email}</span>.
             </p>
             <input
               type="text"
